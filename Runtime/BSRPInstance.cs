@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering.RenderGraphModule;
 using UnityEngine.Rendering;
 
 public class BSRPInstance : RenderPipeline
@@ -8,13 +9,13 @@ public class BSRPInstance : RenderPipeline
     private ShaderTagId[] _shaderTags = { new ShaderTagId("BSRPLightMode") };
    
     private CommandBuffer skyboxCmd;
+    private CommandBuffer _clearRenderTargetCmd;
+
+    private readonly RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
 
     public BSRPInstance(BSRPAsset asset)
     {
         _bsrpAsset = asset;
-        //???
-        skyboxCmd = new CommandBuffer();
-        skyboxCmd.name = "Render Skybox Command buffer";
     }
 
 
@@ -22,7 +23,10 @@ public class BSRPInstance : RenderPipeline
     {
         BeginContextRendering(context, cameras);
 
-        var clearCmd = new CommandBuffer();
+        _clearRenderTargetCmd = new CommandBuffer();
+        _clearRenderTargetCmd.name = "Clear target Commands";
+        skyboxCmd = new CommandBuffer();
+        skyboxCmd.name = "Render Skybox Commands";
 
         foreach (Camera camera in cameras)
         {
@@ -39,32 +43,41 @@ public class BSRPInstance : RenderPipeline
             bool clearColor = camera.clearFlags == CameraClearFlags.Color;
            
             //clear cam render target
-            clearCmd.name = "Clear Color";
-            clearCmd.ClearRenderTarget(clearDepth, clearColor, Color.black);
-            context.ExecuteCommandBuffer(clearCmd);
-            clearCmd.Clear();
+        //    _clearRenderTargetCmd.ClearRenderTarget(clearDepth, clearColor, Color.black);
+         //   context.ExecuteCommandBuffer(_clearRenderTargetCmd);
+           // _clearRenderTargetCmd.Clear();
 
-            if (drawSkyBox)
-            {
-                RenderSkybox(context, camera);
-            }
+           RenderGraphParameters renderGraphParameters = new RenderGraphParameters
+           {
+               commandBuffer = CommandBufferPool.Get(),
+               currentFrameIndex = Time.frameCount,
+               executionName = "Camera rg", //sampler prof
+               rendererListCulling =  true,
+               scriptableRenderContext = context
+           };
+
+           using (RenderGraph.RecordAndExecute(renderGraphParameters))
+           {
+               DrawGeometryPass.Record(RenderGraph, camera, cullingResults, -1, true);//-1????s
+           }
             
+       //     if (drawSkyBox)
+           // {
+            //    RenderSkybox(context, camera);
+           // }
+            context.ExecuteCommandBuffer(renderGraphParameters.commandBuffer);
+            renderGraphParameters.commandBuffer.Clear();
             context.Submit();
         }
 
         //release cmd's
-        clearCmd.Release();
-        skyboxCmd.Release();
+        _clearRenderTargetCmd.Release();
     }
     
-    //TODO: exclude from here
-    public void RenderSkybox(ScriptableRenderContext context, Camera camera)
+
+    protected override void Dispose(bool disposing)
     {
-        RendererList rendererList = context.CreateSkyboxRendererList(camera);
-       
-        skyboxCmd.DrawRendererList(rendererList);
-        context.ExecuteCommandBuffer(skyboxCmd);
-        skyboxCmd.Release();
+        RenderGraph.Cleanup();
     }
 
     //old version

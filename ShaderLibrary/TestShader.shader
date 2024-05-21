@@ -36,7 +36,7 @@ Shader "BSRP/TestShader"
 
             float4 frag(Varyings IN) : SV_TARGET
             {
-                return float4(0.5, 1, 0.5, 1);
+                return float4(1, 1, 0.5, 1);
             }
             ENDHLSL
         }
