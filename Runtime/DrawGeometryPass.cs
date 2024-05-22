@@ -12,6 +12,7 @@ public class DrawGeometryPass
 
     private void Render(RenderGraphContext context)
     {
+        // context.cmd.ClearRenderTarget(true, true, Color.black);
         context.cmd.DrawRendererList(rendererListHandle);
         context.renderContext.ExecuteCommandBuffer(context.cmd);
         context.cmd.Clear();
@@ -21,6 +22,7 @@ public class DrawGeometryPass
     {
         var profilingSampler = isOpaque ? OpaqueSampler : TransparentSampler;
         var drawGeometryPass = new DrawGeometryPass();
+        
 
         using RenderGraphBuilder builder = renderGraph.AddRenderPass(isOpaque ? "Draw Opaque Pass" : "Draw Transparent Pass", out drawGeometryPass, profilingSampler);
         

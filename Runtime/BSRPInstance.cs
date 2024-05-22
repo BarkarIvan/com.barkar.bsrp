@@ -6,10 +6,8 @@ using UnityEngine.Rendering;
 public class BSRPInstance : RenderPipeline
 {
     private BSRPAsset _bsrpAsset;
-    private ShaderTagId[] _shaderTags = { new ShaderTagId("BSRPLightMode") };
-   
-    private CommandBuffer skyboxCmd;
-    private CommandBuffer _clearRenderTargetCmd;
+
+    
 
     private readonly RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
 
@@ -23,11 +21,6 @@ public class BSRPInstance : RenderPipeline
     {
         BeginContextRendering(context, cameras);
 
-        _clearRenderTargetCmd = new CommandBuffer();
-        _clearRenderTargetCmd.name = "Clear target Commands";
-        skyboxCmd = new CommandBuffer();
-        skyboxCmd.name = "Render Skybox Commands";
-
         foreach (Camera camera in cameras)
         {
             BeginCameraRendering(context, camera);
@@ -36,17 +29,8 @@ public class BSRPInstance : RenderPipeline
             if (!camera.TryGetCullingParameters(out cullingParameters)) continue;
             CullingResults cullingResults = context.Cull(ref cullingParameters);
             context.SetupCameraProperties(camera);
-
-            //chek cam clear flags  TODO: exclude
-            bool drawSkyBox = camera.clearFlags == CameraClearFlags.Skybox;
-            bool clearDepth = camera.clearFlags != CameraClearFlags.Nothing;
-            bool clearColor = camera.clearFlags == CameraClearFlags.Color;
-           
-            //clear cam render target
-        //    _clearRenderTargetCmd.ClearRenderTarget(clearDepth, clearColor, Color.black);
-         //   context.ExecuteCommandBuffer(_clearRenderTargetCmd);
-           // _clearRenderTargetCmd.Clear();
-
+            
+            
            RenderGraphParameters renderGraphParameters = new RenderGraphParameters
            {
                commandBuffer = CommandBufferPool.Get(),
@@ -56,22 +40,31 @@ public class BSRPInstance : RenderPipeline
                scriptableRenderContext = context
            };
 
+           //chek cam clear flags  TODO: exclude
+           bool drawSkyBox = camera.clearFlags == CameraClearFlags.Skybox;
+           bool clearDepth = camera.clearFlags != CameraClearFlags.Nothing;
+           bool clearColor = camera.clearFlags == CameraClearFlags.Color;
+         
+         
+          // renderGraphParameters.commandBuffer.ClearRenderTarget(clearDepth, clearColor, Color.clear);
+       
            using (RenderGraph.RecordAndExecute(renderGraphParameters))
            {
+               //shadows
+               
+               //Setup and Clear?
+               
                DrawGeometryPass.Record(RenderGraph, camera, cullingResults, -1, true);//-1????s
+              
+               //skybox
+               
+               //GeometryPassTransparent
+               
            }
-            
-       //     if (drawSkyBox)
-           // {
-            //    RenderSkybox(context, camera);
-           // }
             context.ExecuteCommandBuffer(renderGraphParameters.commandBuffer);
-            renderGraphParameters.commandBuffer.Clear();
             context.Submit();
+            CommandBufferPool.Release(renderGraphParameters.commandBuffer);
         }
-
-        //release cmd's
-        _clearRenderTargetCmd.Release();
     }
     
 
