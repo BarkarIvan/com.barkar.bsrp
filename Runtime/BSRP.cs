@@ -1,30 +1,37 @@
 using System.Collections.Generic;
+using Barkar.BSRP.CameraRenderer;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
 using UnityEngine.Rendering;
 
-public class BSRPInstance : RenderPipeline
+public class BSRP : RenderPipeline
 {
-    private BSRPAsset _bsrpAsset;
-
+    private BSRPSettings _bsrpSettings;
     
-
     private readonly RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
+    
+    private static readonly ShaderTagId[] _commonShaderTags = { new ShaderTagId("BSRPLightMode") };
 
-    public BSRPInstance(BSRPAsset asset)
+
+    public BSRP(BSRPSettings settings)
     {
-        _bsrpAsset = asset;
+        _bsrpSettings = settings;
     }
 
 
     protected override void Render(ScriptableRenderContext context, List<Camera> cameras)
     {
         BeginContextRendering(context, cameras);
-
+        Vector2Int textureSize = default;
+       
         foreach (Camera camera in cameras)
         {
             BeginCameraRendering(context, camera);
-
+            
+            //destination buffer size
+            textureSize.x = (int)(camera.pixelWidth * _bsrpSettings.RenderScale);
+            textureSize.y = (int)(camera.pixelHeight * _bsrpSettings.RenderScale);
+            
             ScriptableCullingParameters cullingParameters;
             if (!camera.TryGetCullingParameters(out cullingParameters)) continue;
             CullingResults cullingResults = context.Cull(ref cullingParameters);
@@ -35,36 +42,35 @@ public class BSRPInstance : RenderPipeline
            {
                commandBuffer = CommandBufferPool.Get(),
                currentFrameIndex = Time.frameCount,
-               executionName = "Camera rg", //sampler prof
+               executionName = "Camera Render Graph", 
                rendererListCulling =  true,
                scriptableRenderContext = context
            };
-
-           //chek cam clear flags  TODO: exclude
-           bool drawSkyBox = camera.clearFlags == CameraClearFlags.Skybox;
-           bool clearDepth = camera.clearFlags != CameraClearFlags.Nothing;
-           bool clearColor = camera.clearFlags == CameraClearFlags.Color;
-         
-         
-          // renderGraphParameters.commandBuffer.ClearRenderTarget(clearDepth, clearColor, Color.clear);
-       
+           
            using (RenderGraph.RecordAndExecute(renderGraphParameters))
            {
-               //shadows
+               using var _ = new RenderGraphProfilingScope(RenderGraph, new ProfilingSampler("Camera_" + camera.name));
                
-               //Setup and Clear?
-               
-               DrawGeometryPass.Record(RenderGraph, camera, cullingResults, -1, true);//-1????s
+               //directional shadows
+
+               //setup destinations
+               RenderDestinationTextures destinationTextures = SetupPass.Record(RenderGraph, textureSize, camera, _bsrpSettings.HDR);
+               //draw opaque
+               DrawGeometryPass.Record(RenderGraph, _commonShaderTags, camera, cullingResults, destinationTextures, camera.cullingMask, true);
               
                //skybox
                
-               //GeometryPassTransparent
+               //draw transparent
                
+               //...
+               //final pass
+              
            }
-            context.ExecuteCommandBuffer(renderGraphParameters.commandBuffer);
-            context.Submit();
-            CommandBufferPool.Release(renderGraphParameters.commandBuffer);
+           context.ExecuteCommandBuffer(renderGraphParameters.commandBuffer);
+           context.Submit();
+           CommandBufferPool.Release(renderGraphParameters.commandBuffer);
         }
+        RenderGraph.EndFrame();
     }
     
 
