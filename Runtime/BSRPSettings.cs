@@ -8,8 +8,6 @@ public class BSRPSettings : RenderPipelineAsset
     public bool HDR;
     [Range(0.5f, 1)] public float RenderScale = 1f;
 
-    protected override RenderPipeline CreatePipeline()
-    {
-        return new BSRP(this);
-    }
+    
+    protected override RenderPipeline CreatePipeline() => new BSRP(HDR, RenderScale);
 }

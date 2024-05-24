@@ -39,8 +39,7 @@ public class DrawGeometryPass
 
         builder.ReadWriteTexture(destinationTextures.ColorAttachment);
         builder.ReadWriteTexture(destinationTextures.DepthAttachment);
-        //read shdowmaps
-        //read shadow matrices 
+        //read shdow resources
         //etc
       
         builder.SetRenderFunc<DrawGeometryPass>((drawGeometryPass, context) => drawGeometryPass.Render(context));

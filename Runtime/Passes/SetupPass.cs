@@ -8,8 +8,8 @@ public class SetupPass
 {
     private static readonly ProfilingSampler profilingSampler = new("Setup Pass");
 
-    private TextureHandle _colorAttachment;
-    private TextureHandle _depthAttachment;
+    private static TextureHandle _colorAttachment;
+    private static TextureHandle _depthAttachment;
     private CameraClearFlags _cameraClearFlags;
     private Vector2Int _attachmentSize;
 
@@ -25,8 +25,7 @@ public class SetupPass
         setupPass.camera = camera;
         setupPass._cameraClearFlags = camera.clearFlags;
 
-        TextureHandle colorAttachment;
-        TextureHandle depthAttachment;
+       
 
         //texture descriptor
         TextureDesc textureDescriptor = new TextureDesc(attachmetSize.x, attachmetSize.y);
@@ -34,18 +33,18 @@ public class SetupPass
         textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(format);
         textureDescriptor.name = "BSRP_Color_Attachment";
         
-        colorAttachment = builder.UseColorBuffer(graph.CreateTexture(textureDescriptor), 0);
+        _colorAttachment = builder.UseColorBuffer(graph.CreateTexture(textureDescriptor), 0);
         //copy?
 
         textureDescriptor.depthBufferBits = DepthBits.Depth32;
         textureDescriptor.name = "BSRP_Depth_Attachment";
-        depthAttachment = builder.UseDepthBuffer(graph.CreateTexture(textureDescriptor), DepthAccess.ReadWrite);
+        _depthAttachment = builder.UseDepthBuffer(graph.CreateTexture(textureDescriptor), DepthAccess.ReadWrite);
         //copy?
         
         builder.AllowPassCulling(false); //not cull this pass
         builder.SetRenderFunc<SetupPass>(static(pass, context) => pass.Render(context));
 
-        return new RenderDestinationTextures(colorAttachment, depthAttachment);
+        return new RenderDestinationTextures(_colorAttachment, _depthAttachment);
 
     }
 

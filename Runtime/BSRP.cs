@@ -6,16 +6,20 @@ using UnityEngine.Rendering;
 
 public class BSRP : RenderPipeline
 {
-    private BSRPSettings _bsrpSettings;
+    //TODO: rreefactor
+    private bool _hdr;
+    private float _renderScale;
     
     private readonly RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
     
     private static readonly ShaderTagId[] _commonShaderTags = { new ShaderTagId("BSRPLightMode") };
 
 
-    public BSRP(BSRPSettings settings)
+    public BSRP(bool HDR, float renderScale)
     {
-        _bsrpSettings = settings;
+        //to settings structs
+        _hdr = HDR;
+        _renderScale = renderScale;
     }
 
 
@@ -29,8 +33,8 @@ public class BSRP : RenderPipeline
             BeginCameraRendering(context, camera);
             
             //destination buffer size
-            textureSize.x = (int)(camera.pixelWidth * _bsrpSettings.RenderScale);
-            textureSize.y = (int)(camera.pixelHeight * _bsrpSettings.RenderScale);
+            textureSize.x = (int)(camera.pixelWidth * _renderScale);
+            textureSize.y = (int)(camera.pixelHeight * _renderScale);
             
             ScriptableCullingParameters cullingParameters;
             if (!camera.TryGetCullingParameters(out cullingParameters)) continue;
@@ -54,7 +58,7 @@ public class BSRP : RenderPipeline
                //directional shadows
 
                //setup destinations
-               RenderDestinationTextures destinationTextures = SetupPass.Record(RenderGraph, textureSize, camera, _bsrpSettings.HDR);
+               RenderDestinationTextures destinationTextures = SetupPass.Record(RenderGraph, textureSize, camera, _hdr);
                //draw opaque
                DrawGeometryPass.Record(RenderGraph, _commonShaderTags, camera, cullingResults, destinationTextures, camera.cullingMask, true);
               
