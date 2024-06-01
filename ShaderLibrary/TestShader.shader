@@ -1,7 +1,22 @@
+
 Shader "BSRP/TestShader"
 {
+    Properties
+    {
+        _Color ("Color", Color) = (1,1,1,1)
+        [Space(40)]
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Int) = 2
+        [Enum(UnityEngine.Rendering.BlendMode)] _Blend1 ("Blend mode", Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)] _Blend2 ("Blend mode", Float) = 0
+        [Enum(Off,0,On,1)] _ZWrite ("ZWrite", Float) = 1
+    }
+
     SubShader
     {
+        Blend [_Blend1][_Blend2]
+        ZWrite [_ZWrite]
+        Cull [_Cull]
+        
         Pass
         {
             Tags
@@ -15,6 +30,8 @@ Shader "BSRP/TestShader"
 
             float4x4 unity_MatrixVP;
             float4x4 unity_ObjectToWorld;
+
+            half4 _Color;
 
             struct Attributes
             {
@@ -36,7 +53,7 @@ Shader "BSRP/TestShader"
 
             float4 frag(Varyings IN) : SV_TARGET
             {
-                return float4(1, 1, 0.5, 1);
+                return _Color;
             }
             ENDHLSL
         }
