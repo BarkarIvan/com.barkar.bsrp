@@ -42,11 +42,24 @@ public class BSRP : RenderPipeline
             textureSize.x = (int)(camera.pixelWidth * _renderScale);
             textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
+            
             ScriptableCullingParameters cullingParameters;
             if (!camera.TryGetCullingParameters(out cullingParameters)) continue;
+            //TODO SETTINGS
+            cullingParameters.shadowDistance = camera.farClipPlane; 
             CullingResults cullingResults = context.Cull(ref cullingParameters);
+            
+            
             context.SetupCameraProperties(camera);
 
+#if UNITY_EDITOR
+            if (camera.cameraType == CameraType.SceneView)
+            {
+                ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
+                textureSize.x = camera.pixelWidth;
+                textureSize.y = camera.pixelHeight;
+            }
+#endif
 
             renderGraphParameters = new RenderGraphParameters
             {
@@ -61,22 +74,16 @@ public class BSRP : RenderPipeline
             {
                 using var _ = new RenderGraphProfilingScope(RenderGraph, new ProfilingSampler("Camera_" + camera.name));
 
-#if UNITY_EDITOR
-                if (camera.cameraType == CameraType.SceneView)
-                {
-                    ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
-                    //no scale??
-                }
-#endif
 
-                //directional shadows
+                
+                LightingResources lightingResources = LightingPass.ExecuteLightngPass(RenderGraph, cullingResults);
 
                 //setup destinations
                 RenderDestinationTextures destinationTextures =
                     SetupPass.SetupDestinationTextures(RenderGraph, textureSize, camera, _hdr);
                 //draw opaque
                 DrawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
-                    destinationTextures, camera.cullingMask, true);
+                    destinationTextures, camera.cullingMask, true, lightingResources);
 
                 if (camera.clearFlags == CameraClearFlags.Skybox)
                 {
@@ -84,10 +91,12 @@ public class BSRP : RenderPipeline
                 }
 
                 DrawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
-                    destinationTextures, camera.cullingMask, false);
+                    destinationTextures, camera.cullingMask, false, lightingResources);
 
                 //final pass
                 FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial);
+                
+
             }
 
             context.ExecuteCommandBuffer(renderGraphParameters.commandBuffer);

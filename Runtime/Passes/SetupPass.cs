@@ -9,12 +9,15 @@ namespace Barkar.BSRP.Passes
 {
     public class SetupPass
     {
+        private static readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Setup Pass");
+        private static Camera _camera;
+        
         public static RenderDestinationTextures SetupDestinationTextures(RenderGraph renderGraph,
             Vector2Int attachmetSize,
             Camera camera, bool HDR)
         {
-            ProfilingSampler profilingSampler = new("Setup Pass");
-            using var builder = renderGraph.AddRenderPass<SetupPassData>(profilingSampler.name, out var setupPassData, profilingSampler);
+            _camera = camera;
+            using var builder = renderGraph.AddRenderPass<SetupPassData>(_profilingSampler.name, out var setupPassData, _profilingSampler);
             setupPassData.AttachmentSize = attachmetSize;
             setupPassData.CameraClearFlags = camera.clearFlags; //send only flags
 
@@ -33,6 +36,7 @@ namespace Barkar.BSRP.Passes
             setupPassData.DepthAttachment = builder.UseDepthBuffer(renderGraph.CreateTexture(textureDescriptor),
                 DepthAccess.ReadWrite);
             //copy?
+           
 
             builder.AllowPassCulling(false); //never cull this pass
 
@@ -40,6 +44,7 @@ namespace Barkar.BSRP.Passes
             {
                 CommandBuffer cmd = context.cmd;
                 //set
+                context.renderContext.SetupCameraProperties(_camera);
                 cmd.SetRenderTarget(setupPassData.ColorAttachment, RenderBufferLoadAction.DontCare,
                     RenderBufferStoreAction.Store, setupPassData.DepthAttachment, RenderBufferLoadAction.DontCare,
                     RenderBufferStoreAction.Store);

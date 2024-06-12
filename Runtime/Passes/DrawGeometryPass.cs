@@ -10,13 +10,13 @@ public class DrawGeometryPass
     private static readonly ProfilingSampler TransparentSampler = new ProfilingSampler("Transparent Profiling Sample");
     
     
-    public static void DrawGeometry(RenderGraph renderGraph, ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, RenderDestinationTextures input, int renderingLayerMask, bool isOpaque)
+    public static void DrawGeometry(RenderGraph renderGraph, ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, RenderDestinationTextures input, int renderingLayerMask, bool isOpaque, LightingResources lightingResources)
     {
         var profilingSampler = GetProfilingSampler(isOpaque);
         
         using RenderGraphBuilder builder = renderGraph.AddRenderPass<DrawGeometryPassData>(isOpaque ? "Draw Opaque Pass" : "Draw Transparent Pass", out var drawGeometryPassData, profilingSampler);
 
-        //create rederer list
+       
         //render config: lightmaps, light probes, etc. here
         RendererListDesc renderListDescriptor =
             new RendererListDesc(shaderTags, cullingResults, camera)
@@ -32,7 +32,12 @@ public class DrawGeometryPass
         drawGeometryPassData.ColorAttachment = builder.ReadWriteTexture(input.ColorAttachment);
         drawGeometryPassData.DepthAttachment = builder.ReadWriteTexture(input.DepthAttachment);
         //TODO: red shadow res
-      
+        builder.ReadTexture(lightingResources.DirectionalShadowMap);
+        builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
+        builder.ReadBuffer(lightingResources.DirectionalShadowMatricesBuffer);
+        
+        builder.AllowPassCulling(false);
+        
         builder.SetRenderFunc((DrawGeometryPassData drawGeometryPassData, RenderGraphContext context) =>
         {
             context.cmd.DrawRendererList(drawGeometryPassData.RendererListHandle);

@@ -13,7 +13,6 @@ namespace Barkar.BSRP.CameraRenderer
         {
             ColorAttachment = colorAttachment;
             DepthAttachment = depthAttachment;
-           
         }
     }
 }
