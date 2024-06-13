@@ -32,27 +32,47 @@ Shader "BSRP/TestShader"
 
             half4 _Color;
 
+             ///LIGHT HLSL
+            struct DirectionalLightData
+            {
+                half4 color, directionAndMask, shadowData;
+            };
+
+            StructuredBuffer<DirectionalLightData> _DirectionalLightDataBuffer;
+            /////
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
+                half3 normalOS : NORMAL;
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
+                half3 normalWS : NORMAL;
             };
 
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
-                float4 worldPos = mul(unity_ObjectToWorld, IN.positionOS);
-                OUT.positionCS = mul(unity_MatrixVP, worldPos);
+                float4 worldPos = mul(unity_ObjectToWorld, float4(IN.positionOS.xyz, 1.0));
+                OUT.positionCS = mul(unity_MatrixVP, float4(worldPos.xyz, 1.0));
+                OUT.normalWS = mul(unity_ObjectToWorld, IN.normalOS).xyz;
                 return OUT;
             }
 
             half4 frag(Varyings IN) : SV_TARGET
             {
-                return _Color;
+                //get dirLight LIGHT HLSL
+                DirectionalLightData data = _DirectionalLightDataBuffer[0];
+                half3 dir = data.directionAndMask.xyz;
+                half4 loghtColor = data.color;
+                
+                half NoL = max(dot(dir, IN.normalWS),0);
+                half4 result = saturate(_Color * NoL * loghtColor);
+                result.a = _Color.a;
+                return result;
             }
             ENDHLSL
         }
@@ -60,10 +80,12 @@ Shader "BSRP/TestShader"
         Pass
         {
             Name "ShadowCaster"
-            Tags {"LighMode"="ShadowCaster"
+            Tags
+            {
+                "LightMode"="ShadowCaster"
             }
             ColorMask 0
-            
+
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -74,6 +96,8 @@ Shader "BSRP/TestShader"
 
             half4 _Color;
 
+           
+            
             struct Attributes
             {
                 float4 positionOS : POSITION;

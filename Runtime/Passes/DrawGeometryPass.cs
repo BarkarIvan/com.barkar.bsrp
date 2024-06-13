@@ -8,7 +8,14 @@ public class DrawGeometryPass
 {
     private static readonly ProfilingSampler OpaqueSampler = new ProfilingSampler("Opaque Profiling Sample");
     private static readonly ProfilingSampler TransparentSampler = new ProfilingSampler("Transparent Profiling Sample");
-    
+
+    private static RendererListDesc _rendererListDesc;
+    private static BaseRenderFunc<DrawGeometryPassData, RenderGraphContext> _renderFunction;
+
+    static DrawGeometryPass()
+    {
+        _renderFunction = RenderFunction;
+    }
     
     public static void DrawGeometry(RenderGraph renderGraph, ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, RenderDestinationTextures input, int renderingLayerMask, bool isOpaque, LightingResources lightingResources)
     {
@@ -18,34 +25,35 @@ public class DrawGeometryPass
 
        
         //render config: lightmaps, light probes, etc. here
-        RendererListDesc renderListDescriptor =
+        _rendererListDesc =
             new RendererListDesc(shaderTags, cullingResults, camera)
             {
                 renderQueueRange = isOpaque ? RenderQueueRange.opaque : RenderQueueRange.transparent,
                 sortingCriteria = isOpaque ? SortingCriteria.CommonOpaque : SortingCriteria.CommonTransparent,
                 renderingLayerMask = (uint)renderingLayerMask
             };
-       
-        drawGeometryPassData.RendererListHandle =
-            builder.UseRendererList(renderGraph.CreateRendererList(renderListDescriptor));
 
+        drawGeometryPassData.RendererListHandle =
+            builder.UseRendererList(renderGraph.CreateRendererList(_rendererListDesc));
+        
         drawGeometryPassData.ColorAttachment = builder.ReadWriteTexture(input.ColorAttachment);
         drawGeometryPassData.DepthAttachment = builder.ReadWriteTexture(input.DepthAttachment);
-        //TODO: red shadow res
+       
         builder.ReadTexture(lightingResources.DirectionalShadowMap);
         builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
         builder.ReadBuffer(lightingResources.DirectionalShadowMatricesBuffer);
         
         builder.AllowPassCulling(false);
-        
-        builder.SetRenderFunc((DrawGeometryPassData drawGeometryPassData, RenderGraphContext context) =>
-        {
-            context.cmd.DrawRendererList(drawGeometryPassData.RendererListHandle);
-            context.renderContext.ExecuteCommandBuffer(context.cmd);
-            context.cmd.Clear();
-        });
+
+        builder.SetRenderFunc(_renderFunction);
     }
-    
+
+    private static void RenderFunction(DrawGeometryPassData drawGeometryPassData, RenderGraphContext context)
+    {
+        context.cmd.DrawRendererList(drawGeometryPassData.RendererListHandle);
+        context.renderContext.ExecuteCommandBuffer(context.cmd);
+        context.cmd.Clear();
+    }
     private static ProfilingSampler GetProfilingSampler(bool isOpaque)
     {
         return isOpaque ? OpaqueSampler : TransparentSampler;

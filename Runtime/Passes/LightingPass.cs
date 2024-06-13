@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Barkar.BSRP.CameraRenderer;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
 using UnityEngine.Rendering;
@@ -49,6 +50,7 @@ namespace Barkar.BSRP.Passes
 
         private static int _directionalLightsCount;
         private static DirectionalLightShadowData _directionalLightShadowData;
+        private static DirectionalLightData[] _directionalLightData = new DirectionalLightData[maxDirectionalLightsCount];
         private static Matrix4x4[] _directionalLightMatrices = new Matrix4x4[maxDirectionalLightsCount];
 
         private static CullingResults _cullingResults;
@@ -62,7 +64,7 @@ namespace Barkar.BSRP.Passes
             var textureDescriptor = new TextureDesc(2048,2048);
             textureDescriptor.depthBufferBits = DepthBits.Depth32;
             textureDescriptor.isShadowMap = true;
-            textureDescriptor.name = "Direcctional Light ShadowMap";
+            textureDescriptor.name = "Directional Light ShadowMap";
 
             //TODO: default res
             lightingPassData.ShadowMap = builder.ReadWriteTexture(renderGraph.CreateTexture(textureDescriptor));
@@ -82,11 +84,10 @@ namespace Barkar.BSRP.Passes
             lightingPassData.DirectionalLightMatricesBuffer =
                 builder.WriteBuffer(renderGraph.CreateBuffer(directionalLightMatricesBufferDescriptor));
             
-            // NativeArray<int> lightsIndexMap = cullingResults.GetLightIndexMap(Allocator.Temp);
             NativeArray<VisibleLight> visibleLights = _cullingResults.visibleLights;
-            
+            int i;
             _directionalLightsCount = 0;
-            for (int i = 0; i < visibleLights.Length; i++)
+            for (i = 0; i < visibleLights.Length; i++)
             {
                 VisibleLight visibleLight = visibleLights[i];
                 Light light = visibleLight.light;
@@ -104,19 +105,19 @@ namespace Barkar.BSRP.Passes
                                 shadowBias = light.shadowBias
                             };
 
+                            
+                            _directionalLightData[i] =
+                                new DirectionalLightData(ref visibleLight, -1, new Vector4(light.shadowStrength,light.shadowBias,0f,0f ) );
+                            
+
                             _directionalLightsCount++;
                         }
 
                         break;
                 }
-            }
-            
-            var shadowSeettings =
-                new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
-           
-           lightingPassData.DirectionalRendererListHandle =
-                builder.UseRendererList(renderGraph.CreateShadowRendererList(ref shadowSeettings));
 
+            }
+           
             builder.SetRenderFunc((LightingPassData lightingPassData, RenderGraphContext context) =>
             {
                 if (_directionalLightsCount > 0)
@@ -145,28 +146,19 @@ namespace Barkar.BSRP.Passes
                     cmd.SetGlobalDepthBias(0f, _directionalLightShadowData.shadowBias);
                     context.renderContext.ExecuteCommandBuffer(cmd);
                     cmd.Clear();
-                
-                   cmd.DrawRendererList(lightingPassData.DirectionalRendererListHandle);
+                    
+                    var shadowSeettings =
+                        new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
+                    shadowSeettings.useRenderingLayerMaskTest = false;
+                    shadowSeettings.objectsFilter = ShadowObjectsFilter.AllObjects;
+                    var directionalRendererListHandle = context.renderContext.CreateShadowRendererList(ref shadowSeettings);
+
+                   cmd.DrawRendererList(directionalRendererListHandle);
                  
-                   Mesh mesh = new Mesh();
-        
-                   // Задаем вершины треугольника
-                   Vector3[] vertices = new Vector3[3];
-                   vertices[0] = new Vector3(0, 1, 0);
-                   vertices[1] = new Vector3(1, -1, 0);
-                   vertices[2] = new Vector3(-1, -1, 0);
-        
-                   // Задаем треугольники
-                   int[] triangles = new int[3];
-                   triangles[0] = 0;
-                   triangles[1] = 1;
-                   triangles[2] = 2;
-                   Material mat = CoreUtils.CreateEngineMaterial("BSRP/TestShader");
-                   // Устанавливаем вершины и треугольники
-                   mesh.vertices = vertices;
-                   mesh.triangles = triangles;
-                  // cmd.DrawMesh(mesh, Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3( 100f, 100f,100f)), mat);
-                   cmd.SetBufferData(lightingPassData.DirectionalLightMatricesBuffer,_directionalLightMatrices);
+                    cmd.SetBufferData(lightingPassData.DirectionalLightMatricesBuffer,_directionalLightMatrices);
+                   
+                    cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData );
+                    cmd.SetGlobalBuffer("_DirectionalLightDataBuffer", lightingPassData.DirectionalLightDataBuffer);
                     cmd.SetGlobalTexture("_ShadowMap", lightingPassData.ShadowMap);
                     
                     cmd.EndSample("Directional Shadow");
