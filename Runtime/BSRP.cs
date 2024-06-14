@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes;
+using Barkar.BSRP.Settings;
+using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
 using UnityEngine.Rendering;
@@ -17,16 +19,20 @@ public class BSRP : RenderPipeline
 
     private Vector2Int textureSize = default;
     private RenderGraphParameters renderGraphParameters;
+    
+    private ShadowSettings _shadowSettings;
 
     private Material _finalPassMaterial;
 
-    public BSRP(bool HDR, float renderScale)
+    public BSRP(bool HDR, float renderScale, ShadowSettings shadowSettings)
     {
         //to settings structs
         _hdr = HDR;
         _renderScale = renderScale;
         _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/PSXSRP/Camera Renderer");
         QualitySettings.shadows = ShadowQuality.All;
+        GraphicsSettings.useScriptableRenderPipelineBatching = true;
+        _shadowSettings = shadowSettings;
     }
 
 
@@ -47,7 +53,7 @@ public class BSRP : RenderPipeline
            // ScriptableCullingParameters cullingParameters;
             if (!camera.TryGetCullingParameters(out ScriptableCullingParameters cullingParameters)) continue;
             //TODO SETTINGS
-            cullingParameters.shadowDistance = camera.farClipPlane; 
+            cullingParameters.shadowDistance = Mathf.Min(camera.farClipPlane, _shadowSettings.ShadowDistance); 
             CullingResults cullingResults = context.Cull(ref cullingParameters);
             
             
@@ -74,10 +80,8 @@ public class BSRP : RenderPipeline
             using (RenderGraph.RecordAndExecute(renderGraphParameters))
             {
                 using var _ = new RenderGraphProfilingScope(RenderGraph, new ProfilingSampler("Camera_" + camera.name));
-
-
                 
-                LightingResources lightingResources = LightingPass.ExecuteLightngPass(RenderGraph, cullingResults);
+                LightingResources lightingResources = LightingPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
 
                 //setup destinations
                 RenderDestinationTextures destinationTextures =
@@ -105,7 +109,7 @@ public class BSRP : RenderPipeline
             CommandBufferPool.Release(renderGraphParameters.commandBuffer);
         }
 
-      //  RenderGraph.EndFrame();
+        RenderGraph.EndFrame();
     }
 
 

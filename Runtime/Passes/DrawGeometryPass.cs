@@ -41,7 +41,7 @@ public class DrawGeometryPass
        
         builder.ReadTexture(lightingResources.DirectionalShadowMap);
         builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
-        builder.ReadBuffer(lightingResources.DirectionalShadowMatricesBuffer);
+//        builder.ReadBuffer(lightingResources.DirectionalShadowMatricesBuffer);
         
         builder.AllowPassCulling(false);
 

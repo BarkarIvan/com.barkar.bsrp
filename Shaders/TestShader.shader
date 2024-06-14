@@ -27,19 +27,28 @@ Shader "BSRP/TestShader"
             #pragma vertex vert
             #pragma fragment frag
 
-            float4x4 unity_MatrixVP;
-            float4x4 unity_ObjectToWorld;
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
 
-            half4 _Color;
+           
 
-             ///LIGHT HLSL
-            struct DirectionalLightData
-            {
-                half4 color, directionAndMask, shadowData;
-            };
+            CBUFFER_START(UnityPerMaterial)
+                half4 _Color;
+            CBUFFER_END
 
-            StructuredBuffer<DirectionalLightData> _DirectionalLightDataBuffer;
-            /////
+            ///LIGHT HLSL
+
+             TEXTURE2D_SHADOW(_ShadowMap);
+            SAMPLER_CMP(sampler_linear_clamp_compare);
+           // SAMPLER(sampler_linear_clamp_compare);
+
+            CBUFFER_START(DirectionalLightDataBuffer)
+                half4 directionalLightColor;
+                half4 directionalLightDirectionaAndMask;
+                half4 directionalShadowsData;
+            CBUFFER_END
+
+            float4x4 _DirectionalLightVPMatrix;
+
 
             struct Attributes
             {
@@ -50,28 +59,34 @@ Shader "BSRP/TestShader"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
+                float4 shadowCoord : TEXCOORD0;
                 half3 normalWS : NORMAL;
             };
 
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
-                float4 worldPos = mul(unity_ObjectToWorld, float4(IN.positionOS.xyz, 1.0));
-                OUT.positionCS = mul(unity_MatrixVP, float4(worldPos.xyz, 1.0));
-                OUT.normalWS = mul(unity_ObjectToWorld, IN.normalOS).xyz;
+
+                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                OUT.positionCS = TransformWorldToHClip(positionWS);
+                OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS).xyz;
+                OUT.shadowCoord = mul(_DirectionalLightVPMatrix, float4(positionWS + directionalShadowsData.x, 1.0));
                 return OUT;
             }
 
             half4 frag(Varyings IN) : SV_TARGET
             {
                 //get dirLight LIGHT HLSL
-                DirectionalLightData data = _DirectionalLightDataBuffer[0];
-                half3 dir = data.directionAndMask.xyz;
-                half4 loghtColor = data.color;
-                
-                half NoL = max(dot(dir, IN.normalWS),0);
+                half3 dir = directionalLightDirectionaAndMask.xyz;
+                half4 loghtColor = directionalLightColor;
+                //
+
+                half NoL = max(dot(dir, IN.normalWS), 0);
                 half4 result = saturate(_Color * NoL * loghtColor);
                 result.a = _Color.a;
+
+                half shadow = SAMPLE_TEXTURE2D_SHADOW(_ShadowMap, sampler_linear_clamp_compare, IN.shadowCoord);
+                result.rgb *= shadow;
                 return result;
             }
             ENDHLSL
@@ -89,15 +104,16 @@ Shader "BSRP/TestShader"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 
-            float4x4 unity_MatrixVP;
-            float4x4 unity_ObjectToWorld;
-            sampler2D _ShadowMap;
+
+            TEXTURE2D(_ShadowMap);
+            SAMPLER(sampler_ShadowMap);
 
             half4 _Color;
 
-           
-            
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -111,8 +127,8 @@ Shader "BSRP/TestShader"
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
-                float4 worldPos = mul(unity_ObjectToWorld, IN.positionOS);
-                OUT.positionCS = mul(unity_MatrixVP, worldPos);
+
+                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
                 return OUT;
             }
 
