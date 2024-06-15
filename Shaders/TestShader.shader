@@ -39,16 +39,26 @@ Shader "BSRP/TestShader"
 
              TEXTURE2D_SHADOW(_ShadowMap);
             SAMPLER_CMP(sampler_linear_clamp_compare);
-           // SAMPLER(sampler_linear_clamp_compare);
 
             CBUFFER_START(DirectionalLightDataBuffer)
                 half4 directionalLightColor;
                 half4 directionalLightDirectionaAndMask;
-                half4 directionalShadowsData;
+                half4 directionalShadowsData; //str, shadowBias, normalBias
             CBUFFER_END
 
             float4x4 _DirectionalLightMatrix;
+            half4 _ShadowDistanceFade;
 
+half GetMainLightShadowFade(float3 positionWS)
+{
+    float3 camToPixel = positionWS - _WorldSpaceCameraPos;
+    float distanceCamToPixel2 = dot(camToPixel, camToPixel);
+
+    half fade = saturate(distanceCamToPixel2 * _ShadowDistanceFade.x + _ShadowDistanceFade.y);
+    return fade;
+}
+            
+            ///
 
             struct Attributes
             {
@@ -60,10 +70,13 @@ Shader "BSRP/TestShader"
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : TEXCOORD0;
-                float3 shadowCoord: TEXCOORD1;
+                float4 shadowCoord: TEXCOORD1;
                 half3 normalWS : NORMAL;
             };
 
+
+
+            
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
@@ -71,7 +84,8 @@ Shader "BSRP/TestShader"
                 OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
                 OUT.positionCS = TransformWorldToHClip(OUT.positionWS);
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS).xyz;
-                OUT.shadowCoord = mul(_DirectionalLightMatrix, float4(OUT.positionWS + directionalShadowsData.x, 1.0));
+                OUT.shadowCoord = mul(_DirectionalLightMatrix, float4(OUT.positionWS.xyz + directionalShadowsData.y, 1.0));
+               
                 return OUT;
             }
 
@@ -87,7 +101,11 @@ Shader "BSRP/TestShader"
                 result.a = _Color.a;
 
                 half shadow = SAMPLE_TEXTURE2D_SHADOW(_ShadowMap, sampler_linear_clamp_compare, IN.shadowCoord);
-                result.rgb *= shadow + directionalShadowsData.y;
+                shadow = LerpWhiteTo(shadow, directionalShadowsData.x);
+                shadow = IN.shadowCoord.z <= 0.0 || IN.shadowCoord.z >= 1.0 ? 1.0 : shadow;
+                  half fadedShadow =   saturate (lerp (shadow, 1.0, (distance (IN.positionWS, _WorldSpaceCameraPos.xyz) - _ShadowDistanceFade.x) * _ShadowDistanceFade.y));
+
+                result.rgb *= fadedShadow;
                 return result;
             }
             ENDHLSL
@@ -117,6 +135,7 @@ Shader "BSRP/TestShader"
             struct Attributes
             {
                 float4 positionOS : POSITION;
+                half3 normalOS : NORMAL;
             };
 
             struct Varyings
@@ -124,11 +143,45 @@ Shader "BSRP/TestShader"
                 float4 positionCS : SV_POSITION;
             };
 
+            ////LIGHT HLSLS
+            CBUFFER_START(DirectionalLightDataBuffer)
+                half4 directionalLightColor;
+                half4 directionalLightDirectionaAndMask;
+                half4 directionalShadowsData; //str, shadowBias, normalBias
+            CBUFFER_END
+            
+            float4x4 _DirectionalLightMatrix;
+            half4 _ShadowDistanceFade;
+/////
+///
+             float4 GetShadowPositionHClip(Attributes input)
+            {
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
+
+                //apply bias
+               // half invNdotL = 1.0 - saturate(dot(directionalLightDirectionaAndMask.xyz, normalWS.xyz));
+               // half scale = invNdotL * directionalShadowsData.z;
+
+               // positionWS = directionalLightDirectionaAndMask.xyz * directionalShadowsData.yyy + positionWS.xyz;
+               // positionWS = normalWS * scale.xxx + positionWS;
+                //
+                float4 positionCS = TransformWorldToHClip(positionWS);
+
+                #if UNITY_REVERSED_Z
+                positionCS.z = min(positionCS.z, UNITY_NEAR_CLIP_VALUE);
+                #else
+                positionCS.z = max(positionCS.z, UNITY_NEAR_CLIP_VALUE);
+                #endif
+
+                return positionCS;
+            }
+
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
 
-                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
+                OUT.positionCS = GetShadowPositionHClip(IN);
                 return OUT;
             }
 

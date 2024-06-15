@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Barkar.BSRP.Settings.Shadows
 {
@@ -15,8 +16,9 @@ namespace Barkar.BSRP.Settings.Shadows
             _4096 = 4096
         }
 
-        [Min(0.001f)] public float ShadowDistance = 1f;
-
+        [Min(0.001f)] public float ShadowMaxDistance = 100f;
+        [Range(0.001f, 1f)] public float ShadowDistanceFade = 0.1f;
+        
         [System.Serializable]
         public struct DirectionalShadowSettings
         {

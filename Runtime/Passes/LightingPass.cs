@@ -113,7 +113,7 @@ namespace Barkar.BSRP.Passes
 
                             _directionalLightData[i] =
                                 new DirectionalLightData(ref visibleLight, -1,
-                                    new Vector4(light.shadowStrength, light.shadowBias, 0f, 0f));
+                                    new Vector4(light.shadowStrength, light.shadowNormalBias, light.shadowBias, 0f));
 
 
                             _directionalLightsCount++;
@@ -143,12 +143,12 @@ namespace Barkar.BSRP.Passes
 
                 _cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
                     _directionalLightShadowData.visibleLightIndex,
-                    0, 1, Vector3.zero,
+                    0, 1, new Vector3(1.0f, 0.0f, 0.0f),
                     (int)_shadowSettings.Direcrional.MapSize, _directionalLightShadowData.shadowNearPlane,
                     out Matrix4x4 shadowViewMatrix,
                     out Matrix4x4 shadowProjectionMatrix, out ShadowSplitData splitData);
 
-                Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix * shadowViewMatrix);
+                Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix, shadowViewMatrix);
 
                 cmd.SetGlobalMatrix("_DirectionalLightMatrix", shadowMatrix);
                 cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
@@ -158,11 +158,11 @@ namespace Barkar.BSRP.Passes
 
                 var shadowSeettings =
                     new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
-                shadowSeettings.useRenderingLayerMaskTest = false;
+                shadowSeettings.useRenderingLayerMaskTest = true;
                 shadowSeettings.objectsFilter = ShadowObjectsFilter.AllObjects;
-                var directionalRendererListHandle = context.renderContext.CreateShadowRendererList(ref shadowSeettings);
+                var directionalLightRendererListHandle = context.renderContext.CreateShadowRendererList(ref shadowSeettings);
 
-                cmd.DrawRendererList(directionalRendererListHandle);
+                cmd.DrawRendererList(directionalLightRendererListHandle);
 
                 //Buffers
                 cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData);
@@ -170,6 +170,8 @@ namespace Barkar.BSRP.Passes
                     0, DirectionalLightData.stride);
                 cmd.SetGlobalTexture("_ShadowMap", lightingPassData.ShadowMap);
 
+                
+                cmd.SetGlobalVector("_ShadowDistanceFade", new Vector4(_shadowSettings.ShadowMaxDistance, _shadowSettings.ShadowDistanceFade, 1f / _shadowSettings.ShadowMaxDistance,1f / _shadowSettings.ShadowDistanceFade));//z - cascades fade
                 cmd.EndSample("Directional Shadow");
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
@@ -180,21 +182,30 @@ namespace Barkar.BSRP.Passes
             }
         }
 
-
-        private static Matrix4x4 ApplyBiasMatrix(Matrix4x4 m)
+        
+        private static Matrix4x4 ApplyBiasMatrix(Matrix4x4 proj, Matrix4x4 view)
         {
             if (SystemInfo.usesReversedZBuffer)
             {
-                m.m20 = -m.m20;
-                m.m21 = -m.m21;
-                m.m22 = -m.m22;
-                m.m23 = -m.m23;
+                proj.m20 = -proj.m20;
+                proj.m21 = -proj.m21;
+                proj.m22 = -proj.m22;
+                proj.m23 = -proj.m23;
             }
 
-            Matrix4x4 biasMatrix = Matrix4x4.TRS(new Vector3(0.5f, 0.5f, 0.5f), Quaternion.identity,
-                new Vector3(0.5f, 0.5f, 0.5f));
+            Matrix4x4 worldToShadow = proj * view;
 
-            return biasMatrix * m;
+            var textureScaleAndBias = Matrix4x4.identity;
+            textureScaleAndBias.m00 = 0.5f;
+            textureScaleAndBias.m11 = 0.5f;
+            textureScaleAndBias.m22 = 0.5f;
+            textureScaleAndBias.m03 = 0.5f;
+            textureScaleAndBias.m23 = 0.5f;
+            textureScaleAndBias.m13 = 0.5f;
+            // textureScaleAndBias maps texture space coordinates from [-1,1] to [0,1]
+
+            // Apply texture scale and offset to save a MAD in shader.
+            return textureScaleAndBias * worldToShadow;
         }
     }
 }

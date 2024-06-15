@@ -50,7 +50,7 @@ public class BSRP : RenderPipeline
             
             if (!camera.TryGetCullingParameters(out ScriptableCullingParameters cullingParameters)) continue;
             //TODO SETTINGS
-            cullingParameters.shadowDistance = Mathf.Min(camera.farClipPlane, _shadowSettings.ShadowDistance); 
+            cullingParameters.shadowDistance = Mathf.Min(camera.farClipPlane, _shadowSettings.ShadowMaxDistance); 
             CullingResults cullingResults = context.Cull(ref cullingParameters);
             
             
