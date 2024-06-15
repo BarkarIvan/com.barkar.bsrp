@@ -21,15 +21,13 @@ public class BSRP : RenderPipeline
     private RenderGraphParameters renderGraphParameters;
     
     private ShadowSettings _shadowSettings;
-
     private Material _finalPassMaterial;
 
-    public BSRP(bool HDR, float renderScale, ShadowSettings shadowSettings)
+    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings)
     {
-        //to settings structs
-        _hdr = HDR;
+        _hdr = hdr;
         _renderScale = renderScale;
-        _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/PSXSRP/Camera Renderer");
+        _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/BSRP/Camera Renderer");
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         _shadowSettings = shadowSettings;
@@ -50,14 +48,12 @@ public class BSRP : RenderPipeline
             textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
             
-           // ScriptableCullingParameters cullingParameters;
             if (!camera.TryGetCullingParameters(out ScriptableCullingParameters cullingParameters)) continue;
             //TODO SETTINGS
             cullingParameters.shadowDistance = Mathf.Min(camera.farClipPlane, _shadowSettings.ShadowDistance); 
             CullingResults cullingResults = context.Cull(ref cullingParameters);
             
             
-           // context.SetupCameraProperties(camera);
 
 #if UNITY_EDITOR
             if (camera.cameraType == CameraType.SceneView)
@@ -115,6 +111,8 @@ public class BSRP : RenderPipeline
 
     protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
+        CoreUtils.Destroy(_finalPassMaterial);
         RenderGraph.Cleanup();
     }
 

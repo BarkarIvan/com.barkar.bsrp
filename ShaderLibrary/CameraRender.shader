@@ -1,4 +1,4 @@
-Shader "Hidden/PSXSRP/Camera Renderer" {
+Shader "Hidden/BSRP/Camera Renderer" {
 	
 	SubShader {
 		Cull Off

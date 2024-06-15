@@ -7,7 +7,5 @@ namespace Barkar.BSRP.Passes.Data
      {
          public TextureHandle ColorAttachment;
          public TextureHandle DepthAttachment;
-         public CameraClearFlags CameraClearFlags;
-         public Vector2Int AttachmentSize;
      }
 }

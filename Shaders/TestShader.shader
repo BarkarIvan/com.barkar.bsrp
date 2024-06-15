@@ -47,7 +47,7 @@ Shader "BSRP/TestShader"
                 half4 directionalShadowsData;
             CBUFFER_END
 
-            float4x4 _DirectionalLightVPMatrix;
+            float4x4 _DirectionalLightMatrix;
 
 
             struct Attributes
@@ -59,7 +59,8 @@ Shader "BSRP/TestShader"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float4 shadowCoord : TEXCOORD0;
+                float3 positionWS : TEXCOORD0;
+                float3 shadowCoord: TEXCOORD1;
                 half3 normalWS : NORMAL;
             };
 
@@ -67,10 +68,10 @@ Shader "BSRP/TestShader"
             {
                 Varyings OUT;
 
-                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
-                OUT.positionCS = TransformWorldToHClip(positionWS);
+                OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                OUT.positionCS = TransformWorldToHClip(OUT.positionWS);
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS).xyz;
-                OUT.shadowCoord = mul(_DirectionalLightVPMatrix, float4(positionWS + directionalShadowsData.x, 1.0));
+                OUT.shadowCoord = mul(_DirectionalLightMatrix, float4(OUT.positionWS + directionalShadowsData.x, 1.0));
                 return OUT;
             }
 
@@ -86,7 +87,7 @@ Shader "BSRP/TestShader"
                 result.a = _Color.a;
 
                 half shadow = SAMPLE_TEXTURE2D_SHADOW(_ShadowMap, sampler_linear_clamp_compare, IN.shadowCoord);
-                result.rgb *= shadow;
+                result.rgb *= shadow + directionalShadowsData.y;
                 return result;
             }
             ENDHLSL
@@ -105,7 +106,6 @@ Shader "BSRP/TestShader"
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
-            #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 
 
             TEXTURE2D(_ShadowMap);
