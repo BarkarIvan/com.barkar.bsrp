@@ -70,17 +70,9 @@ namespace Barkar.BSRP.Passes
                 out var lightingPassData, _profilingSampler);
 
 
-            var textureDescriptor = new TextureDesc((int)_shadowSettings.Direcrional.MapSize,
-                (int)_shadowSettings.Direcrional.MapSize);
-            textureDescriptor.depthBufferBits = DepthBits.Depth32;
-            textureDescriptor.isShadowMap = true;
-            textureDescriptor.name = "Directional Light ShadowMap";
-
-            //TODO: default res
-            lightingPassData.ShadowMap = builder.ReadWriteTexture(renderGraph.CreateTexture(textureDescriptor));
-
+            
             var directionalLightDataBufferDescriptor = new BufferDesc();
-            directionalLightDataBufferDescriptor.name = "Directional Light Data Buffer";
+            directionalLightDataBufferDescriptor.name = "Main Light Data Buffer";
             directionalLightDataBufferDescriptor.count = maxDirectionalLightsCount;
             directionalLightDataBufferDescriptor.stride = DirectionalLightData.stride;
             directionalLightDataBufferDescriptor.target = GraphicsBuffer.Target.Constant;
@@ -101,7 +93,7 @@ namespace Barkar.BSRP.Passes
                 {
                     case LightType.Directional:
                         if (_directionalLightsCount < maxDirectionalLightsCount && light.shadows != LightShadows.None &&
-                            light.shadowStrength > 0f)
+                            light.shadowStrength > 0f && _cullingResults.GetShadowCasterBounds(i, out _))
                         {
                             _directionalLightShadowData = new DirectionalLightShadowData()
                             {
@@ -120,6 +112,16 @@ namespace Barkar.BSRP.Passes
                         }
                         break;
                 }
+              
+                var textureDescriptor = new TextureDesc((int)_shadowSettings.Direcrional.MapSize,
+                    (int)_shadowSettings.Direcrional.MapSize);
+                textureDescriptor.depthBufferBits = DepthBits.Depth32;
+                textureDescriptor.isShadowMap = true;
+                textureDescriptor.name = "Main Light ShadowMap";
+
+                //TODO: default res
+                lightingPassData.ShadowMap = builder.ReadWriteTexture(_directionalLightsCount > 0 ? renderGraph.CreateTexture(textureDescriptor): renderGraph.defaultResources.defaultShadowTexture);
+
             }
 
             builder.SetRenderFunc(_renderFunc);
@@ -136,7 +138,7 @@ namespace Barkar.BSRP.Passes
                 cmd.SetRenderTarget(lightingPassData.ShadowMap, RenderBufferLoadAction.DontCare,
                     RenderBufferStoreAction.Store);
                 cmd.ClearRenderTarget(true, false, Color.clear);
-                cmd.BeginSample("Directional Shadow");
+                cmd.BeginSample("Main Light Directional Shadow");
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
@@ -150,7 +152,7 @@ namespace Barkar.BSRP.Passes
 
                 Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix, shadowViewMatrix);
 
-                cmd.SetGlobalMatrix("_DirectionalLightMatrix", shadowMatrix);
+                cmd.SetGlobalMatrix("_MainLightMatrix", shadowMatrix);
                 cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
                 cmd.SetGlobalDepthBias(0f, _directionalLightShadowData.shadowBias);
                 context.renderContext.ExecuteCommandBuffer(cmd);
@@ -166,13 +168,13 @@ namespace Barkar.BSRP.Passes
 
                 //Buffers
                 cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData);
-                cmd.SetGlobalConstantBuffer(lightingPassData.DirectionalLightDataBuffer, "DirectionalLightDataBuffer",
+                cmd.SetGlobalConstantBuffer(lightingPassData.DirectionalLightDataBuffer, "MainLightDataBuffer",
                     0, DirectionalLightData.stride);
-                cmd.SetGlobalTexture("_ShadowMap", lightingPassData.ShadowMap);
+                cmd.SetGlobalTexture("_MainLightShadowMap", lightingPassData.ShadowMap);
 
                 
-                cmd.SetGlobalVector("_ShadowDistanceFade", new Vector4(_shadowSettings.ShadowMaxDistance, _shadowSettings.ShadowDistanceFade, 1f / _shadowSettings.ShadowMaxDistance,1f / _shadowSettings.ShadowDistanceFade));//z - cascades fade
-                cmd.EndSample("Directional Shadow");
+                cmd.SetGlobalVector("_MainLightShadowDistanceFade", new Vector4(_shadowSettings.ShadowMaxDistance, _shadowSettings.ShadowDistanceFade, 1f / _shadowSettings.ShadowMaxDistance,1f / _shadowSettings.ShadowDistanceFade));//z - cascades fade
+                cmd.EndSample("Main Light Directional Shadow");
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
@@ -202,9 +204,7 @@ namespace Barkar.BSRP.Passes
             textureScaleAndBias.m03 = 0.5f;
             textureScaleAndBias.m23 = 0.5f;
             textureScaleAndBias.m13 = 0.5f;
-            // textureScaleAndBias maps texture space coordinates from [-1,1] to [0,1]
 
-            // Apply texture scale and offset to save a MAD in shader.
             return textureScaleAndBias * worldToShadow;
         }
     }

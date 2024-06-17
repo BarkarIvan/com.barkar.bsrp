@@ -37,26 +37,19 @@ Shader "BSRP/TestShader"
 
             ///LIGHT HLSL
 
-             TEXTURE2D_SHADOW(_ShadowMap);
-            SAMPLER_CMP(sampler_linear_clamp_compare);
+             TEXTURE2D_SHADOW(_MainLightShadowMap);
+            SAMPLER_CMP(sampler_LinearClampCompare);
 
-            CBUFFER_START(DirectionalLightDataBuffer)
-                half4 directionalLightColor;
-                half4 directionalLightDirectionaAndMask;
-                half4 directionalShadowsData; //str, shadowBias, normalBias
+            CBUFFER_START(MainLightDataBuffer)
+                half4 MainLightColor;
+                half4 MainLightDirectionaAndMask;
+                half4 MainLightShadowsData; //light strength, shadowBias, normalBias
             CBUFFER_END
 
-            float4x4 _DirectionalLightMatrix;
-            half4 _ShadowDistanceFade;
+            float4x4 _MainLightMatrix;
+            half4 _MainLightShadowDistanceFade; //max distance, fadeWidth, 0, 0,
 
-half GetMainLightShadowFade(float3 positionWS)
-{
-    float3 camToPixel = positionWS - _WorldSpaceCameraPos;
-    float distanceCamToPixel2 = dot(camToPixel, camToPixel);
 
-    half fade = saturate(distanceCamToPixel2 * _ShadowDistanceFade.x + _ShadowDistanceFade.y);
-    return fade;
-}
             
             ///
 
@@ -84,7 +77,7 @@ half GetMainLightShadowFade(float3 positionWS)
                 OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
                 OUT.positionCS = TransformWorldToHClip(OUT.positionWS);
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS).xyz;
-                OUT.shadowCoord = mul(_DirectionalLightMatrix, float4(OUT.positionWS.xyz + directionalShadowsData.y, 1.0));
+                OUT.shadowCoord = mul(_MainLightMatrix, float4(OUT.positionWS.xyz + MainLightShadowsData.y, 1.0));
                
                 return OUT;
             }
@@ -92,20 +85,20 @@ half GetMainLightShadowFade(float3 positionWS)
             half4 frag(Varyings IN) : SV_TARGET
             {
                 //get dirLight LIGHT HLSL
-                half3 dir = directionalLightDirectionaAndMask.xyz;
-                half4 loghtColor = directionalLightColor;
+                half3 dir = MainLightDirectionaAndMask.xyz;
+                half4 loghtColor = MainLightColor;
                 //
 
                 half NoL = max(dot(dir, IN.normalWS), 0);
                 half4 result = saturate(_Color * NoL * loghtColor);
                 result.a = _Color.a;
 
-                half shadow = SAMPLE_TEXTURE2D_SHADOW(_ShadowMap, sampler_linear_clamp_compare, IN.shadowCoord);
-                shadow = LerpWhiteTo(shadow, directionalShadowsData.x);
-                shadow = IN.shadowCoord.z <= 0.0 || IN.shadowCoord.z >= 1.0 ? 1.0 : shadow;
-                  half fadedShadow =   saturate (lerp (shadow, 1.0, (distance (IN.positionWS, _WorldSpaceCameraPos.xyz) - _ShadowDistanceFade.x) * _ShadowDistanceFade.y));
+                half shadow = SAMPLE_TEXTURE2D_SHADOW(_MainLightShadowMap, sampler_LinearClampCompare, IN.shadowCoord);
+                half fade =  1.0 - saturate ((distance (IN.positionWS, _WorldSpaceCameraPos.xyz) - _MainLightShadowDistanceFade.x) / _MainLightShadowDistanceFade.y );
+                shadow = LerpWhiteTo(shadow, MainLightShadowsData.x * fade);
+                //shadow = IN.shadowCoord.z <= 0.0 || IN.shadowCoord.z >= 1.0 ? 1.0 : shadow;
 
-                result.rgb *= fadedShadow;
+                result.rgb *= saturate(shadow);
                 return result;
             }
             ENDHLSL

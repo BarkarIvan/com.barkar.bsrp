@@ -17,7 +17,7 @@ namespace Barkar.BSRP.Settings.Shadows
         }
 
         [Min(0.001f)] public float ShadowMaxDistance = 100f;
-        [Range(0.001f, 1f)] public float ShadowDistanceFade = 0.1f;
+        [Range(0.001f, 100f)] public float ShadowDistanceFade = 0.1f;
         
         [System.Serializable]
         public struct DirectionalShadowSettings
