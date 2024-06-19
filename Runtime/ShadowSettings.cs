@@ -16,19 +16,26 @@ namespace Barkar.BSRP.Settings.Shadows
             _4096 = 4096
         }
 
+        public enum SoftShadows
+        {
+            None, Low, Medium, Hight
+        }
+
         [Min(0.001f)] public float ShadowMaxDistance = 100f;
-        [Range(0.001f, 100f)] public float ShadowDistanceFade = 0.1f;
+        [Range(0.001f, 10f)] public float ShadowDistanceFade = 0.1f;
         
         [System.Serializable]
         public struct DirectionalShadowSettings
         {
             public ShadowMapSize MapSize;
+            public SoftShadows SoftShadows;
         }
 
         public DirectionalShadowSettings Direcrional = new()
         {
 
-            MapSize = ShadowMapSize._1024
+            MapSize = ShadowMapSize._1024,
+            SoftShadows = SoftShadows.None
         };
     }
 }

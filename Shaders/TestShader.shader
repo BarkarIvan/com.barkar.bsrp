@@ -27,9 +27,26 @@ Shader "BSRP/TestShader"
             #pragma vertex vert
             #pragma fragment frag
 
+            #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
+
+
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
 
-           
+            //shadows
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Shadow/ShadowSamplingTent.hlsl"
+            #if defined(_SOFT_SHADOWS_LOW)
+	#define DIRECTIONAL_FILTER_SAMPLES 4
+	#define DIRECTIONAL_FILTER_TENT SampleShadow_ComputeSamples_Tent_3x3
+            #elif defined(_SOFT_SHADOWS_MEDIUM)
+	#define DIRECTIONAL_FILTER_SAMPLES 9
+	#define DIRECTIONAL_FILTER_TENT SampleShadow_ComputeSamples_Tent_5x5
+            #elif defined(_SOFT_SHADOWS_HIGH)
+	#define DIRECTIONAL_FILTER_SAMPLES 16
+	#define DIRECTIONAL_FILTER_TENT SampleShadow_ComputeSamples_Tent_7x7
+            #endif
+
+            ///
+
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;
@@ -37,7 +54,7 @@ Shader "BSRP/TestShader"
 
             ///LIGHT HLSL
 
-             TEXTURE2D_SHADOW(_MainLightShadowMap);
+            TEXTURE2D_SHADOW(_MainLightShadowMap);
             SAMPLER_CMP(sampler_LinearClampCompare);
 
             CBUFFER_START(MainLightDataBuffer)
@@ -48,9 +65,35 @@ Shader "BSRP/TestShader"
 
             float4x4 _MainLightMatrix;
             half4 _MainLightShadowDistanceFade; //max distance, fadeWidth, 0, 0,
+            half4 _MainLightMapSize;
 
 
-            
+            half SampleDirectionalShadowMap(float3 shadowCoord)
+            {
+                return SAMPLE_TEXTURE2D_SHADOW(_MainLightShadowMap, sampler_LinearClampCompare, shadowCoord);
+            }
+
+
+            half SampleFilteredShadowMap(float3 shadowCoord)
+            {
+                #if defined(DIRECTIONAL_FILTER_TENT)
+		real weights[DIRECTIONAL_FILTER_SAMPLES];
+		real2 positions[DIRECTIONAL_FILTER_SAMPLES];
+		float4 size = _MainLightMapSize.yyxx;
+		DIRECTIONAL_FILTER_TENT(size, shadowCoord.xy, weights, positions);
+		float shadow = 0;
+		for (int i = 0; i < DIRECTIONAL_FILTER_SAMPLES; i++)
+		{
+			shadow += weights[i] * SampleDirectionalShadowMap(
+				float3(positions[i].xy, shadowCoord.z));
+		}
+		return shadow;
+                #else
+                return SampleDirectionalShadowMap(shadowCoord);
+                #endif
+            }
+
+
             ///
 
             struct Attributes
@@ -68,8 +111,6 @@ Shader "BSRP/TestShader"
             };
 
 
-
-            
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
@@ -78,7 +119,7 @@ Shader "BSRP/TestShader"
                 OUT.positionCS = TransformWorldToHClip(OUT.positionWS);
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS).xyz;
                 OUT.shadowCoord = mul(_MainLightMatrix, float4(OUT.positionWS.xyz + MainLightShadowsData.y, 1.0));
-               
+
                 return OUT;
             }
 
@@ -92,9 +133,13 @@ Shader "BSRP/TestShader"
                 half NoL = max(dot(dir, IN.normalWS), 0);
                 half4 result = saturate(_Color * NoL * loghtColor);
                 result.a = _Color.a;
+                float3 shadowCoord = IN.shadowCoord.xyz / IN.shadowCoord.w;
+                half fade = 1.0 - saturate(
+                    (distance(IN.positionWS, _WorldSpaceCameraPos.xyz) - _MainLightShadowDistanceFade.x) /
+                    _MainLightShadowDistanceFade.y);
 
-                half shadow = SAMPLE_TEXTURE2D_SHADOW(_MainLightShadowMap, sampler_LinearClampCompare, IN.shadowCoord);
-                half fade =  1.0 - saturate ((distance (IN.positionWS, _WorldSpaceCameraPos.xyz) - _MainLightShadowDistanceFade.x) / _MainLightShadowDistanceFade.y );
+                half shadow = SampleFilteredShadowMap(shadowCoord);
+                
                 shadow = LerpWhiteTo(shadow, MainLightShadowsData.x * fade);
                 //shadow = IN.shadowCoord.z <= 0.0 || IN.shadowCoord.z >= 1.0 ? 1.0 : shadow;
 
@@ -142,22 +187,22 @@ Shader "BSRP/TestShader"
                 half4 directionalLightDirectionaAndMask;
                 half4 directionalShadowsData; //str, shadowBias, normalBias
             CBUFFER_END
-            
+
             float4x4 _DirectionalLightMatrix;
             half4 _ShadowDistanceFade;
-/////
-///
-             float4 GetShadowPositionHClip(Attributes input)
+            /////
+            ///
+            float4 GetShadowPositionHClip(Attributes input)
             {
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
 
                 //apply bias
-               // half invNdotL = 1.0 - saturate(dot(directionalLightDirectionaAndMask.xyz, normalWS.xyz));
-               // half scale = invNdotL * directionalShadowsData.z;
+                // half invNdotL = 1.0 - saturate(dot(directionalLightDirectionaAndMask.xyz, normalWS.xyz));
+                // half scale = invNdotL * directionalShadowsData.z;
 
-               // positionWS = directionalLightDirectionaAndMask.xyz * directionalShadowsData.yyy + positionWS.xyz;
-               // positionWS = normalWS * scale.xxx + positionWS;
+                // positionWS = directionalLightDirectionaAndMask.xyz * directionalShadowsData.yyy + positionWS.xyz;
+                // positionWS = normalWS * scale.xxx + positionWS;
                 //
                 float4 positionCS = TransformWorldToHClip(positionWS);
 

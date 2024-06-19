@@ -53,12 +53,27 @@ namespace Barkar.BSRP.Passes
 
         private static CullingResults _cullingResults;
         private static ShadowSettings _shadowSettings;
+        private static Vector4 _mainLightShadowMapSize = Vector4.zero;
 
         private static BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
 
+        static readonly GlobalKeyword[] directionalFilterKeywords = {
+            GlobalKeyword.Create("_SOFT_SHADOWS_LOW"),
+            GlobalKeyword.Create("_SOFT_SHADOWS_MEDIUM"),
+            GlobalKeyword.Create("_SOFT_SHADOWS_HIGH"),
+        };
+        
         static LightingPass()
         {
             _renderFunc = RenderFunction;
+        }
+        
+        public static void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
+        {
+            for (int i = 0; i < keywords.Length; i++)
+            {
+                cmd.SetKeyword(keywords[i], i == enabledIndex);
+            }
         }
 
         public static LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
@@ -166,14 +181,23 @@ namespace Barkar.BSRP.Passes
 
                 cmd.DrawRendererList(directionalLightRendererListHandle);
 
-                //Buffers
+                //Buffers data
                 cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData);
                 cmd.SetGlobalConstantBuffer(lightingPassData.DirectionalLightDataBuffer, "MainLightDataBuffer",
                     0, DirectionalLightData.stride);
                 cmd.SetGlobalTexture("_MainLightShadowMap", lightingPassData.ShadowMap);
 
-                
+                //map size
+                _mainLightShadowMapSize.x = (float)_shadowSettings.Direcrional.MapSize;
+                _mainLightShadowMapSize.y = 1f / _mainLightShadowMapSize.x;
+                cmd.SetGlobalVector("_MainLightMapSize", _mainLightShadowMapSize);
+              
+                //distance
                 cmd.SetGlobalVector("_MainLightShadowDistanceFade", new Vector4(_shadowSettings.ShadowMaxDistance, _shadowSettings.ShadowDistanceFade, 1f / _shadowSettings.ShadowMaxDistance,1f / _shadowSettings.ShadowDistanceFade));//z - cascades fade
+             
+                //keyWords
+                SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
+                
                 cmd.EndSample("Main Light Directional Shadow");
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
