@@ -3,7 +3,6 @@
 
 #include "Shadows.hlsl"
 
-
 CBUFFER_START(MainLightDataBuffer)
     half4 MainLightColor;
     half4 MainLightDirectionaAndMask;
@@ -26,7 +25,7 @@ Light GetMainLight(float4 shadowCoord, float3 positionWS)
     Light mainLight;
     mainLight.color =  MainLightColor;
     mainLight.direction = MainLightDirectionaAndMask.xyz;
-    // TODO surface
+    mainLight.layerMask = MainLightDirectionaAndMask.w;
     mainLight.shadowAttenuation = SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
     return mainLight;
 }

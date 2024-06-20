@@ -54,9 +54,7 @@ namespace Barkar.BSRP.Passes
         private static ShadowSettings _shadowSettings;
         private static Vector4 _mainLightShadowMapSize = Vector4.zero;
 
-        private static
-            UnityEngine.Rendering.RenderGraphModule.BaseRenderFunc<LightingPassData,
-                UnityEngine.Rendering.RenderGraphModule.RenderGraphContext> _renderFunc;
+        private static BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
 
         static readonly GlobalKeyword[] directionalFilterKeywords =
         {
@@ -119,7 +117,7 @@ namespace Barkar.BSRP.Passes
                                 };
 
                                 _directionalLightData[i] =
-                                    new DirectionalLightData(ref visibleLight, -1,
+                                    new DirectionalLightData(ref visibleLight, light.renderingLayerMask,
                                         new Vector4(light.shadowStrength, light.shadowNormalBias, light.shadowBias,
                                             0f));
 
@@ -146,8 +144,7 @@ namespace Barkar.BSRP.Passes
             }
         }
 
-        private static void RenderFunction(LightingPassData lightingPassData,
-            UnityEngine.Rendering.RenderGraphModule.RenderGraphContext context)
+        private static void RenderFunction(LightingPassData lightingPassData, RenderGraphContext context)
         {
             if (_directionalLightsCount > 0)
             {
