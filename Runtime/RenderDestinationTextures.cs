@@ -1,15 +1,15 @@
 
-using UnityEngine.Experimental.Rendering.RenderGraphModule;
+
 
 namespace Barkar.BSRP.CameraRenderer
 {
     public readonly ref struct RenderDestinationTextures
     {
-        public readonly TextureHandle ColorAttachment;
-        public readonly TextureHandle DepthAttachment;
+        public readonly UnityEngine.Rendering.RenderGraphModule.TextureHandle ColorAttachment;
+        public readonly UnityEngine.Rendering.RenderGraphModule.TextureHandle DepthAttachment;
        
 
-        public RenderDestinationTextures(TextureHandle colorAttachment, TextureHandle depthAttachment)
+        public RenderDestinationTextures(UnityEngine.Rendering.RenderGraphModule.TextureHandle colorAttachment, UnityEngine.Rendering.RenderGraphModule.TextureHandle depthAttachment)
         {
             ColorAttachment = colorAttachment;
             DepthAttachment = depthAttachment;

@@ -1,15 +1,15 @@
-using UnityEngine.Experimental.Rendering.RenderGraphModule;
+
 
 namespace Barkar.BSRP.CameraRenderer
 {
     public readonly ref struct LightingResources
     {
-        public readonly BufferHandle DirectionalLightBuffer;
-        public readonly TextureHandle DirectionalShadowMap;
+        public readonly UnityEngine.Rendering.RenderGraphModule.BufferHandle DirectionalLightBuffer;
+        public readonly UnityEngine.Rendering.RenderGraphModule.TextureHandle DirectionalShadowMap;
 
 
-        public LightingResources(BufferHandle directionalLightBuffer,
-            TextureHandle directionalShadowMap)
+        public LightingResources(UnityEngine.Rendering.RenderGraphModule.BufferHandle directionalLightBuffer,
+            UnityEngine.Rendering.RenderGraphModule.TextureHandle directionalShadowMap)
         {
             DirectionalLightBuffer = directionalLightBuffer;
             DirectionalShadowMap = directionalShadowMap;

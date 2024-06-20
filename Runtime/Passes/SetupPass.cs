@@ -2,8 +2,8 @@ using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes.Data;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Experimental.Rendering.RenderGraphModule;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
@@ -13,13 +13,13 @@ namespace Barkar.BSRP.Passes
         private static Camera _camera;
         private static Vector2Int _attachmentSize;
 
-        private static BaseRenderFunc<SetupPassData, RenderGraphContext> _renderFunc;
+        private static UnityEngine.Rendering.RenderGraphModule.BaseRenderFunc<SetupPassData, UnityEngine.Rendering.RenderGraphModule.RenderGraphContext> _renderFunc;
 
         static SetupPass()
         {
             _renderFunc = RenderFunction;
         }
-        
+
         public static RenderDestinationTextures SetupDestinationTextures(RenderGraph renderGraph,
             Vector2Int attachmetSize,
             Camera camera, bool HDR)
@@ -27,30 +27,34 @@ namespace Barkar.BSRP.Passes
             _camera = camera;
             _attachmentSize = attachmetSize;
 
-            using var builder = renderGraph.AddRenderPass<SetupPassData>(_profilingSampler.name, out var setupPassData, _profilingSampler);
-            builder.AllowPassCulling(false); 
+            using (var builder =
+                   renderGraph.AddRenderPass<SetupPassData>(_profilingSampler.name, out var setupPassData,
+                       _profilingSampler))
+            {
+                builder.AllowPassCulling(false);
 
-            //texture descriptor
-            TextureDesc textureDescriptor =
-                new TextureDesc(_attachmentSize.x, _attachmentSize.y);
-            DefaultFormat format = HDR ? DefaultFormat.HDR : DefaultFormat.LDR;
-            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(format);
-            textureDescriptor.name = "BSRP_Color_Attachment";
+                //texture descriptor
+                TextureDesc textureDescriptor =
+                    new TextureDesc(_attachmentSize.x, _attachmentSize.y);
+                DefaultFormat format = HDR ? DefaultFormat.HDR : DefaultFormat.LDR;
+                textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(format);
+                textureDescriptor.name = "BSRP_Color_Attachment";
 
-            setupPassData.ColorAttachment = builder.UseColorBuffer(renderGraph.CreateTexture(textureDescriptor), 0);
-            //copy?
+                setupPassData.ColorAttachment = builder.UseColorBuffer(renderGraph.CreateTexture(textureDescriptor), 0);
+                //copy?
 
-            textureDescriptor.depthBufferBits = DepthBits.Depth32;
-            textureDescriptor.name = "BSRP_Depth_Attachment";
-            setupPassData.DepthAttachment = builder.UseDepthBuffer(renderGraph.CreateTexture(textureDescriptor),
-                DepthAccess.ReadWrite);
+                textureDescriptor.depthBufferBits = DepthBits.Depth32;
+                textureDescriptor.name = "BSRP_Depth_Attachment";
+                setupPassData.DepthAttachment = builder.UseDepthBuffer(renderGraph.CreateTexture(textureDescriptor),
+                    UnityEngine.Rendering.RenderGraphModule.DepthAccess.ReadWrite);
 
-            builder.SetRenderFunc(_renderFunc);
-            
-            return new RenderDestinationTextures(setupPassData.ColorAttachment, setupPassData.DepthAttachment);
+                builder.SetRenderFunc(_renderFunc);
+
+                return new RenderDestinationTextures(setupPassData.ColorAttachment, setupPassData.DepthAttachment);
+            }
         }
 
-        private static void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)
+        private static void RenderFunction(SetupPassData setupPassData, UnityEngine.Rendering.RenderGraphModule.RenderGraphContext context)
         {
             context.renderContext.SetupCameraProperties(_camera);
             CommandBuffer cmd = context.cmd;

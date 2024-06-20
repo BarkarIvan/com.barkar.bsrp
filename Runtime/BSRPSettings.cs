@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 [CreateAssetMenu(menuName = "Rendering/BSRPAsset")]
-public class BSRPSettings : RenderPipelineAsset
+public class BSRPSettings : RenderPipelineAsset<BSRP>
 {
     [SerializeField]
     private bool HDR;
@@ -12,6 +12,7 @@ public class BSRPSettings : RenderPipelineAsset
 
     [SerializeField] private ShadowSettings _shadowSettings;
 
+    public override string renderPipelineShaderTag => "BSRP";
     
     protected override RenderPipeline CreatePipeline() => new BSRP(HDR, _renderScale, _shadowSettings);
 }

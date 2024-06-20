@@ -1,12 +1,12 @@
 
 using UnityEngine;
-using UnityEngine.Experimental.Rendering.RenderGraphModule;
+
 
 namespace Barkar.BSRP.Passes.Data
 {
     public class DrawSkyboxPassData
     {
-        public TextureHandle ColorAttacment;
-        public TextureHandle DepthAttachment;
+        public UnityEngine.Rendering.RenderGraphModule.TextureHandle ColorAttacment;
+        public UnityEngine.Rendering.RenderGraphModule.TextureHandle DepthAttachment;
     }
 }
