@@ -1,7 +1,6 @@
 #ifndef CUSTOM_REAL_TIME_LIGHT_INCLUDED
 #define CUSTOM_REAL_TIME_LIGHT_INCLUDED
 
-#include "Shadows.hlsl"
 
 CBUFFER_START(MainLightDataBuffer)
     half4 MainLightColor;
@@ -11,6 +10,7 @@ CBUFFER_END
 
 float4x4 _MainLightMatrix;
 
+#include "Packages/com.barkar.bsrp/ShaderLibrary/Shadows.hlsl"
 
 struct Light
 {

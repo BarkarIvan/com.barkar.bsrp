@@ -3,6 +3,7 @@
 
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonShadow.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Shadow/ShadowSamplingTent.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
 
@@ -28,6 +29,29 @@ SAMPLER_CMP(sampler_LinearClampCompare);
 half4 _MainLightShadowDistanceFade; //max distance, fadeWidth, 0, 0,
 half4 _MainLightShadowMapSize;
 
+
+float4 TransformWorldToShadowCoord(float3 positionWS)
+{
+   // #ifdef _MAIN_LIGHT_SHADOWS_CASCADE
+   // half cascadeIndex = ComputeCascadeIndex(positionWS);
+   // #else
+   // half cascadeIndex = half(0.0);
+   // #endif
+
+    float4 shadowCoord = mul(_MainLightMatrix, float4(positionWS, 1.0));
+
+    return float4(shadowCoord.xyz, 0);
+}
+
+float4 GetShadowCoord(VertexPositionInputs vertexInput)
+{
+   // #if defined(_MAIN_LIGHT_SHADOWS_SCREEN) && !defined(_SURFACE_TYPE_TRANSPARENT)
+   // return ComputeScreenPos(vertexInput.positionCS);
+   // #else
+    return TransformWorldToShadowCoord(vertexInput.positionWS);
+    //#endif
+}
+
 half SampleDirectionalShadowMap(float3 shadowCoord)
 {
     return SAMPLE_TEXTURE2D_SHADOW(_MainLightShadowMap, sampler_LinearClampCompare, shadowCoord);
@@ -44,6 +68,7 @@ half ApplyShadowFade(float3 positionWS, half shadowAttenuation, half4 shadowData
 
 half SampleFilteredShadowMap(float3 positionWS,float4 shadowCoord, half4 shadowData)
 {
+    
     shadowCoord.xyz = shadowCoord.xyz / shadowCoord.w;
     #if defined(DIRECTIONAL_FILTER_TENT)
     real weights[DIRECTIONAL_FILTER_SAMPLES];
@@ -58,7 +83,7 @@ half SampleFilteredShadowMap(float3 positionWS,float4 shadowCoord, half4 shadowD
     }
     return ApplyShadowFade(positionWS, shadow, shadowData);
     #else
-    half shadow = SampleDirectionalShadowMap(shadowCoord);
+    half shadow = SampleDirectionalShadowMap(shadowCoord.xyz);
     return ApplyShadowFade(positionWS, shadow, shadowData);
     #endif
 }

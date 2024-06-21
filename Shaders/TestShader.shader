@@ -67,6 +67,7 @@ Shader "BSRP/TestShader"
                 Light mainlight = GetMainLight(IN.shadowCoord, IN.positionWS);
 
                 half NoL = max(dot(mainlight.direction, IN.normalWS), 0);
+                
                 half4 result;
                 result.rgb = saturate(_Color.rgb * NoL * mainlight.color);
                 result.a = _Color.a;

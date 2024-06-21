@@ -1,6 +1,14 @@
 #ifndef CUSTOM_UNITY_INPUT_INCLUDED
 #define CUSTOM_UNITY_INPUT_INCLUDED
 
+
+
+// Unity specific
+TEXTURECUBE(unity_SpecCube0);
+SAMPLER(samplerunity_SpecCube0);
+TEXTURECUBE(unity_SpecCube1);
+SAMPLER(samplerunity_SpecCube1);
+
 CBUFFER_START(UnityPerDraw)
 	float4x4 unity_ObjectToWorld;
 	float4x4 unity_WorldToObject;
@@ -46,5 +54,13 @@ float4 unity_OrthoParams;
 float4 _ProjectionParams;
 float4 _ScreenParams;
 float4 _ZBufferParams;
+
+real4 glstate_lightmodel_ambient;
+real4 unity_AmbientSky;
+real4 unity_AmbientEquator;
+real4 unity_AmbientGround;
+real4 unity_IndirectSpecColor;
+float4 unity_FogParams;
+real4  unity_FogColor;
 
 #endif
