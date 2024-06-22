@@ -5,7 +5,7 @@ Shader "BSRP/StylizedLit"
         _BaseMap ("Albedo", 2D) = "white"{}
         _BaseColor ("Color", Color) = (1,1,1,1)
 
-        _AdditionalMap ("Additional Map", 2D) = "white"{} ///r - smoothness, g - metallic, b - normal.x, a - normal.y
+        _AdditionalMap ("Additional Map", 2D) = "white"{}  //nml.xy, rough, metallic
         [Toggle(_NORMALMAP)] _UsingNormalMap("Using Normal Map", Float) = 0
         _NormalMapScale("Normal Map Scale", Range(0,3)) = 1
 
@@ -56,7 +56,7 @@ Shader "BSRP/StylizedLit"
     {
         Tags
         {
-            "RenderPipeline"="BSRP" "Queue"="Geometry" "LightMode" = "BSRPLightMode"
+            "RenderPipeline"="BSRP" "Queue"="Geometry" 
         }
 
         Cull [_Cull]
@@ -67,7 +67,7 @@ Shader "BSRP/StylizedLit"
         {
             Tags
             {
-                "LightMode" = "UniversalForward"
+                "LightMode" = "BSRPLightMode"
             }
 
             HLSLPROGRAM
@@ -86,8 +86,8 @@ Shader "BSRP/StylizedLit"
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
 
-           #include "Packages/com.barkar.bsrp/ShaderLibrary/Surface.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/Surface.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBRDF.hlsl"
@@ -151,9 +151,9 @@ Shader "BSRP/StylizedLit"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                nointerpolation   float2 uv : TEXCOORD0;
+                float2 uv : TEXCOORD0;
                 float2 addUv : TEXCOORD1;
-                 float3 positionWS : TEXCOORD2;
+                float3 positionWS : TEXCOORD2;
                 half3 normalWS : NORMAL;
                 #if defined(_NORMALMAP)
                 half3 tangentWS : TEXCOORD3;
@@ -303,16 +303,16 @@ Shader "BSRP/StylizedLit"
                 result.rgb += emissionColor;
 
                 //LOD
-                #ifdef LOD_FADE_CROSSFADE
-                LODFadeCrossFade(IN.positionCS);
-                #endif
+              //  #ifdef LOD_FADE_CROSSFADE
+              //  LODFadeCrossFade(IN.positionCS);
+               // #endif
 
                 //FOG
                 #if (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
                 result.rgb = CalculateFog(result, IN.positionWS);
                 #endif
 
-                return result;
+                return  result;
             }
             ENDHLSL
         }
@@ -388,5 +388,5 @@ Shader "BSRP/StylizedLit"
         }
     }
 
-    CustomEditor "BSRPStylizedLitShaderEditor"
+    CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
 }

@@ -1,10 +1,8 @@
-#ifndef  CUSTOM_LIGHTING
-#define  CUSTOM_LIGHTING
+#ifndef CUSTOM_LIGHTING
+#define CUSTOM_LIGHTING
 
+#include "Packages/com.barkar.bsrp/ShaderLibrary/Surface.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/RealTimeLight.hlsl"
-
-
-
 
 half3 CalculateFog(half4 color, float3 positionWS)
 {
@@ -53,7 +51,7 @@ half3 GetReflectionProbe(Surface surface)
 {
     half3 rV = reflect(-surface.viewDir, surface.normal);
     half4 probe = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, rV,
-                                         (1.0 - surface.smoothness) * 6 );//UNITY_SPECCUBE_LOD_STEPS
+                                         (1.0 - surface.smoothness) * 6);//UNITY_SPECCUBE_LOD_STEPS);
     half3 envirReflection = DecodeHDREnvironment(probe, unity_SpecCube0_HDR);
     return envirReflection;
 }

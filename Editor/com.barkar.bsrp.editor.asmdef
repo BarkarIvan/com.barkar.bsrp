@@ -1,7 +1,9 @@
 {
     "name": "com.barkar.bsrp.editor",
     "rootNamespace": "Barkar.BSRP.Editor",
-    "references": [],
+    "references": [
+        "GUID:3eae0364be2026648bf74846acb8a731"
+    ],
     "includePlatforms": [
         "Editor"
     ],

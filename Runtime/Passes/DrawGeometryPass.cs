@@ -35,7 +35,17 @@ public class DrawGeometryPass
                 {
                     renderQueueRange = isOpaque ? RenderQueueRange.opaque : RenderQueueRange.transparent,
                     sortingCriteria = isOpaque ? SortingCriteria.CommonOpaque : SortingCriteria.CommonTransparent,
-                    renderingLayerMask = (uint)renderingLayerMask
+                    renderingLayerMask = (uint)renderingLayerMask,
+                    //обязательно наче глюки в SH и GI 
+                    rendererConfiguration = PerObjectData.ReflectionProbes |
+                                            PerObjectData.Lightmaps |
+                                            PerObjectData.ShadowMask |
+                                            PerObjectData.LightProbe |
+                                            PerObjectData.OcclusionProbe |
+                                            PerObjectData.LightProbeProxyVolume |
+                                            PerObjectData.OcclusionProbeProxyVolume,
+                                            //PerObjectData.LightData|
+                                          //  PerObjectData.LightIndices
                 };
 
             drawGeometryPassData.RendererListHandle =
