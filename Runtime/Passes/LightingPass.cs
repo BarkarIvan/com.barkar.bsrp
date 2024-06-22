@@ -125,18 +125,21 @@ namespace Barkar.BSRP.Passes
                             }
 
                             break;
+                        
                     }
 
-                    var textureDescriptor = new TextureDesc((int)_shadowSettings.Direcrional.MapSize,
-                        (int)_shadowSettings.Direcrional.MapSize);
-                    textureDescriptor.depthBufferBits = DepthBits.Depth32;
-                    textureDescriptor.isShadowMap = true;
-                    textureDescriptor.name = "Main Light ShadowMap";
-
-                    lightingPassData.ShadowMap = builder.ReadWriteTexture(_directionalLightsCount > 0
-                        ? renderGraph.CreateTexture(textureDescriptor)
-                        : renderGraph.defaultResources.defaultShadowTexture);
+                    
                 }
+                
+                var textureDescriptor = new TextureDesc((int)_shadowSettings.Direcrional.MapSize,
+                    (int)_shadowSettings.Direcrional.MapSize);
+                textureDescriptor.depthBufferBits = DepthBits.Depth32;
+                textureDescriptor.isShadowMap = true;
+                textureDescriptor.name = "Main Light ShadowMap";
+
+                lightingPassData.ShadowMap = builder.ReadWriteTexture(_directionalLightsCount > 0
+                    ? renderGraph.CreateTexture(textureDescriptor)
+                    : renderGraph.defaultResources.defaultShadowTexture);
 
                 builder.SetRenderFunc(_renderFunc);
 
@@ -146,8 +149,7 @@ namespace Barkar.BSRP.Passes
 
         private static void RenderFunction(LightingPassData lightingPassData, RenderGraphContext context)
         {
-            if (_directionalLightsCount > 0)
-            {
+           
                 var cmd = context.cmd;
 
                 cmd.SetRenderTarget(lightingPassData.ShadowMap, RenderBufferLoadAction.DontCare,
@@ -157,30 +159,32 @@ namespace Barkar.BSRP.Passes
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
+                if (_directionalLightsCount > 0)
+                {
+                    _cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
+                        _directionalLightShadowData.visibleLightIndex,
+                        0, 1, new Vector3(1.0f, 0.0f, 0.0f),
+                        (int)_shadowSettings.Direcrional.MapSize, _directionalLightShadowData.shadowNearPlane,
+                        out Matrix4x4 shadowViewMatrix,
+                        out Matrix4x4 shadowProjectionMatrix, out ShadowSplitData splitData);
 
-                _cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
-                    _directionalLightShadowData.visibleLightIndex,
-                    0, 1, new Vector3(1.0f, 0.0f, 0.0f),
-                    (int)_shadowSettings.Direcrional.MapSize, _directionalLightShadowData.shadowNearPlane,
-                    out Matrix4x4 shadowViewMatrix,
-                    out Matrix4x4 shadowProjectionMatrix, out ShadowSplitData splitData);
+                    Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix, shadowViewMatrix);
 
-                Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix, shadowViewMatrix);
+                    cmd.SetGlobalMatrix("_MainLightMatrix", shadowMatrix);
+                    cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
+                    cmd.SetGlobalDepthBias(0f, _directionalLightShadowData.shadowBias);
+                    context.renderContext.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
 
-                cmd.SetGlobalMatrix("_MainLightMatrix", shadowMatrix);
-                cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
-                cmd.SetGlobalDepthBias(0f, _directionalLightShadowData.shadowBias);
-                context.renderContext.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
+                    var shadowSeettings =
+                        new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
+                    shadowSeettings.useRenderingLayerMaskTest = true;
+                    shadowSeettings.objectsFilter = ShadowObjectsFilter.AllObjects;
+                    var directionalLightRendererListHandle =
+                        context.renderContext.CreateShadowRendererList(ref shadowSeettings);
 
-                var shadowSeettings =
-                    new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
-                shadowSeettings.useRenderingLayerMaskTest = true;
-                shadowSeettings.objectsFilter = ShadowObjectsFilter.AllObjects;
-                var directionalLightRendererListHandle =
-                    context.renderContext.CreateShadowRendererList(ref shadowSeettings);
-
-                cmd.DrawRendererList(directionalLightRendererListHandle);
+                    cmd.DrawRendererList(directionalLightRendererListHandle);
+                }
 
                 //Buffers data
                 cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData);
@@ -209,7 +213,7 @@ namespace Barkar.BSRP.Passes
                 cmd.SetGlobalDepthBias(0f, 0f);
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
-            }
+            
         }
 
 
