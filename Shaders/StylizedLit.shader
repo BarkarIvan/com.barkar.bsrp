@@ -80,7 +80,7 @@ Shader "BSRP/StylizedLit"
             #pragma shader_feature_local _EMISSION
             #pragma shader_feature_local _BRUSHTEX
             #pragma shader_feature_local _USEALPHACLIP
-          //  #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile_fog
 
             #pragma prefer_hlslcc gles
@@ -246,8 +246,6 @@ Shader "BSRP/StylizedLit"
                 #endif
 
                 Light light = GetMainLight(shadowCoord, IN.positionWS);
-              //  half shadowFade = GetMainLightShadowFade(IN.positionWS);
-              //  light.shadowAttenuation = lerp(light.shadowAttenuation, 1.0, shadowFade);
                 half NoL = dot(surface.normal, light.direction);
 
                 Ramp ramp;
