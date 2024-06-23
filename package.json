@@ -1,9 +1,9 @@
 {
   "name": "com.barkar.bsrp",
-  "version": "0.0.1",
+  "version": "0.5.0",
   "displayName": "BarkarSRP",
   "description": "Simple scriptable render pipeline",
-  "unity": "2022.3",
+  "unity": "2023.3",
   "keywords": [
     "Scriptable render pipeline"
   ],

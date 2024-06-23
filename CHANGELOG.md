@@ -1,9 +1,9 @@
 
 # Change Log
 
-## [0.0.0] - 2024-04-09
+## [0.5.0] - 2024-06-23
 
-### Fixed
+### Added
 
-- Normal map was enabled after remove AdditionalMap
-- shader_feature_fragment for some keywords
+- Initial version
+
