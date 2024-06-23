@@ -81,6 +81,8 @@ Shader "BSRP/StylizedLit"
             #pragma shader_feature_local _BRUSHTEX
             #pragma shader_feature_local _USEALPHACLIP
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
+
             #pragma multi_compile_fog
 
             #pragma prefer_hlslcc gles
