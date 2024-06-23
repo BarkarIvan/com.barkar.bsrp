@@ -216,8 +216,8 @@ Shader "BSRP/StylizedLit"
                 half4 additionalMaps = SAMPLE_TEXTURE2D(_AdditionalMap, sampler_AdditionalMap, IN.addUv);
                 half smoothnessMask = additionalMaps.b;
                 half metallicMask = additionalMaps.a;
-                surface.metallic *= metallicMask;
-                surface.smoothness *= smoothnessMask;
+                surface.metallic = metallicMask;
+                surface.smoothness = smoothnessMask;
 
                 //normals
                 #if defined (_NORMALMAP)

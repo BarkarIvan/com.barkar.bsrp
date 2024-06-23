@@ -9,11 +9,11 @@ namespace Barkar.BSRP.Passes
 {
     public class SetupPass
     {
-        private static readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Setup Pass");
+        private static readonly ProfilingSampler _profilingSampler = new ("Setup Pass");
         private static Camera _camera;
         private static Vector2Int _attachmentSize;
 
-        private static UnityEngine.Rendering.RenderGraphModule.BaseRenderFunc<SetupPassData, UnityEngine.Rendering.RenderGraphModule.RenderGraphContext> _renderFunc;
+        private static BaseRenderFunc<SetupPassData, RenderGraphContext> _renderFunc;
 
         static SetupPass()
         {
@@ -54,7 +54,7 @@ namespace Barkar.BSRP.Passes
             }
         }
 
-        private static void RenderFunction(SetupPassData setupPassData, UnityEngine.Rendering.RenderGraphModule.RenderGraphContext context)
+        private static void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)
         {
             context.renderContext.SetupCameraProperties(_camera);
             CommandBuffer cmd = context.cmd;
