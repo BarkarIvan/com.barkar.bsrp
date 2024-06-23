@@ -237,13 +237,8 @@ Shader "BSRP/StylizedLit"
                 surface.alpha = step(_AlphaClip, surface.alpha);
                 #endif
 
-                //light
-                half4 shadowCoord = half4(0, 0, 0, 0);
-                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                shadowCoord = IN.shadowCoord;
-                #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-                shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
-                #endif
+                 half4 shadowCoord = IN.shadowCoord;
+               
 
                 Light light = GetMainLight(shadowCoord, IN.positionWS);
                 half NoL = dot(surface.normal, light.direction);
