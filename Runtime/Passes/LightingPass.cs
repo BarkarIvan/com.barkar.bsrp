@@ -149,7 +149,6 @@ namespace Barkar.BSRP.Passes
 
         private static void RenderFunction(LightingPassData lightingPassData, RenderGraphContext context)
         {
-           
                 var cmd = context.cmd;
 
                 cmd.SetRenderTarget(lightingPassData.ShadowMap, RenderBufferLoadAction.DontCare,

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes;
+using Barkar.BSRP.Passes.Bloom;
 using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -19,7 +20,11 @@ public class BSRP : RenderPipeline
     private RenderGraphParameters renderGraphParameters;
 
     private ShadowSettings _shadowSettings;
+    private BloomSettings _bloomSettings;
+    
     private Material _finalPassMaterial;
+    private Material _customBloomMaterial;
+    private Material _dualFilterBlurMaterial;
     
     
     public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings)
@@ -27,6 +32,8 @@ public class BSRP : RenderPipeline
         _hdr = hdr;
         _renderScale = renderScale;
         _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/BSRP/Camera Renderer");
+        _customBloomMaterial = CoreUtils.CreateEngineMaterial("Hidden/CustomBloom");
+        
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         _shadowSettings = shadowSettings;

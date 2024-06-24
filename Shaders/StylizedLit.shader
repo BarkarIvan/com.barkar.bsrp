@@ -337,7 +337,7 @@ Shader "BSRP/StylizedLit"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
+                half3 normalOS : NORMAL;
             };
 
             struct Varyings
@@ -348,14 +348,14 @@ Shader "BSRP/StylizedLit"
             float4 GetShadowPositionHClip(Attributes input)
             {
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
-              //  half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
+                half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
 
                 //apply bias
-               // half invNdotL = 1.0 - saturate(dot(MainLightDirectionaAndMask.xyz, normalWS.xyz));
-                //half scale = invNdotL * MainLightShadowsData.y;
+                half invNdotL = 1.0 - saturate(dot(MainLightDirectionaAndMask.xyz, normalWS.xyz));
+                half scale = invNdotL * MainLightShadowsData.y;
 
-                //positionWS = _MainLightPosition.xyz * _ShadowBias.xxx + positionWS.xyz;
-                //positionWS = normalWS * scale.xxx + positionWS;
+                positionWS = MainLightDirectionaAndMask.xyz * MainLightShadowsData.yyy + positionWS.xyz;
+                positionWS = normalWS * scale.xxx + positionWS;
                 //
                 float4 positionCS = TransformWorldToHClip(positionWS);
 
