@@ -19,11 +19,10 @@ Shader "Hidden/FinalPass"
             HLSLPROGRAM
             #pragma vertex DefaultPassVertex
             #pragma fragment CompositingFrag
-            #pragma multi_compile _ _USE_CUSTOM_LENSDIRT
+            #pragma multi_compile_local_fragment  _ _USE_CUSTOM_LENSDIRT
 
             #include "../ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-            // #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBlit.hlsl"
             #include "CameraRendererPasses.hlsl"
 
             TEXTURE2D (_CameraOpaque);

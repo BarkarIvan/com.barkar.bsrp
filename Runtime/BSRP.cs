@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes;
 using Barkar.BSRP.Passes.Bloom;
+using Barkar.BSRP.Passes.Data;
 using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -31,7 +32,7 @@ public class BSRP : RenderPipeline
     {
         _hdr = hdr;
         _renderScale = renderScale;
-      //  _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");
+        _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");
        // _customBloomMaterial = CoreUtils.CreateEngineMaterial("Hidden/CustomBloom");
         
         QualitySettings.shadows = ShadowQuality.All;
@@ -93,9 +94,9 @@ public class BSRP : RenderPipeline
                 destinationTextures, camera.cullingMask, false, lightingResources);
            
             //postprocess
-            BloomPass.DrawBloom(camera, RenderGraph, _bloomSettings, destinationTextures, textureSize);
+            BloomData bloomData= BloomPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures, textureSize);
             
-          //  FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial);
+            FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
 
             RenderGraph.EndRecordingAndExecute();
         }

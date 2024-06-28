@@ -13,54 +13,38 @@ namespace Barkar.BSRP.Passes
         private static readonly ProfilingSampler _profilingSampler = new("Bloom Pass");
 
         private static BaseRenderFunc<BloomPassData, RenderGraphContext> _renderFunc;
-
         private static Vector4 _filter = Vector4.zero;
-        private static Camera _camera;
-
-        private static Material material;
         private static BloomSettings _settings;
         private static Vector2Int _attachmentSize;
         private static Vector4 _bloomParams = Vector4.one;
 
 
-        public static Material _bloomMaterial
+
+        private static Material _material;
+        private static MaterialPropertyBlock _mbp = new MaterialPropertyBlock();
+        private static readonly int _dualFilterOffsetID = Shader.PropertyToID("_DualFilterOffset");
+        private static readonly int _filterID = Shader.PropertyToID("_Filter");
+
+        private static Material _bloomMaterial
         {
             get
             {
-                if (material == null)
+                if (_material == null)
                 {
-                    material = CoreUtils.CreateEngineMaterial("Hidden/BSRPCustomBloom");
+                    _material = CoreUtils.CreateEngineMaterial("Hidden/BSRPCustomBloom");
                 }
-
-                return material;
+                return _material;
             }
         }
-
-        private static Material _finalMat;
-        public static Material _finalPassMaterial
-        {
-            get
-            {
-                if (_finalMat == null)
-                {
-                    _finalMat = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");;
-                }
-                return _finalMat;
-            }
-        }
-
+        
         static BloomPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        private static readonly int _filterID = Shader.PropertyToID("_Filter");
-        private static readonly int _customBloomLensDirtTextureID = Shader.PropertyToID("_CustomBloomLensDirtTexture");
-        private static readonly int _customBloomParamsID = Shader.PropertyToID("_CustomBloomParams");
-        private static GlobalKeyword _UseLensDirtKeyword = GlobalKeyword.Create("_USE_CUSTOM_LENSDIRT");
 
 
-        public static void DrawBloom(Camera camera, RenderGraph renderGraph, BloomSettings settings,
+        public static BloomData DrawBloom( RenderGraph renderGraph, BloomSettings settings,
             in RenderDestinationTextures input, Vector2Int attachmentSize)
         {
             using var builder =
@@ -74,29 +58,33 @@ namespace Barkar.BSRP.Passes
             _filter.z = 2f * knee;
             _filter.w = 0.25f / (knee + 0.0001f);
 
-            _camera = camera;
             _settings = settings;
             _attachmentSize = attachmentSize;
             bloomPassData.ColorSource = builder.ReadTexture(input.ColorAttachment);
 
-            TextureDesc textureDescriptor = new TextureDesc(attachmentSize.x>>settings.Downsample, attachmentSize.y>>settings.Downsample);
+            TextureDesc textureDescriptor = new TextureDesc(attachmentSize.x >> settings.Downsample,
+                attachmentSize.y >> settings.Downsample);
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
-            textureDescriptor.name = "Bloom Prefilter";
-            bloomPassData.BloomPassTexture = builder.CreateTransientTexture(textureDescriptor);
+            textureDescriptor.name = "Bloom Prefilter [0]";
+            bloomPassData.BloomPassTexture = builder.UseColorBuffer(renderGraph.CreateTexture(textureDescriptor), 0);
             bloomPassData.BlurPyramid[0] = bloomPassData.BloomPassTexture;
 
             for (int i = 1; i < settings.BlurPassesCount + 1; i++)
             {
                 Debug.Log("i = " + i);
-                
+
                 var downsample = 1 << i;
 
                 var sizeX = attachmentSize.x / downsample;
                 var sizeY = attachmentSize.y / downsample;
-                  if (sizeX < 1f || sizeY < 1f) {break;}
+                if (sizeX < 1f || sizeY < 1f)
+                {
+                    break;
+                }
+
                 TextureDesc desc = new TextureDesc(sizeX, sizeY)
                 {
-                    name = "Blur Pyramid " + i,
+                    name = "Blur Pyramid " + "[" + i + "]",
                     colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR),
                     depthBufferBits = DepthBits.None,
                     msaaSamples = MSAASamples.None,
@@ -105,9 +93,8 @@ namespace Barkar.BSRP.Passes
                 };
 
                 bloomPassData.BlurPyramid[i] = builder.CreateTransientTexture(desc);
-          
             }
-            //builder.AllowPassCulling(false); 
+
             _bloomParams.x = settings.LensDirtIntensity;
             _bloomParams.w = settings.Intensity;
             float dirtratio = (float)_settings.LensDirtTexture.width / (float)_settings.LensDirtTexture.height;
@@ -120,24 +107,24 @@ namespace Barkar.BSRP.Passes
             {
                 _bloomParams.z = dirtratio / screenRatio;
             }
-            
-            
+
             builder.SetRenderFunc(_renderFunc);
+
+            return new BloomData(bloomPassData.BloomPassTexture, settings.LensDirtTexture, settings.UseLensDirt,
+                _bloomParams);
         }
 
         private static void RenderFunction(BloomPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
+           
             //prefilter
             cmd.SetGlobalVector(_filterID, _filter);
-            cmd.SetGlobalVector(_customBloomParamsID, _bloomParams);
-            cmd.SetKeyword(_UseLensDirtKeyword, _settings.UseLensDirt);
             CoreUtils.SetRenderTarget(cmd, data.BlurPyramid[0], RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store, ClearFlag.All, Color.clear);
             Blitter.BlitTexture(cmd, data.ColorSource, Vector2.one, _bloomMaterial, 0);
-            
-            //blur
 
+            //blur
             if (_settings.BlurPassesCount > 0)
             {
                 var offset = _settings.BlurOffset;
@@ -151,21 +138,20 @@ namespace Barkar.BSRP.Passes
 
                     var sizeX = _attachmentSize.x / downsample;
                     var sizeY = _attachmentSize.y / downsample;
-                    
-                   // RTHandle rtHandle = RTHandles.Alloc(src);
+
                     var texelSize = Vector2.one / new Vector2(sizeX, sizeY);
                     var halfPixel = texelSize * 0.5f;
-                    
-                    cmd.SetGlobalVector("_DualFilterOffset",
+
+                    _bloomMaterial.SetVector(_dualFilterOffsetID,
                         new Vector4(halfPixel.x * offset, halfPixel.y * offset, 1, 1));
-                    
-                    CoreUtils.SetRenderTarget(cmd, dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, ClearFlag.All, Color.clear);
+
+                    CoreUtils.SetRenderTarget(cmd, dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
+                        ClearFlag.All, Color.clear);
                     Blitter.BlitTexture(cmd, src, Vector2.one, _bloomMaterial, 1);
-                    
                 }
-                
-                
-                for (int i = _settings.BlurPassesCount; i >= 1 ; i--)
+
+
+                for (int i = _settings.BlurPassesCount; i >= 1; i--)
                 {
                     var src = data.BlurPyramid[i];
                     var dst = data.BlurPyramid[i - 1];
@@ -174,34 +160,19 @@ namespace Barkar.BSRP.Passes
 
                     var sizeX = _attachmentSize.x / downsample;
                     var sizeY = _attachmentSize.y / downsample;
-                    
-                    // RTHandle rtHandle = RTHandles.Alloc(src);
+
                     var texelSize = Vector2.one / new Vector2(sizeX, sizeY);
                     var halfPixel = texelSize * 0.5f;
-                    
-                    cmd.SetGlobalVector("_DualFilterOffset",
+
+                    _bloomMaterial.SetVector(_dualFilterOffsetID,
                         new Vector4(halfPixel.x * offset, halfPixel.y * offset, 1, 1));
                     
-                    CoreUtils.SetRenderTarget(cmd, dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, ClearFlag.All, Color.clear);
+                    CoreUtils.SetRenderTarget(cmd, dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
+                        ClearFlag.All, Color.clear);
                     Blitter.BlitTexture(cmd, src, Vector2.one, _bloomMaterial, 1);
                 }
             }
 
-
-            cmd.SetGlobalTexture("_CameraOpaque", data.ColorSource);
-            cmd.SetGlobalTexture(_customBloomLensDirtTextureID, _settings.LensDirtTexture);
-
-            cmd.SetGlobalTexture("_BloomTexture", data.BlurPyramid[0]);
-            cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare,
-                RenderBufferStoreAction.Store);
-           cmd.SetViewport(_camera.pixelRect); //!!!!!
-            cmd.DrawProcedural(Matrix4x4.identity, _finalPassMaterial, 0, MeshTopology.Triangles,
-               3);
-          
-         
-          
-         // CoreUtils.SetRenderTarget(cmd, BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-         //Blitter.BlitTexture(cmd, data.BlurPyramid[0], Vector2.one, _finalPassMaterial, 0);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
