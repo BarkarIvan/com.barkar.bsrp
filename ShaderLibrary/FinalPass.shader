@@ -58,7 +58,7 @@ Shader "Hidden/FinalPass"
                 half3 dirt = SAMPLE_TEXTURE2D(_CustomBloomLensDirtTexture, sampler_linear_clamp, IN.uv * LensDirtScale).rgb;
                 dirt *= LensDirtIntesity;
                 dirt *= bloom;
-                result.rgb = dirt;
+                result.rgb += dirt;
                 #endif
                 
                 result.rgb = ACESFilmTonemapping(result.rgb);

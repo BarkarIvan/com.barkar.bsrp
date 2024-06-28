@@ -20,7 +20,7 @@ namespace Barkar.BSRP.Passes
         private static Material material;
         private static BloomSettings _settings;
         private static Vector2Int _attachmentSize;
-        private static Vector4 _bloomParams = new Vector4();
+        private static Vector4 _bloomParams = Vector4.one;
 
 
         public static Material _bloomMaterial
@@ -79,7 +79,7 @@ namespace Barkar.BSRP.Passes
             _attachmentSize = attachmentSize;
             bloomPassData.ColorSource = builder.ReadTexture(input.ColorAttachment);
 
-            TextureDesc textureDescriptor = new TextureDesc(attachmentSize.x, attachmentSize.y);
+            TextureDesc textureDescriptor = new TextureDesc(attachmentSize.x>>settings.Downsample, attachmentSize.y>>settings.Downsample);
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             textureDescriptor.name = "Bloom Prefilter";
             bloomPassData.BloomPassTexture = builder.CreateTransientTexture(textureDescriptor);
