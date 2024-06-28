@@ -1,10 +1,8 @@
-Shader "Hidden/CustomBloom"
+Shader "Hidden/BSRPCustomBloom"
 {
     HLSLINCLUDE
-    #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
-    half4 _Filter;
-    half4 _DualFilterOffset;
+    #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBlit.hlsl"
 
     half3 Prefilter(half3 c)
     {
@@ -23,7 +21,7 @@ Shader "Hidden/CustomBloom"
         half3 col = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord).xyz;
         result.rgb = Prefilter(col.rgb);
         result = max(result, 0);
-        return half4(result,1);
+        return half4(result, 1.0);
     }
 
     half4 FragBlurDownSample(Varyings IN): SV_Target

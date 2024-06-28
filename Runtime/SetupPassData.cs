@@ -1,11 +1,10 @@
-using UnityEngine;
-
+using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes.Data
 {
      class SetupPassData
      {
-         public UnityEngine.Rendering.RenderGraphModule.TextureHandle ColorAttachment;
-         public UnityEngine.Rendering.RenderGraphModule.TextureHandle DepthAttachment;
+         public TextureHandle ColorAttachment;
+         public TextureHandle DepthAttachment;
      }
 }

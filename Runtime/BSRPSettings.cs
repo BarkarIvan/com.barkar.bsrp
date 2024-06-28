@@ -17,5 +17,5 @@ public class BSRPSettings : RenderPipelineAsset<BSRP>
 
     public override string renderPipelineShaderTag => "BSRP";
     
-    protected override RenderPipeline CreatePipeline() => new BSRP(HDR, _renderScale, _shadowSettings);
+    protected override RenderPipeline CreatePipeline() => new BSRP(HDR, _renderScale, _shadowSettings, _bloomSettings);
 }

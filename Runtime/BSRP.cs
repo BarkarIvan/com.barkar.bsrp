@@ -23,20 +23,21 @@ public class BSRP : RenderPipeline
     private BloomSettings _bloomSettings;
     
     private Material _finalPassMaterial;
-    private Material _customBloomMaterial;
-    private Material _dualFilterBlurMaterial;
+    //private Material _customBloomMaterial;
+    //private Material _dualFilterBlurMaterial;
     
     
-    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings)
+    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
     {
         _hdr = hdr;
         _renderScale = renderScale;
-        _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/BSRP/Camera Renderer");
-        _customBloomMaterial = CoreUtils.CreateEngineMaterial("Hidden/CustomBloom");
+      //  _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");
+       // _customBloomMaterial = CoreUtils.CreateEngineMaterial("Hidden/CustomBloom");
         
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         _shadowSettings = shadowSettings;
+        _bloomSettings = bloomSettings;
     }
     
     
@@ -91,7 +92,10 @@ public class BSRP : RenderPipeline
             DrawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 destinationTextures, camera.cullingMask, false, lightingResources);
            
-            FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial);
+            //postprocess
+            BloomPass.DrawBloom(camera, RenderGraph, _bloomSettings, destinationTextures, textureSize);
+            
+          //  FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial);
 
             RenderGraph.EndRecordingAndExecute();
         }

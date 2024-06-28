@@ -1,28 +1,29 @@
-using System.Collections;
-using System.Collections.Generic;
 using Barkar.BSRP.CameraRenderer;
 using UnityEngine;
 
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
     public class FinalPassData
     {
-        public  UnityEngine.Rendering.RenderGraphModule.TextureHandle ColorAttachment;
-        public  UnityEngine.Rendering.RenderGraphModule.TextureHandle DepthAttachment;
-        public  Material FinalPassMaterial;
+        public  TextureHandle ColorAttachment;
+        public  TextureHandle DepthAttachment;
+       // public  
         public  Camera Camera;
     }
    
     public class FinalPass
     {
-        private static readonly ProfilingSampler FinalPassProfilingSampler = new ProfilingSampler("Final Pass");
+        private static readonly ProfilingSampler FinalPassProfilingSampler = new ("Final Pass");
 
         private static readonly int
             sourceTextureID = Shader.PropertyToID("_SourceTexture");
 
-        public static void DrawFinalPass(UnityEngine.Rendering.RenderGraphModule.RenderGraph renderGraph,
+        static Material FinalPassMaterial;
+
+        public static void DrawFinalPass(RenderGraph renderGraph,
             in RenderDestinationTextures input, Camera camera, Material finalPassMaterial)
         {
             using (var builder = renderGraph.AddRenderPass<FinalPassData>(FinalPassProfilingSampler.name,
@@ -30,18 +31,17 @@ namespace Barkar.BSRP.Passes
             {
                 finalPassData.ColorAttachment = builder.ReadTexture(input.ColorAttachment);
                 finalPassData.DepthAttachment = builder.ReadTexture(input.DepthAttachment);
-                finalPassData.FinalPassMaterial = finalPassMaterial;
+                FinalPassMaterial = finalPassMaterial;
                 finalPassData.Camera = camera;
-
-                builder.SetRenderFunc((FinalPassData finalPassData,
-                    UnityEngine.Rendering.RenderGraphModule.RenderGraphContext context) =>
+                //var t = builder.ReadTexture(B)
+                builder.SetRenderFunc((FinalPassData finalPassData, RenderGraphContext context) =>
                 {
                     var cmd = context.cmd;
                     cmd.SetGlobalTexture(sourceTextureID, finalPassData.ColorAttachment);
                     cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare,
                         RenderBufferStoreAction.Store);
                     cmd.SetViewport(finalPassData.Camera.pixelRect);
-                    cmd.DrawProcedural(Matrix4x4.identity, finalPassData.FinalPassMaterial, 0, MeshTopology.Triangles,
+                    cmd.DrawProcedural(Matrix4x4.identity, FinalPassMaterial, 0, MeshTopology.Triangles,
                         3);
                     context.renderContext.ExecuteCommandBuffer(cmd);
                     cmd.Clear();

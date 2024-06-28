@@ -46,7 +46,7 @@ namespace Barkar.BSRP.Passes
                 textureDescriptor.depthBufferBits = DepthBits.Depth32;
                 textureDescriptor.name = "BSRP_Depth_Attachment";
                 setupPassData.DepthAttachment = builder.UseDepthBuffer(renderGraph.CreateTexture(textureDescriptor),
-                    UnityEngine.Rendering.RenderGraphModule.DepthAccess.ReadWrite);
+                    DepthAccess.ReadWrite);
 
                 builder.SetRenderFunc(_renderFunc);
 
