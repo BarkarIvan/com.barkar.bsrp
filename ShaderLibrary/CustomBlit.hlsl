@@ -6,8 +6,6 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
 
-half4 _Filter;
-half4 _DualFilterOffset;
 
 TEXTURE2D(_BlitTexture);
 TEXTURECUBE(_BlitCubeTexture);

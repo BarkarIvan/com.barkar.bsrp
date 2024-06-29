@@ -1,9 +1,13 @@
-Shader "Hidden/BSRPCustomBloom"
+Shader "Hidden/CustomBloomPasses"
 {
     HLSLINCLUDE
+    #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
+    #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
 
-    #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBlit.hlsl"
+    half4 _Filter;
+    half4 _DualFilterOffset;
 
+    
     half3 Prefilter(half3 c)
     {
         half brightness = Max3(c.r, c.g, c.b);
@@ -18,7 +22,7 @@ Shader "Hidden/BSRPCustomBloom"
     half4 FragPrefilter(Varyings IN) : SV_Target
     {
         half3 result = 1.0;
-        half3 col = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord).xyz;
+        half3 col = SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv).xyz;
         result.rgb = Prefilter(col.rgb);
         result = max(result, 0);
         return half4(result, 1.0);
@@ -26,25 +30,25 @@ Shader "Hidden/BSRPCustomBloom"
 
     half4 FragBlurDownSample(Varyings IN): SV_Target
     {
-        half3 sum = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord).rgb * 4.0;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord - _DualFilterOffset.xy).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + _DualFilterOffset.xy).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord - half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
+        half3 sum = SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv).rgb * 4.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv - _DualFilterOffset.xy).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + _DualFilterOffset.xy).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv - half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
         return (half4(sum * 0.125, 1));
     }
 
     half4 FragBlurUpsample(Varyings IN): SV_Target
     {
-        half3 sum = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(-_DualFilterOffset.x * 2.0, 0.0)).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(-_DualFilterOffset.x,_DualFilterOffset.y)).rgb * 2.0;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(0.0, _DualFilterOffset.y * 2.0
+        half3 sum = SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(-_DualFilterOffset.x * 2.0, 0.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(-_DualFilterOffset.x,_DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(0.0, _DualFilterOffset.y * 2.0
               )).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(_DualFilterOffset.x * 2.0, 0.0)).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord + half2(0.0, -_DualFilterOffset.y * 2.0)).rgb;
-        sum += SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord - half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x * 2.0, 0.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(0.0, -_DualFilterOffset.y * 2.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv - half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
         sum *= 0.0833;
         
         return half4(sum, 1);
@@ -65,7 +69,7 @@ Shader "Hidden/BSRPCustomBloom"
             Name "Bloom Prefilter"
 
             HLSLPROGRAM
-                #pragma vertex Vert
+                #pragma vertex DefaultPassVertex
                  #pragma fragment FragPrefilter
             ENDHLSL
         }
@@ -75,7 +79,7 @@ Shader "Hidden/BSRPCustomBloom"
             Name "Dual Filter Downsample"
 
             HLSLPROGRAM
-                 #pragma vertex Vert
+                 #pragma vertex DefaultPassVertex
                  #pragma fragment FragBlurDownSample
             ENDHLSL
         }
@@ -85,7 +89,7 @@ Shader "Hidden/BSRPCustomBloom"
             Name "Dual Filter Upsample"
 
             HLSLPROGRAM
-                 #pragma vertex Vert
+                 #pragma vertex DefaultPassVertex
                  #pragma fragment FragBlurUpsample
             ENDHLSL
         }

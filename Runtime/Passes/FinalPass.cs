@@ -29,7 +29,7 @@ namespace Barkar.BSRP.Passes
         private static readonly int _customBloomParamsID = Shader.PropertyToID("_CustomBloomParams");
 
         private static LocalKeyword _UseLensDirtKeyword =
-            new(Shader.Find("Hidden/FinalPass"), "_USE_CUSTOM_LENSDIRT"); //????
+            new(Shader.Find("Hidden/FinalPass"), "USE_CUSTOM_LENSDIRT"); //????
 
         private static BloomData _bloomData;
 
