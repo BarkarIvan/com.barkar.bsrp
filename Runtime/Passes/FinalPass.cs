@@ -1,9 +1,8 @@
 using Barkar.BSRP.CameraRenderer;
-using Barkar.BSRP.Passes.Data;
+using Barkar.BSRP.Data;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using UnityEngine.UI;
 
 namespace Barkar.BSRP.Passes
 {
@@ -27,9 +26,7 @@ namespace Barkar.BSRP.Passes
         private static MaterialPropertyBlock _mpb = new MaterialPropertyBlock();
         private static readonly int _customBloomLensDirtTextureID = Shader.PropertyToID("_CustomBloomLensDirtTexture");
         private static readonly int _customBloomParamsID = Shader.PropertyToID("_CustomBloomParams");
-
-        private static LocalKeyword _UseLensDirtKeyword =
-            new(Shader.Find("Hidden/FinalPass"), "USE_CUSTOM_LENSDIRT"); //????
+        private static GlobalKeyword _useLensDirtKeyword;
 
         private static BloomData _bloomData;
 
@@ -38,19 +35,20 @@ namespace Barkar.BSRP.Passes
         static FinalPass()
         {
             _renderFunc = RenderFunction;
+            _useLensDirtKeyword = GlobalKeyword.Create("_USE_LENSDIRT");
         }
 
         public static void DrawFinalPass(RenderGraph renderGraph,
-            in RenderDestinationTextures input, Camera camera, Material finalPassMaterial, in BloomData bloom)
+            in RenderDestinationTextures input, Camera camera, Material finalPassMaterial, in BloomData bloomData)
         {
             using var builder = renderGraph.AddRenderPass<FinalPassData>(FinalPassProfilingSampler.name,
                 out var finalPassData, FinalPassProfilingSampler);
+            
+            _bloomData = bloomData;
             finalPassData.ColorAttachment = builder.ReadTexture(input.ColorAttachment);
-            finalPassData.BloomTexture = builder.ReadTexture(bloom.BloomTexture);
+            finalPassData.BloomTexture = builder.ReadTexture(_bloomData.BloomTexture);
             FinalPassMaterial = finalPassMaterial;
             _camera = camera;
-            _bloomData = bloom;
-
             builder.SetRenderFunc(_renderFunc);
         }
 
@@ -61,9 +59,8 @@ namespace Barkar.BSRP.Passes
             _mpb.SetTexture(cameraOpaqueTextureID, passData.ColorAttachment);
             _mpb.SetTexture(_customBloomLensDirtTextureID, _bloomData.LensDirtTexture);
             _mpb.SetVector(_customBloomParamsID, _bloomData.BloomParams);
-
-            FinalPassMaterial.SetKeyword(_UseLensDirtKeyword, _bloomData.UseLensDirtTexture);
-
+           
+            cmd.SetKeyword(_useLensDirtKeyword, _bloomData.UseLensDirtTexture);
             cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
             cmd.SetViewport(_camera.pixelRect);

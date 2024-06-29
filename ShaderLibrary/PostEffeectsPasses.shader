@@ -1,4 +1,4 @@
-Shader "Hidden/CustomBloomPasses"
+Shader "Hidden/PostEffectPasses"
 {
     HLSLINCLUDE
     #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"

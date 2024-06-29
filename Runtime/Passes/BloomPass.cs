@@ -1,6 +1,6 @@
 using Barkar.BSRP.CameraRenderer;
+using Barkar.BSRP.Data;
 using Barkar.BSRP.Passes.Bloom;
-using Barkar.BSRP.Passes.Data;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -36,8 +36,9 @@ namespace Barkar.BSRP.Passes
                 renderGraph.AddRenderPass<BloomPassData>(_profilingSampler.name, out var bloomPassData,
                     _profilingSampler);
 
+           
             //prefilter
-            float knee = Mathf.GammaToLinearSpace(settings.HDRThreshold * settings.HDRSoftThreshold);
+            float knee = (settings.HDRThreshold * settings.HDRSoftThreshold);
             _filter.x = settings.HDRThreshold;
             _filter.y = _filter.x - knee;
             _filter.z = 2f * knee;
@@ -52,8 +53,9 @@ namespace Barkar.BSRP.Passes
             
             bloomPassData.ColorSource = builder.ReadTexture(input.ColorAttachment);
 
-            TextureDesc textureDescriptor = new TextureDesc(_originalTextureSize.x >> settings.Downsample,
-                _originalTextureSize.y >> settings.Downsample);
+            var width = _originalTextureSize.x >> settings.Downsample;
+            var height = _originalTextureSize.y >> settings.Downsample;
+            TextureDesc textureDescriptor = new TextureDesc(width, height);
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             textureDescriptor.name = "Bloom Texture [0]";
           
@@ -63,8 +65,8 @@ namespace Barkar.BSRP.Passes
             for (int i = 1; i < settings.BlurPassesCount + 1; i++)
             {
                 var downsample = 1 << i;
-                var sizeX = _originalTextureSize.x / downsample;
-                var sizeY = _originalTextureSize.y / downsample;
+                var sizeX = width / downsample;
+                var sizeY = height / downsample;
                 if (sizeX < 1f || sizeY < 1f)
                 {
                     break;
@@ -85,15 +87,15 @@ namespace Barkar.BSRP.Passes
 
             _bloomParams.x = settings.LensDirtIntensity;
             _bloomParams.w = settings.Intensity;
-            float dirtratio = (float)_settings.LensDirtTexture.width / (float)_settings.LensDirtTexture.height;
+            float dirtRatio = (float)_settings.LensDirtTexture.width / (float)_settings.LensDirtTexture.height;
             float screenRatio = (float)_originalTextureSize.x / (float)_originalTextureSize.y;
-            if (dirtratio > screenRatio)
+            if (dirtRatio > screenRatio)
             {
-                _bloomParams.y = screenRatio / dirtratio;
+                _bloomParams.y = screenRatio / dirtRatio;
             }
-            else if (screenRatio > dirtratio)
+            else if (screenRatio > dirtRatio)
             {
-                _bloomParams.z = dirtratio / screenRatio;
+                _bloomParams.z = dirtRatio / screenRatio;
             }
 
             builder.SetRenderFunc(_renderFunc);
@@ -109,12 +111,13 @@ namespace Barkar.BSRP.Passes
             //prefilter
             _mpb.SetVector(_filterID, _filter);
             _mpb.SetTexture(_sourceTextureID, data.ColorSource);
+            
             cmd.SetRenderTarget( data.BlurPyramid[0], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
             cmd.DrawProcedural( Matrix4x4.identity, _bloomMaterial, 0, MeshTopology.Triangles,3, 1, _mpb);
 
             //blur
-            if (_settings.BlurPassesCount > 0)
+            if (_settings.BlurPassesCount > 0 && _settings.BloomEnable)
             {
                 var offset = _settings.BlurOffset;
 

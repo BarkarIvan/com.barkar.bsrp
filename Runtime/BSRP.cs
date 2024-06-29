@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using Barkar.BSRP.CameraRenderer;
+using Barkar.BSRP.Data;
 using Barkar.BSRP.Passes;
 using Barkar.BSRP.Passes.Bloom;
-using Barkar.BSRP.Passes.Data;
+using Barkar.BSRP.Passes.Setup;
 using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -24,21 +25,25 @@ public class BSRP : RenderPipeline
     private BloomSettings _bloomSettings;
     
     private Material _finalPassMaterial;
-    private Material _customBloomMaterial;
+    private Material _postEffectsMaterial;
     //private Material _dualFilterBlurMaterial;
-    
+    private LocalKeyword _useLensDirtKeyword;
+    private LocalKeyword _UseBloomKeyword;
     
     public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
     {
         _hdr = hdr;
         _renderScale = renderScale;
+        _shadowSettings = shadowSettings;
+        _bloomSettings = bloomSettings;
+        
+        //materials and keywords
         _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");
-        _customBloomMaterial = CoreUtils.CreateEngineMaterial("Hidden/CustomBloomPasses");
+        _postEffectsMaterial = CoreUtils.CreateEngineMaterial("Hidden/PostEffectPasses");
         
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
-        _shadowSettings = shadowSettings;
-        _bloomSettings = bloomSettings;
+        
     }
     
     
@@ -46,9 +51,10 @@ public class BSRP : RenderPipeline
     {
         BeginContextRendering(context, cameras);
 
-
+       
         foreach (Camera camera in cameras)
         {
+
             BeginCameraRendering(context, camera);
 
             //destination buffer size
@@ -93,9 +99,11 @@ public class BSRP : RenderPipeline
             DrawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 destinationTextures, camera.cullingMask, false, lightingResources);
            
-            //postprocess
-            BloomData bloomData= BloomPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures, _customBloomMaterial);
+           
+            var bloomData = BloomPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
+                    _postEffectsMaterial);
             
+
             FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
 
             RenderGraph.EndRecordingAndExecute();
@@ -112,7 +120,7 @@ public class BSRP : RenderPipeline
     {
         base.Dispose(disposing);
         CoreUtils.Destroy(_finalPassMaterial);
-        CoreUtils.Destroy(_customBloomMaterial);
+        CoreUtils.Destroy(_postEffectsMaterial);
         RenderGraph.Cleanup();
     }
 

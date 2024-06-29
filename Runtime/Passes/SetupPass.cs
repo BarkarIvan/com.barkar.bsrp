@@ -1,17 +1,20 @@
 using Barkar.BSRP.CameraRenderer;
+using Barkar.BSRP.Passes.Bloom;
 using Barkar.BSRP.Passes.Data;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace Barkar.BSRP.Passes
+namespace Barkar.BSRP.Passes.Setup
 {
     public class SetupPass
     {
         private static readonly ProfilingSampler _profilingSampler = new ("Setup Pass");
         private static Camera _camera;
         private static Vector2Int _attachmentSize;
+
+        private static BloomSettings _bloomSettings;
 
         private static BaseRenderFunc<SetupPassData, RenderGraphContext> _renderFunc;
 
@@ -26,6 +29,7 @@ namespace Barkar.BSRP.Passes
         {
             _camera = camera;
             _attachmentSize = attachmetSize;
+            
 
             using (var builder =
                    renderGraph.AddRenderPass<SetupPassData>(_profilingSampler.name, out var setupPassData,
@@ -40,14 +44,12 @@ namespace Barkar.BSRP.Passes
                 textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(format);
                 textureDescriptor.name = "BSRP_Color_Attachment";
 
-                setupPassData.ColorAttachment = builder.UseColorBuffer(renderGraph.CreateTexture(textureDescriptor), 0);
-                //copy?
+                setupPassData.ColorAttachment = builder.UseColorBuffer(renderGraph.CreateTexture(textureDescriptor),0);
 
                 textureDescriptor.depthBufferBits = DepthBits.Depth32;
                 textureDescriptor.name = "BSRP_Depth_Attachment";
-                setupPassData.DepthAttachment = builder.UseDepthBuffer(renderGraph.CreateTexture(textureDescriptor),
-                    DepthAccess.ReadWrite);
-
+                setupPassData.DepthAttachment = builder.UseDepthBuffer(renderGraph.CreateTexture(textureDescriptor), DepthAccess.ReadWrite);
+                
                 builder.SetRenderFunc(_renderFunc);
 
                 return new RenderDestinationTextures(setupPassData.ColorAttachment, setupPassData.DepthAttachment);
@@ -58,18 +60,12 @@ namespace Barkar.BSRP.Passes
         {
             context.renderContext.SetupCameraProperties(_camera);
             CommandBuffer cmd = context.cmd;
-
-            cmd.SetRenderTarget(setupPassData.ColorAttachment, RenderBufferLoadAction.DontCare,
-                RenderBufferStoreAction.Store, setupPassData.DepthAttachment, RenderBufferLoadAction.DontCare,
-                RenderBufferStoreAction.Store);
-           
+            
             bool isClearDepth = _camera.clearFlags <= CameraClearFlags.Nothing;
             bool isClearColor = _camera.clearFlags <= CameraClearFlags.Color;
             var clearColor = _camera.clearFlags == CameraClearFlags.Color ? _camera.backgroundColor.linear : Color.clear;
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-
-            //set size here?
-
+            
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

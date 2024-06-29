@@ -6,5 +6,6 @@ namespace Barkar.BSRP.Passes.Data
      {
          public TextureHandle ColorAttachment;
          public TextureHandle DepthAttachment;
+         public TextureHandle BloomTexture;
      }
 }

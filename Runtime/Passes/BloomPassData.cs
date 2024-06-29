@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace Barkar.BSRP.Passes.Data   
+namespace Barkar.BSRP.Data   
 {
     public class BloomPassData
     {
@@ -23,7 +23,7 @@ namespace Barkar.BSRP.Passes.Data
         {
             BloomTexture = bloomTexture;
             LensDirtTexture = lensDirtTexture;
-             UseLensDirtTexture = useLensDirtTexture;
+            UseLensDirtTexture = useLensDirtTexture;
             BloomParams = bloomParams;
         }
 
