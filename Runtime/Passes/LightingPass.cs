@@ -42,19 +42,19 @@ namespace Barkar.BSRP.Passes
     public class LightingPass
     {
         private const int maxDirectionalLightsCount = 1;
-        private static readonly ProfilingSampler _profilingSampler = new ProfilingSampler("LightingPass");
+        private  readonly ProfilingSampler _profilingSampler = new ProfilingSampler("LightingPass");
 
-        private static int _directionalLightsCount;
-        private static DirectionalLightShadowData _directionalLightShadowData;
+        private  int _directionalLightsCount;
+        private  DirectionalLightShadowData _directionalLightShadowData;
 
-        private static DirectionalLightData[] _directionalLightData =
+        private  DirectionalLightData[] _directionalLightData =
             new DirectionalLightData[maxDirectionalLightsCount];
 
-        private static CullingResults _cullingResults;
-        private static ShadowSettings _shadowSettings;
-        private static Vector4 _mainLightShadowMapSize = Vector4.zero;
+        private  CullingResults _cullingResults;
+        private  ShadowSettings _shadowSettings;
+        private  Vector4 _mainLightShadowMapSize = Vector4.zero;
 
-        private static BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
+        private  BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
 
         static readonly GlobalKeyword[] directionalFilterKeywords =
         {
@@ -63,12 +63,12 @@ namespace Barkar.BSRP.Passes
             GlobalKeyword.Create("_SOFT_SHADOWS_HIGH"),
         };
 
-        static LightingPass()
+         public LightingPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        public static void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
+        public  void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
         {
             for (int i = 0; i < keywords.Length; i++)
             {
@@ -76,7 +76,7 @@ namespace Barkar.BSRP.Passes
             }
         }
 
-        public static LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
+        public  LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
             ShadowSettings shadowSettings)
         {
             _cullingResults = cullingResults;
@@ -147,7 +147,7 @@ namespace Barkar.BSRP.Passes
             return new LightingResources(lightingPassData.DirectionalLightDataBuffer, lightingPassData.ShadowMap);
         }
 
-        private static void RenderFunction(LightingPassData lightingPassData, RenderGraphContext context)
+        private  void RenderFunction(LightingPassData lightingPassData, RenderGraphContext context)
         {
                 var cmd = context.cmd;
 

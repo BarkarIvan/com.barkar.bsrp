@@ -20,6 +20,7 @@ Shader "Hidden/FinalPass"
             #pragma vertex DefaultPassVertex
             #pragma fragment CompositingFrag
             #pragma multi_compile _ _USE_LENSDIRT
+            #pragma multi_compile _ _USE_BLOOM
 
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
@@ -51,7 +52,7 @@ Shader "Hidden/FinalPass"
 
                 result.rgb = SAMPLE_TEXTURE2D(_CameraOpaque, sampler_linear_clamp, IN.uv).rgb;
 
-               // #if defined(_USE_BLOOM)
+                #if defined(_USE_BLOOM)
                 half3 bloom = SAMPLE_TEXTURE2D(_BloomTexture, sampler_linear_clamp, IN.uv).rgb;
                 
                 bloom.rgb *=  BloomIntensity;
@@ -64,7 +65,7 @@ Shader "Hidden/FinalPass"
                 result.rgb += dirt;
                 #endif
 
-               // #endif
+                #endif
                 
                 result.rgb = ACESFilmTonemapping(result.rgb);
                 

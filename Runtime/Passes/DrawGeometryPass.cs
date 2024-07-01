@@ -10,15 +10,15 @@ public class DrawGeometryPass
     private static readonly ProfilingSampler OpaqueSampler = new ("Opaque Profiling Sample");
     private static readonly ProfilingSampler TransparentSampler = new ("Transparent Profiling Sample");
 
-    private static RendererListDesc _rendererListDesc;
-    private static BaseRenderFunc<DrawGeometryPassData, RenderGraphContext> _renderFunction;
+    private  RendererListDesc _rendererListDesc;
+    private  BaseRenderFunc<DrawGeometryPassData, RenderGraphContext> _renderFunction;
 
-    static DrawGeometryPass()
+    public DrawGeometryPass()
     {
         _renderFunction = RenderFunction;
     }
 
-    public static void DrawGeometry(RenderGraph renderGraph,
+    public  void DrawGeometry(RenderGraph renderGraph,
         ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, RenderDestinationTextures input,
         int renderingLayerMask, bool isOpaque, LightingResources lightingResources)
     {

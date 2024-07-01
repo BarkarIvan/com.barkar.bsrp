@@ -14,9 +14,9 @@ public class BSRP : RenderPipeline
     private bool _hdr;
     private float _renderScale;
 
-    private readonly RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
+    private  RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
 
-    private static readonly ShaderTagId[] _commonShaderTags = { new ShaderTagId("BSRPLightMode"), new ShaderTagId("SRPDefaultUnlit") };
+    private readonly ShaderTagId[] _commonShaderTags = { new ShaderTagId("BSRPLightMode"), new ShaderTagId("SRPDefaultUnlit") };
 
     private Vector2Int textureSize = default;
     private RenderGraphParameters renderGraphParameters;
@@ -28,8 +28,12 @@ public class BSRP : RenderPipeline
     private Material _postEffectsMaterial;
     //private Material _dualFilterBlurMaterial;
     private LocalKeyword _useLensDirtKeyword;
-    private LocalKeyword _UseBloomKeyword;
-    
+    private LocalKeyword _useBloomKeyword;
+
+    private LightingPass _lightingPass = new LightingPass();
+    private SetupPass _setupPass = new SetupPass();
+    private DrawGeometryPass _drawGeometryPass = new DrawGeometryPass();
+    private PostEffectsPass _postEffectsPass = new PostEffectsPass();
     public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
     {
         _hdr = hdr;
@@ -45,7 +49,7 @@ public class BSRP : RenderPipeline
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         
     }
-    
+
     
     protected override void Render(ScriptableRenderContext context, List<Camera> cameras)
     {
@@ -85,26 +89,26 @@ public class BSRP : RenderPipeline
             RenderGraph.BeginRecording(renderGraphParameters);
           
             LightingResources lightingResources =
-                LightingPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
+                _lightingPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
            
             RenderDestinationTextures destinationTextures =
-                SetupPass.SetupDestinationTextures(RenderGraph, textureSize, camera, _hdr);
+                _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera, _hdr);
             
-            DrawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
+            _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 destinationTextures, camera.cullingMask, true, lightingResources);
            
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 DrawSkyboxPass.DrawSkybox(RenderGraph, destinationTextures, camera);
            
-            DrawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
+            _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 destinationTextures, camera.cullingMask, false, lightingResources);
            
            
-            var bloomData = BloomPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
-                    _postEffectsMaterial);
+            _postEffectsPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
+                    camera, _postEffectsMaterial, _finalPassMaterial);
             
 
-            FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
+          //  FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
 
             RenderGraph.EndRecordingAndExecute();
         }

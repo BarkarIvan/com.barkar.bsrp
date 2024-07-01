@@ -9,24 +9,20 @@ namespace Barkar.BSRP.Data
         public TextureHandle ColorSource;
         public TextureHandle BloomPassTexture;
         public TextureHandle[] BlurPyramid = new TextureHandle[kMaxBlurPassCount];
-        
-    }
-
-    public struct BloomData
-    {
-        public TextureHandle BloomTexture;
+        public Material BloomMaterial;
+        public Material CompositingMaterial;
         public Texture2D LensDirtTexture;
-        public bool UseLensDirtTexture;
-        public Vector4 BloomParams;
 
-        public BloomData(TextureHandle bloomTexture, Texture2D lensDirtTexture, bool useLensDirtTexture,Vector4 bloomParams)
-        {
-            BloomTexture = bloomTexture;
-            LensDirtTexture = lensDirtTexture;
-            UseLensDirtTexture = useLensDirtTexture;
-            BloomParams = bloomParams;
-        }
-
+        public bool UseLensDirt;
+        public bool BloomEnable;
+        public int BlurPassesCount;
+        public float BlurPassOffset;
+        
+        public Vector4 BloomParams = Vector4.one;
+        public Vector4 Prefilter;
+        public Vector2Int OriginalSize;
     }
+
+    
     
 }
