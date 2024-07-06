@@ -1,4 +1,4 @@
-Shader "BSRP/StylizedLit"
+Shader "BSRP/StylizedLitGBUFFER"
 {
     Properties
     {
@@ -143,12 +143,7 @@ Shader "BSRP/StylizedLit"
                 half _ReflectBrushStrength;
             CBUFFER_END
 
-            struct GBufferOUT
-            {
-                half4 GBUFFER0 : SV_TARGET0;
-                half4 GBUFFER1 : SV_TARGET1;
-                half4 GBUFFER2 : SV_TARGET3;
-            };
+           
 
             struct Attributes
             {
@@ -174,6 +169,16 @@ Shader "BSRP/StylizedLit"
                 half3 SH : TEXCOORD6;
                 half4 color : COLOR;
             };
+
+            //TODO to gbuffer hlsl
+struct GBuffer
+{
+	half4 GBUFFER0 : SV_TARGET0;
+	half4 GBUFFER1 : SV_TARGET1;
+	half4 GBUFFER2 : SV_TARGET3;
+	half4 GBUFFER3 : SV_TARGET4;
+};
+//
 
             Varyings BSRPStylizedVertex(Attributes IN)
             {
@@ -204,7 +209,7 @@ Shader "BSRP/StylizedLit"
                 return OUT;
             }
 
-            GBufferOUT BSRPStylizedFragment(Varyings IN): SV_Target
+            GBuffer BSRPStylizedFragment(Varyings IN): SV_Target
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -216,7 +221,7 @@ Shader "BSRP/StylizedLit"
                 surface.metallic = _Metallic;
                 surface.smoothness = _Smoothness;
                 surface.normal = SafeNormalize(IN.normalWS.xyz);
-                surface.color = albedo.rgb;
+                surface.albedo = albedo.rgb;
                 surface.alpha = albedo.a;
                 surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
 
@@ -304,25 +309,24 @@ Shader "BSRP/StylizedLit"
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
-                result.rgb += emissionColor;
+               // result.rgb += emissionColor;
 
                 //LOD
                 //  #ifdef LOD_FADE_CROSSFADE
                 //  LODFadeCrossFade(IN.positionCS);
                 // #endif
 
-                //FOG
+                //FOGa
                 #if (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
                 result.rgb = CalculateFog(result, IN.positionWS);
                 #endif
 
-                GBufferOUT gbo;
-                gbo.GBUFFER0 = half4(surface.color.rgb,1.0);
-                gbo.GBUFFER1 = half4(surface.normal.rgb, 1.0);
-                gbo.GBUFFER2 = half4(surface.metallic, surface.smoothness, surface.alpha, 1.0);
+                GBuffer gbo;
+                gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);
+                gbo.GBUFFER1 = half4(radiance + indirectDiffuse, surface.metallic);
+                gbo.GBUFFER2 = float4(surface.normal.rgb * 0.5 + 0.5, 1.0);
+                gbo.GBUFFER3 = float4(go + emissionColor, 1.0);
                 
-                
-
                 return gbo;
             }
             ENDHLSL

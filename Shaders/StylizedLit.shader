@@ -207,7 +207,7 @@ Shader "BSRP/StylizedLit"
                 surface.metallic = _Metallic;
                 surface.smoothness = _Smoothness;
                 surface.normal = SafeNormalize(IN.normalWS.xyz);
-                surface.color = albedo.rgb;
+                surface.albedo = albedo.rgb;
                 surface.alpha = albedo.a;
                 surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
 

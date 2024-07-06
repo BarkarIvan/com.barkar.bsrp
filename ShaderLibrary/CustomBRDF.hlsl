@@ -5,6 +5,8 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
 
 #define MIN_REFLECTIVITY 0.04
+#define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) // standard dielectric reflectivity coef at incident angle (= 4%)
+
 
 struct BRDF
 {
@@ -13,11 +15,63 @@ struct BRDF
     half roughness;
 };
 
+struct BRDFData
+{
+    half3 albedo;
+    half3 diffuse;
+    half3 specular;
+    half reflectivity;
+    half perceptualRoughness;
+    half roughness;
+    half roughness2;
+    half grazingTerm;
+
+    // We save some light invariant BRDF terms so we don't have to recompute
+    // them in the light loop. Take a look at DirectBRDF function for detailed explaination.
+   // half normalizationTerm;     // roughness * 4.0 + 2.0
+   // half roughness2MinusOne;    // roughness^2 - 1.0
+};
+
 half OneMinusReflectivity(half metallic)
 {
-    half range = 1.0 - MIN_REFLECTIVITY;
+    half range = 1.0 - kDielectricSpec.a;
     return range - metallic * range;
 }
+
+inline void InitializeBRDFDataDirect(half3 albedo, half metallic, half smoothness, out BRDFData outBRDFData)
+{
+    outBRDFData = (BRDFData)0;
+
+    half oneMinusReflectivity = OneMinusReflectivity(metallic);
+    half reflectivity = half(1.0) - oneMinusReflectivity;
+    half3 brdfDiffuse = albedo * oneMinusReflectivity;
+    half3 brdfSpecular = lerp(kDielectricSpec.rgb, albedo, metallic);
+    
+    outBRDFData.albedo = albedo;
+    outBRDFData.diffuse = brdfDiffuse;
+    outBRDFData.specular = brdfSpecular;
+    outBRDFData.reflectivity = reflectivity;
+    
+
+    outBRDFData.perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(smoothness);
+    outBRDFData.roughness           = max(PerceptualRoughnessToRoughness(outBRDFData.perceptualRoughness), HALF_MIN_SQRT);
+    outBRDFData.roughness2          = max(outBRDFData.roughness * outBRDFData.roughness, HALF_MIN);
+    outBRDFData.grazingTerm         = saturate(smoothness + metallic);
+  //  outBRDFData.normalizationTerm   = outBRDFData.roughness * half(4.0) + half(2.0);
+   // outBRDFData.roughness2MinusOne  = outBRDFData.roughness2 - half(1.0);
+
+    // Input is expected to be non-alpha-premultiplied while ROP is set to pre-multiplied blend.
+    // We use input color for specular, but (pre-)multiply the diffuse with alpha to complete the standard alpha blend equation.
+    // In shader: Cs' = Cs * As, in ROP: Cs' + Cd(1-As);
+    // i.e. we only alpha blend the diffuse part to background (transmittance).
+    #if defined(_ALPHAPREMULTIPLY_ON)
+    // TODO: would be clearer to multiply this once to accumulated diffuse lighting at end instead of the surface property.
+    outBRDFData.diffuse *= alpha;
+    #endif
+}
+
+
+
 
 BRDF GetBRDF(Surface surface)
 {
@@ -25,8 +79,8 @@ BRDF GetBRDF(Surface surface)
 
     half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
 
-    brdf.diffuse = surface.color * oneMinusReflectivity;
-    brdf.specular = lerp(MIN_REFLECTIVITY, surface.color, surface.metallic);
+    brdf.diffuse = surface.albedo * oneMinusReflectivity;
+    brdf.specular = lerp(kDielectricSpec, surface.albedo, surface.metallic);
     half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
     brdf.roughness = PerceptualRoughnessToRoughness(perceptualRoughness);
     return brdf;
@@ -38,9 +92,9 @@ BRDF GetBRDFPremultiplyAlpha(Surface surface)
 
     half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
 
-    brdf.diffuse = surface.color * oneMinusReflectivity;
+    brdf.diffuse = surface.albedo * oneMinusReflectivity;
     brdf.diffuse *= surface.alpha;
-    brdf.specular = lerp(MIN_REFLECTIVITY, surface.color, surface.metallic);
+    brdf.specular = lerp(MIN_REFLECTIVITY, surface.albedo, surface.metallic);
     half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
     brdf.roughness = PerceptualRoughnessToRoughness(perceptualRoughness);
     return brdf;

@@ -30,5 +30,14 @@ Light GetMainLight(float4 shadowCoord, float3 positionWS)
     return mainLight;
 }
 
+Light GetMainLight(float3 positionWS)
+{
+    Light mainLight;
+    mainLight.color =  MainLightColor;
+    mainLight.direction = MainLightDirectionaAndMask.xyz;
+    mainLight.layerMask = MainLightDirectionaAndMask.w;
+    return mainLight;
+}
+
 
 #endif

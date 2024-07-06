@@ -5,6 +5,7 @@ using Barkar.BSRP.Passes.Data;
 using UnityEngine;
 
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
@@ -25,12 +26,12 @@ namespace Barkar.BSRP.Passes
             {
             
 
-            drawSkyboxPassData.ColorAttacment = builder.ReadWriteTexture(input.ColorAttachment);
-            drawSkyboxPassData.DepthAttachment = builder.ReadWriteTexture(input.DepthAttachment);
+            drawSkyboxPassData.ColorAttacment = builder.UseColorBuffer(input.ColorAttachment0,0);
+            drawSkyboxPassData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
 
 
             builder.SetRenderFunc((DrawSkyboxPassData drawSkyboxPassData,
-                UnityEngine.Rendering.RenderGraphModule.RenderGraphContext context) =>
+               RenderGraphContext context) =>
             {
                 context.renderContext.ExecuteCommandBuffer(context.cmd);
                 context.cmd.Clear();

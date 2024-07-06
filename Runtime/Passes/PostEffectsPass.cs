@@ -10,7 +10,7 @@ namespace Barkar.BSRP.Passes
 {
     public class PostEffectsPass
     {
-        private readonly ProfilingSampler _profilingSampler = new("Bloom Pass");
+        private readonly ProfilingSampler _profilingSampler = new("PostFX");
         private BaseRenderFunc<BloomPassData, RenderGraphContext> _renderFunc;
         
         private Camera _camera;
@@ -43,7 +43,7 @@ namespace Barkar.BSRP.Passes
 
            builder.AllowPassCulling(false);
            
-           bloomPassData.ColorSource = builder.ReadTexture(input.ColorAttachment);
+           bloomPassData.ColorSource = builder.ReadTexture(input.ColorAttachment0);
 
 
            _camera = camera;
@@ -55,7 +55,7 @@ namespace Barkar.BSRP.Passes
             bloomPassData.Prefilter.w = 0.25f / (knee + 0.0001f);
 
             /// bloom
-            var rtinfo = renderGraph.GetRenderTargetInfo(input.ColorAttachment);
+            var rtinfo = renderGraph.GetRenderTargetInfo(input.ColorAttachment0);
             
             bloomPassData.OriginalSize = new Vector2Int(rtinfo.width, rtinfo.height);
             bloomPassData.BloomMaterial = bloomMaterial;
@@ -124,7 +124,7 @@ namespace Barkar.BSRP.Passes
             bloomMPB.SetVector(_filterID, data.Prefilter);
             bloomMPB.SetTexture(_sourceTextureID, data.ColorSource);
             
-            cmd.SetRenderTarget( data.BlurPyramid[0], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+            cmd.SetRenderTarget( data.BloomPassTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
             cmd.DrawProcedural( Matrix4x4.identity, data.BloomMaterial, 0, MeshTopology.Triangles,3, 1, bloomMPB);
             context.renderContext.ExecuteCommandBuffer(cmd);
@@ -154,6 +154,8 @@ namespace Barkar.BSRP.Passes
                     cmd.SetRenderTarget( dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
                     cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
                     cmd.DrawProcedural( Matrix4x4.identity, data.BloomMaterial, 1, MeshTopology.Triangles,3, 1, bloomMPB);
+                    context.renderContext.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
                 }
 
                 for (int i = data.BlurPassesCount; i >= 1; i--)
@@ -178,11 +180,10 @@ namespace Barkar.BSRP.Passes
                     cmd.SetRenderTarget( dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
                     cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
                     cmd.DrawProcedural(Matrix4x4.identity, data.BloomMaterial, 1, MeshTopology.Triangles, 3, 1, bloomMPB);
+                    context.renderContext.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
                 }
             }
-           context.renderContext.ExecuteCommandBuffer(cmd);
-           cmd.Clear();
-            
             
             //Composite
             var composotingMPB = context.renderGraphPool.GetTempMaterialPropertyBlock();

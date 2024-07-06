@@ -16,7 +16,7 @@ public class BSRP : RenderPipeline
 
     private  RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
 
-    private readonly ShaderTagId[] _commonShaderTags = { new ShaderTagId("BSRPLightMode"), new ShaderTagId("SRPDefaultUnlit") };
+    private readonly ShaderTagId[] _commonShaderTags = { new ShaderTagId("BSRPGBuffer"), new ShaderTagId("SRPDefaultUnlit") };
 
     private Vector2Int textureSize = default;
     private RenderGraphParameters renderGraphParameters;
@@ -25,6 +25,9 @@ public class BSRP : RenderPipeline
     private BloomSettings _bloomSettings;
     
     private Material _finalPassMaterial;
+    //
+    private Material _testFinalPassMaterial;
+    //
     private Material _postEffectsMaterial;
     //private Material _dualFilterBlurMaterial;
     private LocalKeyword _useLensDirtKeyword;
@@ -34,6 +37,13 @@ public class BSRP : RenderPipeline
     private SetupPass _setupPass = new SetupPass();
     private DrawGeometryPass _drawGeometryPass = new DrawGeometryPass();
     private PostEffectsPass _postEffectsPass = new PostEffectsPass();
+    private TestFinalPass _testFinal = new TestFinalPass();
+   
+    Matrix4x4 _matrixVP;
+    Matrix4x4 _matrixVPI;
+    Matrix4x4 _matrixVPprev;    
+    Matrix4x4 _matrixVPIprev;
+    
     public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
     {
         _hdr = hdr;
@@ -44,6 +54,8 @@ public class BSRP : RenderPipeline
         //materials and keywords
         _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");
         _postEffectsMaterial = CoreUtils.CreateEngineMaterial("Hidden/PostEffectPasses");
+
+        _testFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/TestFinalPass");
         
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
@@ -58,8 +70,7 @@ public class BSRP : RenderPipeline
        
         foreach (Camera camera in cameras)
         {
-
-            BeginCameraRendering(context, camera);
+           
 
             //destination buffer size
             textureSize.x = (int)(camera.pixelWidth * _renderScale);
@@ -87,7 +98,38 @@ public class BSRP : RenderPipeline
             };
 
             RenderGraph.BeginRecording(renderGraphParameters);
+           
+            
+            BeginCameraRendering(context, camera);
+
+            Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
+            Matrix4x4 projectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);
+            _matrixVP = projectionMatrix * viewMatrix;
+            _matrixVPI = _matrixVP.inverse;
+            Matrix4x4 toScreen = new Matrix4x4(
+                new Vector4(0.5f * textureSize.x , 0.0f, 0.0f, 0.0f),
+                new Vector4(0.0f, 0.5f * textureSize.y , 0.0f, 0.0f),
+                new Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+                new Vector4(0.5f * textureSize.x, 0.5f * textureSize.y, 0.0f, 1.0f)
+            );
+
+            Matrix4x4 zScaleBias = Matrix4x4.identity;
+          //  if (DeferredConfig.IsOpenGL)
+           // {
+          ///      // We need to manunally adjust z in NDC space from [-1; 1] to [0; 1] (storage in depth texture).
+            //    zScaleBias = new Matrix4x4(
+            //        new Vector4(1.0f, 0.0f, 0.0f, 0.0f),
+            //        new Vector4(0.0f, 1.0f, 0.0f, 0.0f),
+            //        new Vector4(0.0f, 0.0f, 0.5f, 0.0f),
+             //       new Vector4(0.0f, 0.0f, 0.5f, 1.0f)
+             //   );
+           // }
+
+            //_matrixVPI= Matrix4x4.Inverse(toScreen * zScaleBias * projectionMatrix * viewMatrix);
+        
           
+            Shader.SetGlobalMatrix("unity_MatrixIVP", _matrixVPI);
+            
             LightingResources lightingResources =
                 _lightingPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
            
@@ -104,10 +146,10 @@ public class BSRP : RenderPipeline
                 destinationTextures, camera.cullingMask, false, lightingResources);
            
            
-            _postEffectsPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
-                    camera, _postEffectsMaterial, _finalPassMaterial);
+         //  _postEffectsPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
+                 //  camera, _postEffectsMaterial, _finalPassMaterial);
             
-
+            _testFinal.DrawTestFinal(RenderGraph, destinationTextures, camera, _testFinalPassMaterial);
           //  FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
 
             RenderGraph.EndRecordingAndExecute();
@@ -117,7 +159,7 @@ public class BSRP : RenderPipeline
         context.Submit();
         CommandBufferPool.Release(renderGraphParameters.commandBuffer);
 
-        RenderGraph.EndFrame();
+        //RenderGraph.EndFrame();
     }
     
     protected override void Dispose(bool disposing)
