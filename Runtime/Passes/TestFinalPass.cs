@@ -50,8 +50,8 @@ namespace Barkar.BSRP.Passes
            bloomPassData.Gbuffer0 = builder.ReadTexture(input.ColorAttachment0);
            bloomPassData.Gbuffer1 = builder.ReadTexture(input.ColorAttachment1);
            bloomPassData.Gbuffer2 = builder.ReadTexture(input.ColorAttachment2);
-          // bloomPassData.Gbuffer3 = builder.UseColorBuffer(input.ColorAttachment3,0);
-           bloomPassData.CameraDepth = builder.ReadTexture(input.DepthAttachment);
+           bloomPassData.Gbuffer3 = builder.UseColorBuffer(input.ColorAttachment3,0);
+           bloomPassData.CameraDepth = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
            bloomPassData.TestFinalMaterial = testfinalPassMaterial;
            _camera = camera;
            
@@ -73,8 +73,8 @@ namespace Barkar.BSRP.Passes
             mpb.SetTexture(_CameraDepthID, data.CameraDepth);
 
             
-            cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare,
-                RenderBufferStoreAction.Store);
+            //cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare,
+              //  RenderBufferStoreAction.Store);
             cmd.SetViewport(_camera.pixelRect);
             cmd.DrawProcedural(Matrix4x4.identity, data.TestFinalMaterial, 0, MeshTopology.Triangles,
                 3, 1, mpb);

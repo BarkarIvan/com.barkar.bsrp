@@ -5,14 +5,20 @@ Shader "Hidden/TestFinalPass"
     {
         Tags
         {
-            "RenderPipeline"="BSRP" "Queue"="Geometry"
+            "RenderPipeline"="BSRP" 
         }
 
         Cull Off
-     //   Blend One One, Zero One
-       // BlendOp Add, Add
+        Blend One One
+       BlendOp Add, Add
         ZWrite On
         ZTest Always
+        
+        Stencil
+             {
+                 Ref 8
+                 Comp Equal
+             } 
 
         Pass
         {
@@ -82,7 +88,7 @@ Shader "Hidden/TestFinalPass"
                 half _ReflectBrushStrength;
             CBUFFER_END
 
-            
+            half4 _Filter;
 
             struct Attributes
             {
@@ -99,9 +105,26 @@ TEXTURE2D_HALF(_GBuffer2); //normal
 TEXTURE2D_HALF(_GBuffer3); //emission
             TEXTURE2D_HALF(_CameraDepth);
 
-            
+             half3 ACESFilmTonemapping(half3 col)
+            {
+                half a = 2.51;
+                half b = 0.03;
+                half c = 2.43;
+                half d = 0.59;
+                half e = 0.14;
+                return saturate((col * (a * col + b)) / (col * (c * col + d) + e));
+            }
 
-           
+            half3 Prefilter(half3 c)
+    {
+        half brightness = Max3(c.r, c.g, c.b);
+        half soft = brightness - _Filter.y;
+        soft = clamp(soft, 0, _Filter.z);
+        soft = soft * soft * _Filter.w;
+        half contribution = max(soft, brightness - _Filter.x);
+        contribution /= max(brightness, 1e-4);
+        return c * contribution;
+    }
 
            
 
@@ -111,18 +134,18 @@ TEXTURE2D_HALF(_GBuffer3); //emission
                 half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0,sampler_linear_clamp, IN.uv);
                 half4 g1 = SAMPLE_TEXTURE2D(_GBuffer1,sampler_linear_clamp, IN.uv);
                 float4 g2 = SAMPLE_TEXTURE2D(_GBuffer2,sampler_linear_clamp, IN.uv);
-                float4 g3 = SAMPLE_TEXTURE2D(_GBuffer3,sampler_linear_clamp, IN.uv);
+               // float4 g3 = SAMPLE_TEXTURE2D(_GBuffer3,sampler_linear_clamp, IN.uv);
 
                 half3 albedo = g0.rgb;
                 half smoothness = g0.a;
                 half3 radiance = g1.rgb;
                 half metallic = g1.a;
-                float3 normal = g2.rgb * 2 - 1;
-                half3 emission = g3;
+                float3 normal = SafeNormalize(g2.rgb * 2 - 1);
+              //  half3 emission = g3;
                // half3 indirectDiffuse = IN.SH;
 
                 float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_linear_clamp, IN.uv);
-                float linearDepth = Linear01Depth(depth, _ZBufferParams);
+               // float linearDepth = Linear01Depth(depth, _ZBufferParams);
 
                 float4 positionNDC = float4(IN.uv * 2 - 1, depth, 1);
                 float4 positionWS = mul(unity_MatrixIVP, positionNDC);//float4(IN.positionCS.xy, depth, 1.0));// positionNDC);
@@ -145,14 +168,14 @@ TEXTURE2D_HALF(_GBuffer3); //emission
                 //brdf
                 Light light = GetMainLight(positionWS);
                 BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light); //* radiance;// * albedo.a;
-                half3 indirectDiffuse = 1.0;// SampleSH(surface.normal);
-                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
+                lightColor *= DirectBRDF(surface, brdf, light);//* radiance;// * albedo.a;
+                //half3 indirectDiffuse = 0.0;// SampleSH(surface.normal);
+                half3 go = EnvironmentBRDF(surface, brdf, lightColor);
 
                 //reflectionProbe
                 half3 envirReflection = GetReflectionProbe(surface);
-                //envirReflection *= surface.metallic + MIN_REFLECTIVITY;
-                envirReflection *= albedo.rgb;
+                //envirReflection += MIN_REFLECTIVITY;
+               envirReflection *= albedo.rgb;
                 half4 result;
                 result.rgb = (go + envirReflection) * radiance;
               //  result.a = surface.alpha;
@@ -184,8 +207,10 @@ TEXTURE2D_HALF(_GBuffer3); //emission
              //   #endif
 
                //result = half4(albedo,1.0);
-               // result.rgb = AcesTonemap(result.rgb);
-                return half4(result.rgb, 1.0);
+                               // result = pow(result, 1.0 / 2.2);
+
+             //  result.rgb = ACESFilmTonemapping(result.rgb);
+                return half4(result.rgb, 1);
             }
             ENDHLSL
         }

@@ -127,7 +127,7 @@ half3 DirectBRDF(Surface surface, BRDF brdf, Light light)
 
 
 //SpecOps approach
-half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 specularTerm )
+half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 specularTerm )
 {
     half g = 1.0h - surface.smoothness;
     half4 t = half4(1.042h, 0.475h, 0.0182h, 0.25h);
@@ -137,7 +137,7 @@ half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 s
     half a0 = t.x * min(t.y, exp2(-9.28h * NoV)) + t.z;
     half a1 = t.w;
     half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
-    return specularTerm + ((indirectDiffuse * brdf.diffuse) + tempC * (specularTerm * brdf.specular));
+    return specularTerm + ((brdf.diffuse) + tempC * (specularTerm * brdf.specular));
 }
 
 ///STYLIZED
@@ -151,7 +151,7 @@ half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 s
     half a0 = t.x * min(t.y, exp2(-9.28h * NoV)) + t.z;
     half a1 = t.w;
     half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
-    return (specularTerm  + (indirectDiffuse * brdf.diffuse  + tempC * (specularTerm * brdf.specular) )) * radiance;
+    return (specularTerm  + (indirectDiffuse * brdf.diffuse  + tempC * (specularTerm * brdf.specular) ))* radiance;
 }
 
 #endif

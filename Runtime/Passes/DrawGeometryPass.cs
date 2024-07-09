@@ -35,15 +35,16 @@ public class DrawGeometryPass
         //TODO refactor
         StencilState stencil = StencilState.defaultValue;
         stencil.SetCompareFunction(CompareFunction.Always);
-        stencil.SetPassOperation(StencilOp.Keep);
+        stencil.SetPassOperation(StencilOp.Replace);
         stencil.SetFailOperation(StencilOp.Keep);
-        stencil.SetZFailOperation(StencilOp.Keep);
+       // stencil.SetZFailOperation(StencilOp.Keep);
+        
+        stencil.enabled = true;
         
         
-        RenderStateBlock renderStateBlock = new RenderStateBlock(RenderStateMask.Nothing);
-        renderStateBlock.mask = RenderStateMask.Stencil;
+        RenderStateBlock renderStateBlock = new RenderStateBlock(RenderStateMask.Stencil);
         renderStateBlock.stencilState = stencil;
-        renderStateBlock.stencilReference = 0;
+        renderStateBlock.stencilReference = 8;
     
         _rendererListDesc =
             new RendererListDesc(shaderTags, cullingResults, camera)
@@ -62,6 +63,7 @@ public class DrawGeometryPass
                 
                 //PerObjectData.LightData|
                 //  PerObjectData.LightIndices
+                stateBlock = renderStateBlock
             };
         
         

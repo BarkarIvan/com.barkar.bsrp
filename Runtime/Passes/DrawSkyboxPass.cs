@@ -26,7 +26,7 @@ namespace Barkar.BSRP.Passes
             {
             
 
-            drawSkyboxPassData.ColorAttacment = builder.UseColorBuffer(input.ColorAttachment0,0);
+            drawSkyboxPassData.ColorAttacment = builder.UseColorBuffer(input.ColorAttachment3,0);
             drawSkyboxPassData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
 
 

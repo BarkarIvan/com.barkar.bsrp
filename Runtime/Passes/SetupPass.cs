@@ -44,6 +44,7 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.name = "BSRP_Metallic_Roughtness";
             setupPassData.ColorAttachment1 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "BSRP_NormalMap";
+            textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "BSRP_Emission_GI";
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
