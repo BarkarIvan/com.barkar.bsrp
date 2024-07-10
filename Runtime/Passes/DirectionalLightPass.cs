@@ -9,7 +9,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 namespace Barkar.BSRP.Passes
 {
 
-    public class TestFinalPassData
+    public class DirectionalLightPassData
     {
         public TextureHandle Gbuffer0;
         public TextureHandle Gbuffer1;
@@ -19,10 +19,10 @@ namespace Barkar.BSRP.Passes
         public Material TestFinalMaterial;
     }
     
-    public class TestFinalPass
+    public class DirectionalLightPass
     {
-        private readonly ProfilingSampler _profilingSampler = new("TEST LIGHTING");
-        private BaseRenderFunc<TestFinalPassData, RenderGraphContext> _renderFunc;
+        private readonly ProfilingSampler _profilingSampler = new("Directional lighting");
+        private BaseRenderFunc<DirectionalLightPassData, RenderGraphContext> _renderFunc;
         
         private Camera _camera;
 
@@ -33,7 +33,7 @@ namespace Barkar.BSRP.Passes
         private readonly int _GBuffer3ID = Shader.PropertyToID("_GBuffer3");
         private readonly int _CameraDepthID = Shader.PropertyToID("_CameraDepth");
        
-         public TestFinalPass()
+         public DirectionalLightPass()
         {
             _renderFunc = RenderFunction;
         }
@@ -42,7 +42,7 @@ namespace Barkar.BSRP.Passes
             in RenderDestinationTextures input, Camera camera, Material testfinalPassMaterial)
         {
             using var builder =
-                renderGraph.AddRenderPass<TestFinalPassData>(_profilingSampler.name, out var bloomPassData,
+                renderGraph.AddRenderPass<DirectionalLightPassData>(_profilingSampler.name, out var bloomPassData,
                     _profilingSampler);
 
            builder.AllowPassCulling(false);
@@ -60,7 +60,7 @@ namespace Barkar.BSRP.Passes
             
         }
 
-        private  void RenderFunction(TestFinalPassData data, RenderGraphContext context)
+        private  void RenderFunction(DirectionalLightPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
             var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();

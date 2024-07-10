@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Barkar.BSRP;
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Data;
 using Barkar.BSRP.Passes;
@@ -26,7 +27,9 @@ public class BSRP : RenderPipeline
     
     private Material _finalPassMaterial;
     //
-    private Material _testFinalPassMaterial;
+    private Material _directioanlLightPassMaterial;
+
+    private Material _deferredFinalPassMaterial;
     //
     private Material _postEffectsMaterial;
     //private Material _dualFilterBlurMaterial;
@@ -37,8 +40,8 @@ public class BSRP : RenderPipeline
     private SetupPass _setupPass = new SetupPass();
     private DrawGeometryPass _drawGeometryPass = new DrawGeometryPass();
     private PostEffectsPass _postEffectsPass = new PostEffectsPass();
-    private TestFinalPass _testFinal = new TestFinalPass();
-   
+    private DirectionalLightPass _directionalLight = new DirectionalLightPass();
+    private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;    
@@ -54,8 +57,8 @@ public class BSRP : RenderPipeline
         //materials and keywords
         _finalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/FinalPass");
         _postEffectsMaterial = CoreUtils.CreateEngineMaterial("Hidden/PostEffectPasses");
-
-        _testFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/TestFinalPass");
+        _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
+        _directioanlLightPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/TestFinalPass");
         
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
@@ -149,9 +152,10 @@ public class BSRP : RenderPipeline
          //  _postEffectsPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
                  //  camera, _postEffectsMaterial, _finalPassMaterial);
             
-            _testFinal.DrawTestFinal(RenderGraph, destinationTextures, camera, _testFinalPassMaterial);
+            _directionalLight.DrawTestFinal(RenderGraph, destinationTextures, camera, _directioanlLightPassMaterial);
           //  FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
-
+_deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
+          
             RenderGraph.EndRecordingAndExecute();
         }
 

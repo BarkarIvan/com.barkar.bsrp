@@ -1,4 +1,4 @@
-Shader "Hidden/TestFinalPass"
+Shader "Hidden/DeferredFinalPass"
 {
    
     SubShader
@@ -9,16 +9,16 @@ Shader "Hidden/TestFinalPass"
         }
 
         Cull Off
-        Blend One SrcAlpha
-       BlendOp Add, Add
+        //Blend One One
+     // BlendOp Add, Add
         ZWrite On
         ZTest Always
         
-        Stencil
-             {
-                Ref 8
-                Comp Equal
-             } 
+        //Stencil
+           //  {
+              //  Ref 8
+              //  Comp Equal
+            // } 
 
         Pass
         {
@@ -131,85 +131,12 @@ TEXTURE2D_HALF(_GBuffer3); //emission
             half4 LightPassFragment(Varyings IN): SV_Target
             {
 
-                half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0,sampler_linear_clamp, IN.uv);
-                half4 g1 = SAMPLE_TEXTURE2D(_GBuffer1,sampler_linear_clamp, IN.uv);
-                float4 g2 = SAMPLE_TEXTURE2D(_GBuffer2,sampler_linear_clamp, IN.uv);
-               // float4 g3 = SAMPLE_TEXTURE2D(_GBuffer3,sampler_linear_clamp, IN.uv);
+                 half3 g3 = SAMPLE_TEXTURE2D(_GBuffer3,sampler_linear_clamp, IN.uv);
 
-                half3 albedo = g0.rgb;
-                half smoothness = g0.a;
-                half3 radiance = g1.rgb;
-                half metallic = g1.a;
-                float3 normal = SafeNormalize(g2.rgb * 2 - 1);
-              //  half3 emission = g3;
-               // half3 indirectDiffuse = IN.SH;
+               half4 result = half4(g3,1.0);
+                                //result = pow(result, 1.0 / 2.2);
 
-                float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_linear_clamp, IN.uv);
-               // float linearDepth = Linear01Depth(depth, _ZBufferParams);
-
-                float4 positionNDC = float4(IN.uv * 2 - 1, depth, 1);
-                float4 positionWS = mul(unity_MatrixIVP, positionNDC);//float4(IN.positionCS.xy, depth, 1.0));// positionNDC);
-                positionWS *= rcp(positionWS.w);
-
-
-                //Light light = GetMainLight(shadowCoord, IN.positionWS);
-                half NoL = dot(normal, MainLightDirectionaAndMask.xyz);
-
-                
-                half3 lightColor = MainLightColor;
-
-                //radiance
-                Surface surface;
-                surface.albedo = albedo;
-                surface.normal = (normal);
-                surface.metallic = metallic;
-                surface.smoothness = smoothness;
-                surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - positionWS.xyz);
-                //brdf
-                Light light = GetMainLight(positionWS);
-                BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light) * radiance;// * albedo.a;
-                //half3 indirectDiffuse = 0.0;// SampleSH(surface.normal);
-                half3 go = EnvironmentBRDF(surface, brdf, lightColor, radiance);
-
-                //reflectionProbe
-                half3 envirReflection = GetReflectionProbe(surface);
-                envirReflection += MIN_REFLECTIVITY;
-               envirReflection *= albedo.rgb;
-                half4 result;
-                result.rgb =  (envirReflection + go) * radiance;
-              //  result.a = surface.alpha;
-
-               
-
-                //rim
-              //  #if defined (_RIM)
-              //  half NoV = dot(surface.viewDir, surface.normal);
-              //  half3 rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
-               // result.rgb += rim;
-               /// result.rgb = saturate(result.rgb);
-               // #endif
-
-                //Emission
-               // half3 emissionColor = emission;
-
-               
-               // result.rgb += saturate(emission);
-
-                //LOD
-                //  #ifdef LOD_FADE_CROSSFADE
-                //  LODFadeCrossFade(IN.positionCS);
-                // #endif
-
-                //FOG
-              //  #if (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
-             //   result.rgb = CalculateFog(result, IN.positionWS);
-             //   #endif
-
-               //result = half4(albedo,1.0);
-                             //  result = pow(result, 1.0 / 2.2);
-
-             //  result.rgb = ACESFilmTonemapping(result.rgb);
+               result.rgb = ACESFilmTonemapping(result.rgb);
                 return half4(result.rgb, 1);
             }
             ENDHLSL

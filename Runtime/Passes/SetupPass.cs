@@ -50,7 +50,8 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
           
-            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
+           // textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
+           // textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
             textureDescriptor.depthBufferBits = DepthBits.Depth32;
             textureDescriptor.name = "BSRP_Depth_Stencil";
             setupPassData.DepthAttachment = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));

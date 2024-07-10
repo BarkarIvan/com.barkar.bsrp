@@ -283,7 +283,7 @@ struct GBuffer
 
                 //brdf
                 BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light);// * radiance;
+                lightColor *= DirectBRDF(surface, brdf, light) * radiance;
 
                 half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
 
@@ -324,9 +324,9 @@ struct GBuffer
 
                 GBuffer gbo;
                 gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);
-                gbo.GBUFFER1 = half4(saturate(radiance), surface.metallic);
+                gbo.GBUFFER1 = half4(radiance, surface.metallic); //radiance & dir shadow
                 gbo.GBUFFER2 = float4(surface.normal.rgb * 0.5 + 0.5, 1.0);
-                gbo.GBUFFER3 = float4( (go + emissionColor + rim), 1.0);
+                gbo.GBUFFER3 = float4(go + emissionColor + rim, 1.0);
                 
                 return gbo;
             }
