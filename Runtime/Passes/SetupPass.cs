@@ -21,7 +21,7 @@ namespace Barkar.BSRP.Passes.Setup
 
         public  RenderDestinationTextures SetupDestinationTextures(RenderGraph renderGraph,
             Vector2Int attachmetSize,
-            Camera camera, bool HDR)
+            Camera camera)
         {
             
             _renderFunc = RenderFunction;
@@ -47,11 +47,12 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "BSRP_Emission_GI";
-            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
+            //textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
+           textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
           
-           // textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
-           // textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
+           // 
+           textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
             textureDescriptor.depthBufferBits = DepthBits.Depth32;
             textureDescriptor.name = "BSRP_Depth_Stencil";
             setupPassData.DepthAttachment = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));

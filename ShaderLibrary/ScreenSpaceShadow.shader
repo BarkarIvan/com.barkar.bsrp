@@ -5,9 +5,11 @@ Shader "Hidden/ScreenSpaceShadow"
         Blend DstColor Zero
         ZTest Always ZWrite Off Cull Off
 
+        
 
         Pass
         {
+            Name "Screen space shadow"
             HLSLPROGRAM
             #pragma vertex DefaultPassVertex
             #pragma fragment ScreenSpaceShadowFragment
@@ -20,19 +22,9 @@ Shader "Hidden/ScreenSpaceShadow"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
             
-            struct Attributes
-            {
-                float3 positionOS : POSITION;
-              //  half3 normalOS : NORMAL;
-               // half4 tangentOS : TANGENT;
-                float2 uv : TEXCOORD0;
-              //  half4 color : COLOR;
-            };
-
-            TEXTURE2D_HALF(_GBuffer3); //emission
             TEXTURE2D_HALF(_CameraDepth);
-
-
+            
+            TEXTURE2D_HALF(_GBuffer3); 
             half4 ScreenSpaceShadowFragment(Varyings IN) : SV_Target
             {
                 float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_PointClamp, IN.uv).r;
@@ -40,7 +32,7 @@ Shader "Hidden/ScreenSpaceShadow"
                 float4 positionWS = mul(unity_MatrixIVP, positionNDC);
                 positionWS *= rcp(positionWS.w);
 
-                float4 shadowCoord = TransformWorldToShadowCoord(positionWS);
+                float4 shadowCoord = TransformWorldToShadowCoord(positionWS.xyz);
                 return SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
             }
             ENDHLSL

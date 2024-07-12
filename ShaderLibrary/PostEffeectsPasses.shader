@@ -57,10 +57,6 @@ Shader "Hidden/PostEffectPasses"
 
     SubShader
     {
-        Tags
-        {
-            "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline"
-        }
 
         ZTest Always ZWrite Off Cull Off
 
