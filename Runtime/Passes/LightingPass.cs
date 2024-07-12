@@ -56,25 +56,13 @@ namespace Barkar.BSRP.Passes
 
         private  BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
 
-        static readonly GlobalKeyword[] directionalFilterKeywords =
-        {
-            GlobalKeyword.Create("_SOFT_SHADOWS_LOW"),
-            GlobalKeyword.Create("_SOFT_SHADOWS_MEDIUM"),
-            GlobalKeyword.Create("_SOFT_SHADOWS_HIGH"),
-        };
-
+       
          public LightingPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        public  void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
-        {
-            for (int i = 0; i < keywords.Length; i++)
-            {
-                cmd.SetKeyword(keywords[i], i == enabledIndex);
-            }
-        }
+       
 
         public  LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
             ShadowSettings shadowSettings)
@@ -206,7 +194,6 @@ namespace Barkar.BSRP.Passes
                         1f / _shadowSettings.ShadowDistanceFade)); //z - cascades fade
 
                 //keyWords
-                SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
 
                 cmd.EndSample("Main Light Directional Shadow");
                 context.renderContext.ExecuteCommandBuffer(cmd);

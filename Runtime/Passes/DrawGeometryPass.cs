@@ -23,7 +23,7 @@ public class DrawGeometryPass
     
 
     public  void DrawGeometry(RenderGraph renderGraph,
-        ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, RenderDestinationTextures input,
+        ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in RenderDestinationTextures input,
         int renderingLayerMask, bool isOpaque, LightingResources lightingResources)
     {
         var profilingSampler = GetProfilingSampler(isOpaque);

@@ -3,6 +3,7 @@ using Barkar.BSRP.Passes;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.UI;
 
 namespace Barkar.BSRP
 {
@@ -10,6 +11,7 @@ namespace Barkar.BSRP
     public class DeferredFinalPassData
     {
         public TextureHandle GBuffer3;
+        public TextureHandle DepthAttachment;
         public Material DeffereFinalPassMaterial;
     }
     

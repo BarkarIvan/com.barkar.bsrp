@@ -30,6 +30,8 @@ public class BSRP : RenderPipeline
     private Material _directioanlLightPassMaterial;
 
     private Material _deferredFinalPassMaterial;
+
+    private Material _screenSpaceShadowMaterial;
     //
     private Material _postEffectsMaterial;
     //private Material _dualFilterBlurMaterial;
@@ -42,6 +44,7 @@ public class BSRP : RenderPipeline
     private PostEffectsPass _postEffectsPass = new PostEffectsPass();
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
+    private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;    
@@ -59,7 +62,7 @@ public class BSRP : RenderPipeline
         _postEffectsMaterial = CoreUtils.CreateEngineMaterial("Hidden/PostEffectPasses");
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _directioanlLightPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/TestFinalPass");
-        
+        _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         
@@ -151,10 +154,10 @@ public class BSRP : RenderPipeline
            
          //  _postEffectsPass.DrawBloom(RenderGraph, _bloomSettings, destinationTextures,
                  //  camera, _postEffectsMaterial, _finalPassMaterial);
-            
-            _directionalLight.DrawTestFinal(RenderGraph, destinationTextures, camera, _directioanlLightPassMaterial);
-          //  FinalPass.DrawFinalPass(RenderGraph, destinationTextures, camera, _finalPassMaterial, bloomData);
-_deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
+            _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, destinationTextures, lightingResources, _shadowSettings,_screenSpaceShadowMaterial, camera);
+            _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _directioanlLightPassMaterial);
+
+            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
           
             RenderGraph.EndRecordingAndExecute();
         }
@@ -163,7 +166,7 @@ _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camer
         context.Submit();
         CommandBufferPool.Release(renderGraphParameters.commandBuffer);
 
-        //RenderGraph.EndFrame();
+        RenderGraph.EndFrame();
     }
     
     protected override void Dispose(bool disposing)

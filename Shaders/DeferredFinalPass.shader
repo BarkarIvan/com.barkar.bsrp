@@ -7,12 +7,8 @@ Shader "Hidden/DeferredFinalPass"
         {
             "RenderPipeline"="BSRP" 
         }
+        ZTest Always ZWrite Off Cull Off
 
-        Cull Off
-        //Blend One One
-     // BlendOp Add, Add
-        ZWrite On
-        ZTest Always
         
         //Stencil
            //  {
@@ -35,11 +31,11 @@ Shader "Hidden/DeferredFinalPass"
             #pragma exclude_renderers d3d11_9x
 
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
-            #include "Packages/com.barkar.bsrp/ShaderLibrary/Surface.hlsl"
-            #include "Packages/com.barkar.bsrp/ShaderLibrary/Lighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
-            #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBRDF.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
+           // #include "Packages/com.barkar.bsrp/ShaderLibrary/Surface.hlsl"
+          //  #include "Packages/com.barkar.bsrp/ShaderLibrary/Lighting.hlsl"
+           // #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
+          //  #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBRDF.hlsl"
+           // #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
     #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
 
             //to inputs include

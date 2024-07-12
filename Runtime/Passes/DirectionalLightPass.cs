@@ -38,7 +38,7 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
         
-        public  void DrawTestFinal( RenderGraph renderGraph,
+        public  void DrawDirectinalLight( RenderGraph renderGraph,
             in RenderDestinationTextures input, Camera camera, Material testfinalPassMaterial)
         {
             using var builder =
