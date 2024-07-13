@@ -289,10 +289,9 @@ struct GBuffer
 
                 //reflectionProbe
                 half3 envirReflection = GetReflectionProbe(surface);
-                envirReflection *= surface.metallic + MIN_REFLECTIVITY;
+             //   envirReflection *= surface.metallic + MIN_REFLECTIVITY;
                 envirReflection *= albedo.rgb;
-                result.rgb = saturate(go + envirReflection);
-                result.a = surface.alpha;
+                go += envirReflection;
 
                 //rim
                 half3 rim = 0;
@@ -310,17 +309,7 @@ struct GBuffer
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
-               // result.rgb += emissionColor;
-
-                //LOD
-                //  #ifdef LOD_FADE_CROSSFADE
-                //  LODFadeCrossFade(IN.positionCS);
-                // #endif
-
-                //FOGa
-                #if (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
-                result.rgb = CalculateFog(result, IN.positionWS);
-                #endif
+               
 
                 GBuffer gbo;
                 gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);

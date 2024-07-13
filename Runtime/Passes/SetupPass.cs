@@ -39,14 +39,14 @@ namespace Barkar.BSRP.Passes.Setup
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
         
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
-            textureDescriptor.name = "BSRP_Diffuse";
+            textureDescriptor.name = "BSRP_Albedo_Smoothness";
             setupPassData.ColorAttachment0 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-            textureDescriptor.name = "BSRP_Metallic_Roughtness";
+            textureDescriptor.name = "BSRP_Radiance_Metallic";
             setupPassData.ColorAttachment1 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "BSRP_NormalMap";
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-            textureDescriptor.name = "BSRP_Emission_GI";
+            textureDescriptor.name = "BSRP_Light_Accumulate";
             //textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
            textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
@@ -65,6 +65,7 @@ namespace Barkar.BSRP.Passes.Setup
         private void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)
         {
             context.renderContext.SetupCameraProperties(_camera);
+
             CommandBuffer cmd = context.cmd;
             cmd.SetRenderTarget(setupPassData.ColorAttachment0, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, 
                 setupPassData.DepthAttachment, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);

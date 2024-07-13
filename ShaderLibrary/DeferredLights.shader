@@ -37,7 +37,7 @@ Shader "Hidden/DeferredLights"
 
         Surface surface;
         surface.albedo = albedo;
-        surface.normal = (normal);
+        surface.normal = normal;
         surface.metallic = metallic;
         surface.smoothness = smoothness;
         surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - positionWS.xyz);
@@ -48,11 +48,8 @@ Shader "Hidden/DeferredLights"
 
         half3 environmentBRDF = EnvironmentBRDF(surface, brdf, lightColor, radiance);
 
-        half3 envirReflection = GetReflectionProbe(surface);
-        envirReflection += MIN_REFLECTIVITY;
-        envirReflection *= albedo.rgb;
         half4 result;
-        result.rgb = (envirReflection + environmentBRDF) * radiance;
+        result.rgb = environmentBRDF;//* radiance;
 
         return half4(result.rgb, 1);
     }

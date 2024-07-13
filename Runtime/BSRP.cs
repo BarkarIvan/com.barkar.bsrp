@@ -76,6 +76,7 @@ public class BSRP : RenderPipeline
         foreach (Camera camera in cameras)
         {
             //destination buffer size
+           
             textureSize.x = (int)(camera.pixelWidth * _renderScale);
             textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
@@ -118,7 +119,7 @@ public class BSRP : RenderPipeline
 
             RenderDestinationTextures destinationTextures =
                 _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera);
-
+           
             _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 destinationTextures, camera.cullingMask, true, lightingResources);
 
@@ -129,11 +130,8 @@ public class BSRP : RenderPipeline
                 _shadowSettings, _screenSpaceShadowMaterial, camera);
             
             _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
-
-           
-
-            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera,
-                _deferredFinalPassMaterial);
+            
+            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             
            
 

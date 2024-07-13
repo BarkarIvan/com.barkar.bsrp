@@ -162,7 +162,7 @@ namespace Barkar.BSRP.Passes
 
                     cmd.SetGlobalMatrix("_MainLightMatrix", shadowMatrix);
                     cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
-                    cmd.SetGlobalDepthBias(0f, _directionalLightShadowData.shadowBias);
+                    cmd.SetGlobalDepthBias(0, _directionalLightShadowData.shadowBias);
                     context.renderContext.ExecuteCommandBuffer(cmd);
                     cmd.Clear();
 

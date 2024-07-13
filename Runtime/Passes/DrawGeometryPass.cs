@@ -75,12 +75,8 @@ public class DrawGeometryPass
         drawGeometryPassData.ColorAttachment1 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment1),1);
         drawGeometryPassData.ColorAttachment2 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment2),2);
         drawGeometryPassData.ColorAttachment3 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment3),3);
-
-
         drawGeometryPassData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
 
-        builder.ReadTexture(lightingResources.DirectionalShadowMap);
-        builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
 
         builder.AllowPassCulling(false);
         
