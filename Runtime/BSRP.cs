@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Barkar.BSRP;
 using Barkar.BSRP.CameraRenderer;
-using Barkar.BSRP.Data;
 using Barkar.BSRP.Passes;
 using Barkar.BSRP.Passes.Bloom;
 using Barkar.BSRP.Passes.Setup;

@@ -42,6 +42,7 @@ namespace Barkar.BSRP.Passes
     public class LightingPass
     {
         private const int maxDirectionalLightsCount = 1;
+        private const int maxPointLightCount = 1024;
         private  readonly ProfilingSampler _profilingSampler = new ProfilingSampler("LightingPass");
 
         private  int _directionalLightsCount;
@@ -116,7 +117,9 @@ namespace Barkar.BSRP.Passes
 
                             break;
 
-                        //TODO: additional
+                        case LightType.Point:
+
+                            break;
 
                     }
                 }
