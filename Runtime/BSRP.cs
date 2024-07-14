@@ -31,6 +31,8 @@ public class BSRP : RenderPipeline
     private Material _deferredFinalPassMaterial;
 
     private Material _screenSpaceShadowMaterial;
+
+    private ComputeShader _tiledDeferredShadingComputeShader;
     //
     // private Material _postEffectsMaterial;
     //private Material _dualFilterBlurMaterial;
@@ -47,18 +49,23 @@ public class BSRP : RenderPipeline
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
+    
+    //!
+    private TiledShadingPass _tileShadingPass = new TiledShadingPass();
+    //
+    
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;
     Matrix4x4 _matrixVPIprev;
 
-    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
+    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, ComputeShader tiledDeferredShadingComputeShader)
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
         _bloomSettings = bloomSettings;
 
-       
+        _tiledDeferredShadingComputeShader = tiledDeferredShadingComputeShader;
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
         _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
@@ -129,6 +136,8 @@ public class BSRP : RenderPipeline
                 _shadowSettings, _screenSpaceShadowMaterial, camera);
             
             _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
+            
+            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader);
             
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             

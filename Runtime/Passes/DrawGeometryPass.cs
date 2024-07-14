@@ -1,6 +1,5 @@
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes.Data;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RendererUtils;
@@ -8,8 +7,8 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 public class DrawGeometryPass
 {
-    private static readonly ProfilingSampler OpaqueSampler = new ("Opaque Profiling Sample");
-    private static readonly ProfilingSampler TransparentSampler = new ("Transparent Profiling Sample");
+    private  readonly ProfilingSampler OpaqueSampler = new ("Opaque Profiling Sample");
+    private  readonly ProfilingSampler TransparentSampler = new ("Transparent Profiling Sample");
 
     private  RendererListDesc _rendererListDesc;
     private  BaseRenderFunc<DrawGeometryPassData, RenderGraphContext> _renderFunction;
@@ -84,14 +83,14 @@ public class DrawGeometryPass
         
     }
 
-    private static void RenderFunction(DrawGeometryPassData drawGeometryPassData, RenderGraphContext context)
+    private  void RenderFunction(DrawGeometryPassData drawGeometryPassData, RenderGraphContext context)
     {
         
         context.cmd.DrawRendererList(drawGeometryPassData.RendererListHandle);
         context.renderContext.ExecuteCommandBuffer(context.cmd);
         context.cmd.Clear();
     }
-    private static ProfilingSampler GetProfilingSampler(bool isOpaque)
+    private  ProfilingSampler GetProfilingSampler(bool isOpaque)
     {
         return isOpaque ? OpaqueSampler : TransparentSampler;
     }

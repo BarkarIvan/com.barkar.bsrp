@@ -1,0 +1,69 @@
+#pragma kernel TilesGenerate
+
+struct TileBox
+{
+    float4 frustumPlanes[6];
+};
+RWStructuredBuffer<TileBox> _tileBox;
+
+Texture2D<float> _DepthTexture;
+SamplerState sampler_DepthTexture;
+
+
+    float4x4 _CameraProjection;
+    float4x4 _CameraProjectionInverse;
+  //  float4 _CameraParams; // (near, far, aspect, fov)
+
+
+#define TILESIZE 16
+
+groupshared uint minDepthShared;
+groupshared uint maxDepthShared;
+
+[numthreads(TILESIZE, TILESIZE, 1)]
+void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
+{
+    if (gtid.x == 0 && gtid.y == 0)
+    {
+        minDepthShared = asuint(1.0f); // max float
+        maxDepthShared = asuint(0.0f); // min float
+    }
+    GroupMemoryBarrierWithGroupSync();
+
+    uint2 textureSize;
+    _DepthTexture.GetDimensions(textureSize.x, textureSize.y);
+
+    int mipLevel = 4; // mip-уровень 4 для 16x16 тайлов (log2(16) = 4)
+    float2 uv = (float2(gid.xy * TILESIZE + gtid.xy) + 0.5f) / (textureSize >> mipLevel);
+    float depth = _DepthTexture.SampleLevel(sampler_DepthTexture, uv, 0).r;
+
+    InterlockedMin(minDepthShared, asuint(depth));
+    InterlockedMax(maxDepthShared, asuint(depth));
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (gtid.x == 0 && gtid.y == 0)
+    {
+        float minDepth = asfloat(minDepthShared);
+        float maxDepth = asfloat(maxDepthShared);
+
+        float2 tileScale = textureSize * (1.0 / (2 * TILESIZE));
+        float2 tileBias = tileScale - float2(gid.xy);
+
+        float4 c1 = float4(_CameraProjection._11 * tileScale.x, 0.0f, -tileBias.x, 0.0f);
+        float4 c2 = float4(0.0f, -_CameraProjection._22 * tileScale.y, -tileBias.y, 0.0f);
+        float4 c4 = float4(0.0f, 0.0f, -1.0f, 0.0f);
+
+        uint index = gid.y * (textureSize.x / TILESIZE) + gid.x;
+
+        TileBox currentTile;
+        currentTile.frustumPlanes[0] = c4 - c1; // right
+        currentTile.frustumPlanes[1] = c4 + c1; // left
+        currentTile.frustumPlanes[2] = c4 - c2; // top
+        currentTile.frustumPlanes[3] = c4 + c2; // bottom
+        currentTile.frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth); // far
+        currentTile.frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // near
+
+        _tileBox[index] = currentTile;
+    }
+}

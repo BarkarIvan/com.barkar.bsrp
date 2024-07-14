@@ -13,9 +13,11 @@ public class BSRPSettings : RenderPipelineAsset<BSRP>
 
     [SerializeField] private ShadowSettings _shadowSettings;
     [SerializeField] private BloomSettings _bloomSettings;
+
+    [Space(5)] [SerializeField] private ComputeShader _tiledDeferredShadingShader;
     
 
     public override string renderPipelineShaderTag => "BSRP";
     
-    protected override RenderPipeline CreatePipeline() => new BSRP(HDR, _renderScale, _shadowSettings, _bloomSettings);
+    protected override RenderPipeline CreatePipeline() => new BSRP(HDR, _renderScale, _shadowSettings, _bloomSettings, _tiledDeferredShadingShader);
 }
