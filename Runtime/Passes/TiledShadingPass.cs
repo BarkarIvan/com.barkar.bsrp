@@ -1,5 +1,6 @@
 using Barkar.BSRP.CameraRenderer;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -12,6 +13,8 @@ namespace Barkar.BSRP
         public BufferHandle LightAssignBuffer;
         public BufferHandle AssignTableBuffer;
         public TextureHandle DepthTextureHandle;
+
+        public TextureHandle DebugTexture;
     }
 
 
@@ -88,6 +91,14 @@ namespace Barkar.BSRP
             
             data.TileBuffer = builder.UseBuffer(renderGraph.CreateBuffer(tileBufferDescriptor), AccessFlags.ReadWrite);
 
+            TextureDesc textureDescriptor =
+                new TextureDesc(info.width, info.height);
+            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
+            textureDescriptor.depthBufferBits = DepthBits.Depth32;
+            textureDescriptor.name = "TileDebug";
+
+            data.DebugTexture = builder.CreateTransientTexture(textureDescriptor);
+           
             builder.SetRenderFunc(_renderFunc);
             
            /* 
@@ -121,9 +132,8 @@ namespace Barkar.BSRP
             _tileGenerateShader.SetMatrix("_CameraProjection", _cameraProjection);
             _tileGenerateShader.SetMatrix("_CameraProjectionInverse", _cameraProjectionInverse);
             _tileGenerateShader.SetTexture(tilegenerate, "_DepthTexture",data.DepthTextureHandle, 4);
+           _tileGenerateShader.SetTexture(tilegenerate, "_DebugTexture", data.DebugTexture);
             cmd.DispatchCompute(_tileGenerateShader, tilegenerate, _threadGroups.x, _threadGroups.y, 1);
-        
-
             
         }
     }

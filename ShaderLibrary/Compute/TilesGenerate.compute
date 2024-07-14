@@ -7,6 +7,7 @@ struct TileBox
 RWStructuredBuffer<TileBox> _tileBox;
 
 Texture2D<float> _DepthTexture;
+RWTexture2D<float> _DebugTexture;
 SamplerState sampler_DepthTexture;
 
 
@@ -36,7 +37,8 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
     int mipLevel = 4; // mip-уровень 4 для 16x16 тайлов (log2(16) = 4)
     float2 uv = (float2(gid.xy * TILESIZE + gtid.xy) + 0.5f) / (textureSize >> mipLevel);
     float depth = _DepthTexture.SampleLevel(sampler_DepthTexture, uv, 0).r;
-
+    _DebugTexture[uv] = minDepthShared;
+    
     InterlockedMin(minDepthShared, asuint(depth));
     InterlockedMax(maxDepthShared, asuint(depth));
 
