@@ -52,7 +52,7 @@ BRDF GetBRDF(Surface surface)
      half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
  
      brdf.diffuse = surface.albedo * oneMinusReflectivity;
-     brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, MetallicFromReflectivity(surface.metallic));
+     brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, (surface.metallic));
      half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
      brdf.roughness = max(PerceptualRoughnessToRoughness(perceptualRoughness), HALF_MIN_SQRT);
      return brdf;
@@ -62,7 +62,7 @@ BRDF GetBRDFGBuffer(Surface surface)
 {
     BRDF brdf;
 
-    half oneMinusReflectivity =1.0 - surface.metallic;// OneMinusReflectivity(surface.metallic);
+    half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
 
     brdf.diffuse = surface.albedo * oneMinusReflectivity;
     brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, surface.metallic);
