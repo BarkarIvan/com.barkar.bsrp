@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Barkar.BSRP.CameraRenderer;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -21,7 +22,7 @@ namespace Barkar.BSRP
     public class TiledShadingPass
     {
         private readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Tile Generate Pass");
-        private BaseRenderFunc<TileShadigPassData, ComputeGraphContext> _renderFunc;
+        private BaseRenderFunc<TileShadigPassData, RenderGraphContext> _renderFunc;
         private Camera _camera;
         private Matrix4x4 _cameraProjection;
         private Matrix4x4 _cameraProjectionInverse;
@@ -56,7 +57,7 @@ namespace Barkar.BSRP
         }
 
         private ComputeShader _tileGenerateShader;
-        
+
         //DEBUG
         private TileBox[] _tileBoxes;
 
@@ -69,72 +70,59 @@ namespace Barkar.BSRP
             CullingResults cullingResults, Camera camera, ComputeShader tileShadingShader)
         {
             using var builder =
-                renderGraph.AddComputePass<TileShadigPassData>(_profilingSampler.name, out var data, _profilingSampler);
-           
+                renderGraph.AddRenderPass<TileShadigPassData>(_profilingSampler.name, out var data, _profilingSampler);
+
             var info = renderGraph.GetRenderTargetInfo(input.DepthAttachment);
-            
+
             var tileBufferDescriptor = new BufferDesc();
             tileBufferDescriptor.name = "Tiles Buffer";
             tileBufferDescriptor.count = (info.width / 16) * (info.height / 16);
             tileBufferDescriptor.stride = sizeof(float) * 4 * 6;
             tileBufferDescriptor.target = GraphicsBuffer.Target.Structured;
 
-           
+
             _threadGroups.x = Mathf.CeilToInt(info.width / 16);
             _threadGroups.y = Mathf.CeilToInt(info.height / 16);
 
             _tileGenerateShader = tileShadingShader;
+
+            TextureDesc desc = new TextureDesc(info.width, info.height);
+            desc.enableRandomWrite = true;
+            desc.useMipMap = true;
+            desc.colorFormat = GraphicsFormat.R16G16_SFloat;
+            desc.name = "Debug texture";
+            //desc.depthBufferBits = DepthBits.Depth32;
+
             data.DepthTextureHandle = builder.CreateTransientTexture(input.DepthAttachment);
             Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
             _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false) * viewMatrix;
             _cameraProjectionInverse = _cameraProjection.inverse;
-            
-            data.TileBuffer = builder.UseBuffer(renderGraph.CreateBuffer(tileBufferDescriptor), AccessFlags.ReadWrite);
 
-            TextureDesc textureDescriptor =
-                new TextureDesc(info.width, info.height);
-            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
-            textureDescriptor.depthBufferBits = DepthBits.Depth32;
-            textureDescriptor.name = "TileDebug";
+            data.TileBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(tileBufferDescriptor));
 
-            data.DebugTexture = builder.CreateTransientTexture(textureDescriptor);
-           
+
+            builder.AllowPassCulling(false);
+            data.DebugTexture = builder.CreateTransientTexture(desc);
+
             builder.SetRenderFunc(_renderFunc);
-            
-           /* 
-            GraphicsBuffer d = data.TileBuffer;
-            d.GetData(_tileBoxes);
-            foreach (var tileBox in _tileBoxes)
-            {
-                for (int i = 0; i < tileBox.frustumPlanes.Length; i++)
-                {
-                    Vector3 normal = new Vector3(tileBox.frustumPlanes[i].x, tileBox.frustumPlanes[i].y,
-                        tileBox.frustumPlanes[i].z);
-                    Vector3 point = -normal * tileBox.frustumPlanes[i].w;
-
-                    Gizmos.DrawSphere(point, 0.1f);
-                }
-            }
-            
-            */
-            
         }
 
-        
-       
 
-        private void RenderFunction(TileShadigPassData data, ComputeGraphContext context)
+        private void RenderFunction(TileShadigPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-         
+
             var tilegenerate = _tileGenerateShader.FindKernel("TilesGenerate");
             _tileGenerateShader.SetBuffer(tilegenerate, "_tileBox", data.TileBuffer);
             _tileGenerateShader.SetMatrix("_CameraProjection", _cameraProjection);
             _tileGenerateShader.SetMatrix("_CameraProjectionInverse", _cameraProjectionInverse);
-            _tileGenerateShader.SetTexture(tilegenerate, "_DepthTexture",data.DepthTextureHandle, 4);
-           _tileGenerateShader.SetTexture(tilegenerate, "_DebugTexture", data.DebugTexture);
+            _tileGenerateShader.SetTexture(tilegenerate, "_DepthTexture", data.DepthTextureHandle, 4);
+            _tileGenerateShader.SetTexture(tilegenerate, "_DebugTexture", data.DebugTexture);
+            cmd.SetRandomWriteTarget(0, data.TileBuffer);
             cmd.DispatchCompute(_tileGenerateShader, tilegenerate, _threadGroups.x, _threadGroups.y, 1);
-            
+            cmd.ClearRandomWriteTargets();
+            context.renderContext.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
         }
     }
 }

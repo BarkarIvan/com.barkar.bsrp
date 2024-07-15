@@ -4,17 +4,17 @@ struct TileBox
 {
     float4 frustumPlanes[6];
 };
-RWStructuredBuffer<TileBox> _tileBox;
+RWStructuredBuffer<TileBox> _tileBox :register (u1);
 
-Texture2D<float> _DepthTexture;
-RWTexture2D<float> _DebugTexture;
-SamplerState sampler_DepthTexture;
+Texture2D<float> _DepthTexture : register (t1);
+RWTexture2D<float> _DebugTexture : register(u2);
+SamplerState sampler_DepthTexture: register(s3);
 
-
+cbuffer CameraProperties
+{
     float4x4 _CameraProjection;
     float4x4 _CameraProjectionInverse;
-  //  float4 _CameraParams; // (near, far, aspect, fov)
-
+}
 
 #define TILESIZE 16
 
@@ -34,11 +34,10 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
     uint2 textureSize;
     _DepthTexture.GetDimensions(textureSize.x, textureSize.y);
 
-    int mipLevel = 4; // mip-уровень 4 для 16x16 тайлов (log2(16) = 4)
-    float2 uv = (float2(gid.xy * TILESIZE + gtid.xy) + 0.5f) / (textureSize >> mipLevel);
-    float depth = _DepthTexture.SampleLevel(sampler_DepthTexture, uv, 0).r;
-    _DebugTexture[uv] = minDepthShared;
-    
+    int mipLevel = 0; 
+    float2 uv = (float2(gid.xy * TILESIZE + gtid.xy) + 0.5f) / textureSize;
+    float depth = _DepthTexture.SampleLevel(sampler_DepthTexture, uv, mipLevel).r;
+
     InterlockedMin(minDepthShared, asuint(depth));
     InterlockedMax(maxDepthShared, asuint(depth));
 
@@ -67,5 +66,16 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
         currentTile.frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // near
 
         _tileBox[index] = currentTile;
+
+        //debug
+        for (uint y = 0; y < TILESIZE; y++)
+        {
+            for (uint x = 0; x < TILESIZE; x++)
+            {
+                uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
+                _DebugTexture[pixelCoord].r = maxDepth;
+              //  _DebugTexture[pixelCoord].g = minDepth;
+            }
+        }
     }
 }

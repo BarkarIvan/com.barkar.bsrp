@@ -137,7 +137,7 @@ public class BSRP : RenderPipeline
             
         //    _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
             
-          //  _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader);
+            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader);
             
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             
