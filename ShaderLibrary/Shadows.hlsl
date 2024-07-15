@@ -38,7 +38,7 @@ float4 TransformWorldToShadowCoord(float3 positionWS)
    // half cascadeIndex = half(0.0);
    // #endif
 
-    float4 shadowCoord = mul(_MainLightMatrix, float4(positionWS, 1.0));
+    float4 shadowCoord = mul(_MainLightMatrix, float4(positionWS.xyz , 1.0));
 
     return float4(shadowCoord.xyz, 1.0);
 }

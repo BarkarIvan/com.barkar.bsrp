@@ -9,11 +9,11 @@ namespace Barkar.BSRP
     
     public class ScreenSpaceShadowPassData
     {
-        public TextureHandle ShadowMap;
+       // public TextureHandle ShadowMap;
         public TextureHandle TargetGBuffer;
         public TextureHandle DepthAttachment;
         public Material ScreenSpaceShadowPassMaterial;
-        public BufferHandle DirectionalLightDataBuffer;
+      //  public BufferHandle DirectionalLightDataBuffer;
 
     }
 
@@ -57,11 +57,11 @@ namespace Barkar.BSRP
                     _profilingSampler);
 
             passData.ScreenSpaceShadowPassMaterial = screenSpaceShadowMapMaterial;
-            passData.ShadowMap = builder.ReadTexture(lightingResources.DirectionalShadowMap);
+                //passData.ShadowMap = builder.ReadTexture(lightingResources.DirectionalShadowMap);
             passData.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
-            passData.DirectionalLightDataBuffer = builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
+           // passData.DirectionalLightDataBuffer = builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
             passData.DepthAttachment = builder.ReadTexture(input.DepthAttachment);
-            builder.UseColorBuffer(input.ColorAttachment3, 0);
+            passData.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
             builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
             builder.ReadTexture(lightingResources.DirectionalShadowMap);
             _camera = camera;
