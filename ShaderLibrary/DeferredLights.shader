@@ -43,7 +43,7 @@ Shader "Hidden/DeferredLights"
         surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - positionWS.xyz);
 
         Light light = GetMainLight(positionWS);
-        BRDF brdf = GetBRDF(surface);
+        BRDF brdf = GetBRDFGBuffer(surface);
         lightColor *= DirectBRDF(surface, brdf, light) * radiance;
 
         half3 environmentBRDF = EnvironmentBRDF(surface, brdf, lightColor, radiance);

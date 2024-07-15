@@ -34,50 +34,35 @@ struct BRDFData
 
 half OneMinusReflectivity(half metallic)
 {
-    half range = 1.0 - kDielectricSpec.a;
+    half range = kDielectricSpec.a;
     return range - metallic * range;
 }
 
-inline void InitializeBRDFDataDirect(half3 albedo, half metallic, half smoothness, out BRDFData outBRDFData)
+
+half MetallicFromReflectivity(half reflectivity)
 {
-    outBRDFData = (BRDFData)0;
-
-    half oneMinusReflectivity = OneMinusReflectivity(metallic);
-    half reflectivity = half(1.0) - oneMinusReflectivity;
-    half3 brdfDiffuse = albedo * oneMinusReflectivity;
-    half3 brdfSpecular = lerp(kDielectricSpec.rgb, albedo, metallic);
-    
-    outBRDFData.albedo = albedo;
-    outBRDFData.diffuse = brdfDiffuse;
-    outBRDFData.specular = brdfSpecular;
-    outBRDFData.reflectivity = reflectivity;
-    
-
-    outBRDFData.perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(smoothness);
-    outBRDFData.roughness           = max(PerceptualRoughnessToRoughness(outBRDFData.perceptualRoughness), HALF_MIN_SQRT);
-    outBRDFData.roughness2          = max(outBRDFData.roughness * outBRDFData.roughness, HALF_MIN);
-    outBRDFData.grazingTerm         = saturate(smoothness + metallic);
-  //  outBRDFData.normalizationTerm   = outBRDFData.roughness * half(4.0) + half(2.0);
-   // outBRDFData.roughness2MinusOne  = outBRDFData.roughness2 - half(1.0);
-
-    // Input is expected to be non-alpha-premultiplied while ROP is set to pre-multiplied blend.
-    // We use input color for specular, but (pre-)multiply the diffuse with alpha to complete the standard alpha blend equation.
-    // In shader: Cs' = Cs * As, in ROP: Cs' + Cd(1-As);
-    // i.e. we only alpha blend the diffuse part to background (transmittance).
-    #if defined(_ALPHAPREMULTIPLY_ON)
-    // TODO: would be clearer to multiply this once to accumulated diffuse lighting at end instead of the surface property.
-    outBRDFData.diffuse *= alpha;
-    #endif
+    half oneMinusDielectricSpec = kDielectricSpec.a;
+    return (reflectivity - kDielectricSpec.r) / oneMinusDielectricSpec;
 }
 
-
-
-
 BRDF GetBRDF(Surface surface)
+ {
+     BRDF brdf;
+ 
+     half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
+ 
+     brdf.diffuse = surface.albedo * oneMinusReflectivity;
+     brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, MetallicFromReflectivity(surface.metallic));
+     half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
+     brdf.roughness = max(PerceptualRoughnessToRoughness(perceptualRoughness), HALF_MIN_SQRT);
+     return brdf;
+ }
+
+BRDF GetBRDFGBuffer(Surface surface)
 {
     BRDF brdf;
 
-    half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
+    half oneMinusReflectivity =1.0 - surface.metallic;// OneMinusReflectivity(surface.metallic);
 
     brdf.diffuse = surface.albedo * oneMinusReflectivity;
     brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, surface.metallic);
