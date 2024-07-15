@@ -41,9 +41,9 @@ Shader "Hidden/DeferredFinalPass"
                 half3 g3 = SAMPLE_TEXTURE2D(_GBuffer3, sampler_linear_clamp, IN.uv);
                 half4 result = half4(g3, 1.0);
                 
-             
+             // result = pow(result,1.0/2.2);
                  result.rgb = ACESFilmTonemapping(result.rgb);
-                 // result = pow(result,2.2);//
+                 //
                 return half4(result.rgb, 1);
             }
             ENDHLSL
