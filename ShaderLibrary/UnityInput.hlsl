@@ -9,6 +9,14 @@ SAMPLER(samplerunity_SpecCube0);
 TEXTURECUBE(unity_SpecCube1);
 SAMPLER(samplerunity_SpecCube1);
 
+//Lighhting?
+#define MAX_POINT_LIGHT_COUNT 1023
+
+CBUFFER_START(CustomPointLight)
+	int PointLightCount;
+float4 PointLightColors[MAX_POINT_LIGHT_COUNT];
+float4 PointLightPositionsAndRadius[MAX_POINT_LIGHT_COUNT];
+CBUFFER_END
 
 CBUFFER_START(UnityPerDraw)
 	float4x4 unity_ObjectToWorld;

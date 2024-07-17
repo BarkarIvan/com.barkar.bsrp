@@ -1,81 +1,115 @@
 #pragma kernel TilesGenerate
 
-struct TileBox
-{
-    float4 frustumPlanes[6];
-};
-RWStructuredBuffer<TileBox> _tileBox :register (u1);
+#define MAX_LIGHTS_PER_TILE 32
+#define MAX_LIGHTS_COUNT 1024
 
-Texture2D<float> _DepthTexture : register (t1);
-RWTexture2D<float> _DebugTexture : register(u2);
-SamplerState sampler_DepthTexture: register(s3);
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 
-cbuffer CameraProperties
-{
-    float4x4 _CameraProjection;
-    float4x4 _CameraProjectionInverse;
+
+#define TILE_SIZE 16
+#define THREADS_COUNT 256
+
+Texture2D<float> _DepthTexture : register(t1);
+RWStructuredBuffer<uint> _RWTileLightsIndicesBuffer : register(u1);
+RWStructuredBuffer<uint> _RWTileLightsArgsBuffer : register(u2);
+
+float4 _DeferredTileParams;
+//float4x4 _viewMatrix;
+
+uniform float3 _CameraNearPlaneLB; //left bottom pos
+uniform float3 _CameraNearBasisH; //x
+uniform float3 _CameraNearBasisV; //y
+
+
+groupshared uint tileVisibleLightsIndices[MAX_LIGHTS_COUNT];
+groupshared uint tileVisibleLightCount = 0;
+groupshared uint tileMinDepthInt = 0xFFFFFFFF;
+groupshared uint tileMaxDepthInt = 0;
+
+bool IntersectAABB(float4 aabb, float4 lightSphere) {
+    float2 p = aabb.xy + aabb.zw * sign(lightSphere.xy - aabb.xy);
+    float2 d = p - lightSphere.xy;
+    return dot(d, d) < lightSphere.w * lightSphere.w;
 }
 
-#define TILESIZE 16
+bool Intersect(float3 tileFrustumCorners[4], float4 lightSphere) {
+    float tileDepthMin = asfloat(tileMinDepthInt);
+    float tileDepthMax = asfloat(tileMaxDepthInt);
+    float lightRadius = lightSphere.w;
+    float lightDepthMin = lightSphere.z - lightRadius;
+    float lightDepthMax = lightSphere.z + lightRadius;
+    if (lightDepthMin > tileDepthMax || lightDepthMax < tileDepthMin) {
+        return false;
+    }
 
-groupshared uint minDepthShared;
-groupshared uint maxDepthShared;
+    float minZ = max(tileDepthMin, lightDepthMin);
+    float maxZ = min(tileDepthMax, lightDepthMax);
+    float farPlaneScale = maxZ / tileDepthMin;
+    float nearPlaneScale = minZ / tileDepthMin;
+    float2 minXY = tileFrustumCorners[0].xy;
+    float2 maxXY = tileFrustumCorners[2].xy;
+    minXY = min(minXY * nearPlaneScale, minXY * farPlaneScale);
+    maxXY = max(maxXY * nearPlaneScale, maxXY * farPlaneScale);
+    float4 aabb = float4((minXY + maxXY) * 0.5, (maxXY - minXY) * 0.5);
+    return IntersectAABB(aabb, lightSphere);
+}
 
-[numthreads(TILESIZE, TILESIZE, 1)]
-void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
+[numthreads(TILE_SIZE, TILE_SIZE, 1)]
+void TilesGenerate(uint3 id: SV_DispatchThreadID, uint3 groupId : SV_GROUPID, uint groupIndex: SV_GROUPINDEX)
 {
-    if (gtid.x == 0 && gtid.y == 0)
+    bool onScreen = (float)id.x < _ScreenParams.x && float(id.y) < _ScreenParams.y;
+    float depth = 0;
+    float linearDepth = 0;
+    if(onScreen)
     {
-        minDepthShared = asuint(1.0f); // max float
-        maxDepthShared = asuint(0.0f); // min float
+        depth = _DepthTexture[id.xy].r;
+        linearDepth = LinearEyeDepth(depth, _ZBufferParams);
+        InterlockedMin(tileMinDepthInt, asuint(linearDepth));
+        InterlockedMax(tileMaxDepthInt, asuint(linearDepth));
     }
     GroupMemoryBarrierWithGroupSync();
 
-    uint2 textureSize;
-    _DepthTexture.GetDimensions(textureSize.x, textureSize.y);
+    float tileDepthMin = asfloat(tileMinDepthInt);
+    float tileDepthMax = asfloat(tileMaxDepthInt);
 
-    int mipLevel = 0; 
-    float2 uv = (float2(gid.xy * TILESIZE + gtid.xy) + 0.5f) / textureSize;
-    float depth = _DepthTexture.SampleLevel(sampler_DepthTexture, uv, mipLevel).r;
+    uint passCount = ceil((float)PointLightCount / THREADS_COUNT);
+    uint2 tileId = groupId.xy;
+    float tileDepthMinScale = tileDepthMin / _ProjectionParams.y;
 
-    InterlockedMin(minDepthShared, asuint(depth));
-    InterlockedMax(maxDepthShared, asuint(depth));
+    float3 tileFrustumCorners[4];
+    tileFrustumCorners[0] = tileDepthMinScale * (_CameraNearPlaneLB + tileId.x * _CameraNearBasisH + tileId.y * _CameraNearBasisV);
+    tileFrustumCorners[1] = tileFrustumCorners[0] + _CameraNearBasisH * tileDepthMinScale;
+    tileFrustumCorners[2] = tileFrustumCorners[0] + (_CameraNearBasisH + _CameraNearBasisV) * tileDepthMinScale;
+    tileFrustumCorners[3] = tileFrustumCorners[0] + _CameraNearBasisV * tileDepthMinScale;
+
+    for (uint passIdx = 0; passIdx < passCount; passIdx++)
+    {
+        uint lightIndex = passIdx * THREADS_COUNT + groupIndex;
+        if(lightIndex < PointLightCount)
+        {
+            float4 lightSphere = PointLightPositionsAndRadius[lightIndex];
+            lightSphere.xyz = mul(unity_MatrixV, float4(lightSphere.xyz, 1.0));
+            if(Intersect(tileFrustumCorners, lightIndex))
+            {
+                uint offset;
+                InterlockedAdd(tileVisibleLightCount, 1, offset);
+                tileVisibleLightsIndices[offset] = lightIndex;
+            }
+            
+        }
+    }
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (gtid.x == 0 && gtid.y == 0)
+    uint tileIndex = tileId.y * _DeferredTileParams.z + tileId.x;
+    if(groupIndex == 0)
     {
-        float minDepth = asfloat(minDepthShared);
-        float maxDepth = asfloat(maxDepthShared);
-
-        float2 tileScale = textureSize * (1.0 / (2 * TILESIZE));
-        float2 tileBias = tileScale - float2(gid.xy);
-
-        float4 c1 = float4(_CameraProjection._11 * tileScale.x, 0.0f, -tileBias.x, 0.0f);
-        float4 c2 = float4(0.0f, -_CameraProjection._22 * tileScale.y, -tileBias.y, 0.0f);
-        float4 c4 = float4(0.0f, 0.0f, -1.0f, 0.0f);
-
-        uint index = gid.y * (textureSize.x / TILESIZE) + gid.x;
-
-        TileBox currentTile;
-        currentTile.frustumPlanes[0] = c4 - c1; // right
-        currentTile.frustumPlanes[1] = c4 + c1; // left
-        currentTile.frustumPlanes[2] = c4 - c2; // top
-        currentTile.frustumPlanes[3] = c4 + c2; // bottom
-        currentTile.frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth); // far
-        currentTile.frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // near
-
-        _tileBox[index] = currentTile;
-
-        //debug
-        for (uint y = 0; y < TILESIZE; y++)
-        {
-            for (uint x = 0; x < TILESIZE; x++)
-            {
-                uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
-                _DebugTexture[pixelCoord].r = maxDepth;
-              //  _DebugTexture[pixelCoord].g = minDepth;
-            }
-        }
+        _RWTileLightsArgsBuffer[tileIndex] = tileVisibleLightCount;
+    }
+    if(groupIndex < tileVisibleLightCount && groupIndex < MAX_LIGHTS_PER_TILE)
+    {
+        uint visibleLightIndex = tileVisibleLightsIndices[groupIndex];
+        _RWTileLightsIndicesBuffer[tileIndex * MAX_LIGHTS_PER_TILE + groupIndex] = visibleLightIndex;
     }
 }
