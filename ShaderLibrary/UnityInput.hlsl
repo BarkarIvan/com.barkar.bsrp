@@ -12,7 +12,7 @@ SAMPLER(samplerunity_SpecCube1);
 //Lighhting?
 #define MAX_POINT_LIGHT_COUNT 1023
 
-CBUFFER_START(CustomPointLight)
+CBUFFER_START(PointLightDataBuffer)
 	int PointLightCount;
 float4 PointLightColors[MAX_POINT_LIGHT_COUNT];
 float4 PointLightPositionsAndRadius[MAX_POINT_LIGHT_COUNT];
@@ -56,6 +56,7 @@ float4x4 unity_MatrixInvV;
 float4x4 unity_prev_MatrixM;
 float4x4 unity_prev_MatrixIM;
 float4x4 unity_MatrixIVP;
+//float4x4 _testViewMatrix;
 float4x4 glstate_matrix_projection;
 
 float3 _WorldSpaceCameraPos;

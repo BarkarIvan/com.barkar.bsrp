@@ -81,7 +81,7 @@ namespace Barkar.BSRP
             // mpb.SetTexture(_GBuffer3ID, data.Gbuffer3 );
             mpb.SetTexture("_CameraDepth", data.DepthAttachment);
             
-            cmd.SetViewport(_camera.pixelRect);
+           // cmd.SetViewport(_camera.pixelRect);
             cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3, 1, mpb);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

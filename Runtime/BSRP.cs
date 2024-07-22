@@ -119,6 +119,8 @@ public class BSRP : RenderPipeline
             
 
             Shader.SetGlobalMatrix("unity_MatrixIVP", _matrixVPI);
+            //
+           // Shader.SetGlobalMatrix("_testViewMatrix", viewMatrix);
 
             LightingResources lightingResources =
                 _lightingPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
@@ -137,7 +139,7 @@ public class BSRP : RenderPipeline
             
         //    _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
             
-            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader);
+            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, lightingResources, cullingResults, camera, _tiledDeferredShadingComputeShader);
             
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             
