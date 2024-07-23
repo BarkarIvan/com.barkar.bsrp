@@ -12,7 +12,6 @@ namespace Barkar.BSRP.Passes
     {
         public TextureHandle ShadowMap;
         public BufferHandle DirectionalLightDataBuffer;
-        public BufferHandle PointLightsDataBuffer;
     }
 
     struct DirectionalLightShadowData
@@ -39,39 +38,15 @@ namespace Barkar.BSRP.Passes
         }
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-       struct PointLightDataBuffer
-       {
-           public const  int Stride = 32740;
-           private const int maxPointLightCount = 1023;
-          public int PointLightCount;
-          public Vector4[] PointLightsColor;
-          public Vector4[] PointLightPositionAndRadius ;
 
-          public PointLightDataBuffer(int count, Vector4[] colors, Vector4[] pos)
-          {
-              PointLightsColor = colors;
-              PointLightCount = count;
-              PointLightPositionAndRadius = pos;
-          }
-      }
-    
-   
     public class LightingPass
     {
         private const int maxDirectionalLightsCount = 1;
-        private const int maxPointLightCount = 1023;
+        private const int maxPointLightCount = 1024;
         private  readonly ProfilingSampler _profilingSampler = new ProfilingSampler("LightingPass");
 
         private  int _directionalLightsCount;
-        private int _pointLightsCount;
         private  DirectionalLightShadowData _directionalLightShadowData;
-        
-        private Vector4[] _pointLightColors = new Vector4[1023];
-        private Vector4[] _pointLightsPositionAndRadius = new Vector4[1023];
-      //  private PointLightDataBuffer[] _pointLightsDataBuffer = new PointLightDataBuffer[1];
-
-
 
         private  DirectionalLightData[] _directionalLightData =
             new DirectionalLightData[maxDirectionalLightsCount];
@@ -80,10 +55,14 @@ namespace Barkar.BSRP.Passes
         private  ShadowSettings _shadowSettings;
         private  Vector4 _mainLightShadowMapSize = Vector4.zero;
 
+        private int _PointLightCount;
+        private Vector4[] _PointLightColor = new Vector4[1023];
+        private Vector4[] _PointLightPositionAndRadius = new Vector4[1023];
+
         private  BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
 
-
-        public LightingPass()
+       
+         public LightingPass()
         {
             _renderFunc = RenderFunction;
         }
@@ -100,13 +79,20 @@ namespace Barkar.BSRP.Passes
                        out var lightingPassData, _profilingSampler))
             {
 
-                
+                var directionalLightDataBufferDescriptor = new BufferDesc();
+                directionalLightDataBufferDescriptor.name = "Main Light Data Buffer";
+                directionalLightDataBufferDescriptor.count = maxDirectionalLightsCount;
+                directionalLightDataBufferDescriptor.stride = DirectionalLightData.stride;
+                directionalLightDataBufferDescriptor.target = GraphicsBuffer.Target.Constant;
+
+                lightingPassData.DirectionalLightDataBuffer =
+                    builder.WriteBuffer(renderGraph.CreateBuffer(directionalLightDataBufferDescriptor));
+
 
                 NativeArray<VisibleLight> visibleLights = _cullingResults.visibleLights;
                 int i;
                 _directionalLightsCount = 0;
-                _pointLightsCount = 0;
-                
+                _PointLightCount = 0;
                 for (i = 0; i < visibleLights.Length; i++)
                 {
                     VisibleLight visibleLight = visibleLights[i];
@@ -133,42 +119,16 @@ namespace Barkar.BSRP.Passes
 
                                 _directionalLightsCount++;
                             }
-
                             break;
 
                         case LightType.Point:
-
-                            _pointLightColors[_pointLightsCount] = visibleLight.finalColor;
-                            _pointLightsPositionAndRadius[_pointLightsCount] = visibleLight.localToWorldMatrix.GetColumn(3); //4 - pos
-                            _pointLightsPositionAndRadius[_pointLightsCount].w = visibleLight.range;//1f/Mathf.Max(visibleLight.range * visibleLight.range,0.00001f);
-                            _pointLightsCount++;
-
+                            _PointLightColor[_PointLightCount] = visibleLight.finalColor;
+                            _PointLightPositionAndRadius[_PointLightCount] = visibleLight.localToWorldMatrix.GetColumn(3);
+                            _PointLightPositionAndRadius[_PointLightCount].w = visibleLight.range;
+                            _PointLightCount++; 
                             break;
                     }
                 }
-
-                
-                ///DIRECTIONAL
-                var directionalLightDataBufferDescriptor = new BufferDesc();
-                directionalLightDataBufferDescriptor.name = "Main Light Data Buffer";
-                directionalLightDataBufferDescriptor.count = maxDirectionalLightsCount;
-                directionalLightDataBufferDescriptor.stride = DirectionalLightData.stride;
-                directionalLightDataBufferDescriptor.target = GraphicsBuffer.Target.Constant;
-
-                lightingPassData.DirectionalLightDataBuffer =
-                    builder.WriteBuffer(renderGraph.CreateBuffer(directionalLightDataBufferDescriptor));
-
-                
-                //POINT
-                var pointLightDataBufferDescriptor = new BufferDesc();
-                pointLightDataBufferDescriptor.name = "Point Lights Data Buffer";
-                pointLightDataBufferDescriptor.count = maxPointLightCount;
-                pointLightDataBufferDescriptor.target = GraphicsBuffer.Target.Constant;
-                pointLightDataBufferDescriptor.stride = PointLightDataBuffer.Stride;
-
-                lightingPassData.PointLightsDataBuffer =
-                    builder.WriteBuffer(renderGraph.CreateBuffer(pointLightDataBufferDescriptor));
-                
 
                 var textureDescriptor = new TextureDesc((int)_shadowSettings.Direcrional.MapSize,
                     (int)_shadowSettings.Direcrional.MapSize);
@@ -183,7 +143,7 @@ namespace Barkar.BSRP.Passes
                 builder.SetRenderFunc(_renderFunc);
 
 
-                return new LightingResources(lightingPassData.DirectionalLightDataBuffer,lightingPassData.PointLightsDataBuffer, lightingPassData.ShadowMap);
+                return new LightingResources(lightingPassData.DirectionalLightDataBuffer, lightingPassData.ShadowMap);
             }
         }
 
@@ -229,15 +189,13 @@ namespace Barkar.BSRP.Passes
                 cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData);
                 cmd.SetGlobalConstantBuffer(lightingPassData.DirectionalLightDataBuffer, "MainLightDataBuffer",
                     0, DirectionalLightData.stride);
-               
-cmd.SetGlobalVectorArray("PointLightColors", _pointLightColors);
-cmd.SetGlobalVectorArray("PointLightPositionsAndRadius", _pointLightsPositionAndRadius);
-cmd.SetGlobalInt("PointLightCount", _pointLightsCount);
-                //cmd.SetBufferData(lightingPassData.PointLightsDataBuffer, _pointLightsDataBuffer);
-                //cmd.SetGlobalConstantBuffer(lightingPassData.PointLightsDataBuffer,"PointLightDataBuffer",0, PointLightDataBuffer.Stride );
-                
                 cmd.SetGlobalTexture("_MainLightShadowMap", lightingPassData.ShadowMap);
-
+                
+                //globalPointData
+cmd.SetGlobalVectorArray("PointLightColors", _PointLightColor);
+cmd.SetGlobalVectorArray("PointLightPositionsAndRadius", _PointLightPositionAndRadius);
+cmd.SetGlobalInt("PointLightCount", _PointLightCount);
+                
                 //map size
                 _mainLightShadowMapSize.x = (float)_shadowSettings.Direcrional.MapSize;
                 _mainLightShadowMapSize.y = 1f / _mainLightShadowMapSize.x;
