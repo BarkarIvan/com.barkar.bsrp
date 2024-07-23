@@ -94,10 +94,11 @@ namespace Barkar.BSRP
             _tileGenerateShader = tileShadingShader;
 
             TextureDesc desc = new TextureDesc(info.width, info.height);
-            desc.enableRandomWrite = true;
-            desc.useMipMap = true;
+            //desc.enableRandomWrite = true;
+            // desc.useMipMap = true;
             desc.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             desc.name = "Debug texture";
+            desc.enableRandomWrite = true;
             //desc.depthBufferBits = DepthBits.Depth32;
 
             data.DepthTextureHandle = builder.CreateTransientTexture(input.DepthAttachment);
@@ -120,12 +121,11 @@ namespace Barkar.BSRP
             var cmd = context.cmd;
 
             var tilegenerate = _tileGenerateShader.FindKernel("TilesGenerate");
-            _tileGenerateShader.SetBuffer(tilegenerate, "_tileBox", data.TileBuffer);
-          //  _tileGenerateShader.SetMatrix("_CameraProjection", _cameraProjection);
-            cmd.SetComputeMatrixParam(_tileGenerateShader,"_CameraProjection", _cameraProjection );
-            _tileGenerateShader.SetMatrix("_CameraProjectionInverse", _cameraProjectionInverse);
-            _tileGenerateShader.SetTexture(tilegenerate, "_DepthTexture", data.DepthTextureHandle, 4);
-            _tileGenerateShader.SetTexture(tilegenerate, "_DebugTexture", data.DebugTexture);
+            cmd.SetComputeBufferParam(_tileGenerateShader, tilegenerate, "_tileBox", data.TileBuffer);
+            cmd.SetComputeMatrixParam(_tileGenerateShader, "_CameraProjection", _cameraProjection);
+            cmd.SetComputeMatrixParam(_tileGenerateShader, "_CameraProjectionInverse", _cameraProjectionInverse);
+            cmd.SetComputeTextureParam(_tileGenerateShader, tilegenerate, "_DepthTexture", data.DepthTextureHandle);
+            cmd.SetComputeTextureParam(_tileGenerateShader, tilegenerate, "_DebugTexture", data.DebugTexture);
             cmd.SetRandomWriteTarget(1, data.TileBuffer);
             cmd.SetRandomWriteTarget(2, data.DebugTexture);
             cmd.DispatchCompute(_tileGenerateShader, tilegenerate, _tileCount.x, _tileCount.y, 1);

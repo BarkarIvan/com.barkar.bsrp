@@ -7,15 +7,13 @@ namespace Barkar.BSRP.CameraRenderer
     public readonly ref struct LightingResources
     {
         public readonly BufferHandle DirectionalLightBuffer;
-        public readonly BufferHandle PointLightBuffer;
         public readonly TextureHandle DirectionalShadowMap;
 
 
-        public LightingResources(BufferHandle directionalLightBuffer, BufferHandle pointLightBuffer,
+        public LightingResources(BufferHandle directionalLightBuffer,
             TextureHandle directionalShadowMap)
         {
             DirectionalLightBuffer = directionalLightBuffer;
-            PointLightBuffer = pointLightBuffer;
             DirectionalShadowMap = directionalShadowMap;
         }
     }
