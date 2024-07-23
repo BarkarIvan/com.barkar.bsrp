@@ -124,7 +124,7 @@ namespace Barkar.BSRP.Passes
                         case LightType.Point:
                             _PointLightColor[_PointLightCount] = visibleLight.finalColor;
                             _PointLightPositionAndRadius[_PointLightCount] = visibleLight.localToWorldMatrix.GetColumn(3);
-                            _PointLightPositionAndRadius[_PointLightCount].w = visibleLight.range;
+                            _PointLightPositionAndRadius[_PointLightCount].w = 1f/Mathf.Max(visibleLight.range * visibleLight.range,0.00001f);;
                             _PointLightCount++; 
                             break;
                     }
