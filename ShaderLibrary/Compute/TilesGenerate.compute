@@ -22,13 +22,13 @@ float4x4 _CameraProjectionInverse;
 groupshared uint minDepthShared = 0xFFFFFFFF;;
 groupshared uint maxDepthShared = 0;
 
-bool Intersects(float4 positionView, TileBox tile)
+bool Intersects(float4 positionView, float radius, TileBox tile)
 {
     bool inFrustum = true;
     [unroll] for (uint i = 0; i < 6; ++i)
     {
         float d = dot(tile.frustumPlanes[i], float4(positionView.xyz, 1.0f));
-        inFrustum = inFrustum && (d >= -positionView.w);
+        inFrustum = inFrustum && (d >= -radius);
     }
     return inFrustum;
 }
@@ -52,12 +52,12 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
         float minDepth = asfloat(minDepthShared);
         float maxDepth = asfloat(maxDepthShared);
 
-        float2 tileScale = textureSize * (1.0 / (2 * TILESIZE));
+        float2 tileScale = textureSize * rcp(float(2 * TILESIZE));
         float2 tileBias = tileScale - float2(gid.xy);
 
-        float4 c1 = float4(_CameraProjection[0][0] * tileScale.x, 0.0f, _CameraProjection[2][0] * tileScale.x - tileBias.x, 0.0f);
-        float4 c2 = float4(0.0f, _CameraProjection[1][1] * tileScale.y, _CameraProjection[2][1] * tileScale.y - tileBias.y, 0.0f);
-        float4 c4 = float4(0.0f, 0.0f, -1.0f, 0.0f);
+        float4 c1 = float4(UNITY_MATRIX_P._m00 * tileScale.x, 0.0f, -tileBias.x, 0.0f);
+        float4 c2 = float4(0.0f, UNITY_MATRIX_P._m11 * tileScale.y, -tileBias.y, 0.0f);
+        float4 c4 = float4(0.0f, 0.0f, 1.0f, 0.0f);
 
         uint index = gid.y * (textureSize.x / TILESIZE) + gid.x;
 
@@ -66,8 +66,13 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
         currentTile.frustumPlanes[1] = c4 + c1; // left
         currentTile.frustumPlanes[2] = c4 - c2; // top
         currentTile.frustumPlanes[3] = c4 + c2; // bottom
-        currentTile.frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth); // far
-        currentTile.frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // near
+        currentTile.frustumPlanes[5] = float4(0.0f, 0.0f, 1.0f, maxDepth);//near
+        currentTile.frustumPlanes[4] =  float4(0.0f, 0.0f, -1.0f, -minDepth); // far
+
+        [unroll] for (uint p = 0; p < 4; ++p)
+        {
+            currentTile.frustumPlanes[p] *= rcp(length(currentTile.frustumPlanes[p].xyz));
+        }
 
         _tileBox[index] = currentTile;
 
@@ -76,30 +81,31 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
             for (uint x = 0; x < TILESIZE; x++)
             {
                 uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
-                _DebugTexture[pixelCoord] =  LinearEyeDepth(maxDepth, _ZBufferParams);
+                _DebugTexture[pixelCoord] = float4(LinearEyeDepth(minDepth, _ZBufferParams),0,0,0);//LinearEyeDepth(maxDepth, _ZBufferParams),0,0) ;
             }
         }
 
         for (int i = 0; i < PointLightCount; ++i)
         {
             float4 positionView;
-            positionView = mul(unity_MatrixV, float4(PointLightPositionsAndRadius[i].xyz, 1.0));
-            positionView.w = PointLightPositionsAndRadius[i].w ;
+            positionView = mul(UNITY_MATRIX_V,float4(PointLightPositionsAndRadius[i].xyz, 1.0));
+           // positionView.xyz/=positionView.w;
+            float r  = PointLightColors[i].w;// * tileScale.x;
 
-            bool intersects = Intersects(positionView, currentTile);
+            bool intersects = Intersects(positionView, r, currentTile);
 
-            if (intersects)
-            {
+            
                 for (uint y = 0; y < TILESIZE; y++)
                 {
                     for (uint x = 0; x < TILESIZE; x++)
                     {
+                        if (intersects)
+                        {
                         uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
-                       _DebugTexture[pixelCoord] = PointLightColors[i];
+                        _DebugTexture[pixelCoord] += float4(PointLightColors[i].rgb,1);
                     }
                 }
             }
-            
         }
     }
 }

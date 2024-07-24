@@ -103,7 +103,7 @@ namespace Barkar.BSRP
 
             data.DepthTextureHandle = builder.CreateTransientTexture(input.DepthAttachment);
             Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
-            _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);// * viewMatrix;
+            _cameraProjection = camera.projectionMatrix;//GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);// * viewMatrix;
             _cameraProjectionInverse = _cameraProjection.inverse;
 
             data.TileBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(tileBufferDescriptor));
@@ -130,6 +130,9 @@ namespace Barkar.BSRP
             cmd.SetRandomWriteTarget(2, data.DebugTexture);
             cmd.DispatchCompute(_tileGenerateShader, tilegenerate, _tileCount.x, _tileCount.y, 1);
             cmd.ClearRandomWriteTargets();
+
+           // cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
+            cmd.Blit(data.DebugTexture, BuiltinRenderTextureType.CameraTarget);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
