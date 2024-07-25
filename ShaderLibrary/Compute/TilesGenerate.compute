@@ -4,30 +4,26 @@
 #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 
 
-struct TileBox
-{
-    float4 frustumPlanes[6];
-};
-
 Texture2D<float> _DepthTexture : register(t1);
-RWStructuredBuffer<TileBox> _tileBox : register(u1);
-RWTexture2D<float4> _DebugTexture : register(u2);
+RWTexture2D<float4> _DebugTexture : register(u1);
 SamplerState sampler_DepthTexture : register(s3);
 
 float4x4 _CameraProjection;
 float4x4 _CameraProjectionInverse;
 
 #define TILESIZE 16
+#define TILE_GROUP_SIZE (TILESIZE * TILESIZE)
 
-groupshared uint minDepthShared = 0xFFFFFFFF;;
+
+groupshared uint minDepthShared = 0xFFFFFFFF;
 groupshared uint maxDepthShared = 0;
 
-bool Intersects(float4 positionView, float radius, TileBox tile)
+bool Intersects(float4 positionView, float radius, float4 frustumPlanes[6])
 {
     bool inFrustum = true;
     [unroll] for (uint i = 0; i < 6; ++i)
     {
-        float d = dot(tile.frustumPlanes[i], float4(positionView.xyz, 1.0f));
+        float d = dot(frustumPlanes[i], float4(positionView.xyz, 1.0f));
         inFrustum = inFrustum && (d >= -radius);
     }
     return inFrustum;
@@ -47,63 +43,56 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (gtid.x == 0 && gtid.y == 0)
+    float minDepth = asfloat(minDepthShared);
+    float maxDepth = asfloat(maxDepthShared);
+
+    float2 tileScale = textureSize * rcp(float(2 * TILESIZE));
+    float2 tileBias = tileScale - float2(gid.xy);
+
+    float4 c1 = float4(UNITY_MATRIX_P._m00 * tileScale.x, 0.0f, -tileBias.x, 0.0f);
+    float4 c2 = float4(0.0f, -UNITY_MATRIX_P._m11 * tileScale.y, -tileBias.y, 0.0f);
+    float4 c4 = float4(0.0f, 0.0f, 1.0f, 0.0f);
+
+
+    float4 frustumPlanes[6];
+    frustumPlanes[0] = c4 - c1; // right
+    frustumPlanes[1] = c1; // left
+    frustumPlanes[2] = c4 - c2; // top
+    frustumPlanes[3] = c2; // bottom
+    frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth);//near
+    frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // far
+
+    [unroll] for (uint p = 0; p < 4; ++p)
     {
-        float minDepth = asfloat(minDepthShared);
-        float maxDepth = asfloat(maxDepthShared);
-
-        float2 tileScale = textureSize * rcp(float(2 * TILESIZE));
-        float2 tileBias = tileScale - float2(gid.xy);
-
-        float4 c1 = float4(UNITY_MATRIX_P._m00 * tileScale.x, 0.0f, -tileBias.x, 0.0f);
-        float4 c2 = float4(0.0f, UNITY_MATRIX_P._m11 * tileScale.y, -tileBias.y, 0.0f);
-        float4 c4 = float4(0.0f, 0.0f, 1.0f, 0.0f);
-
-        uint index = gid.y * (textureSize.x / TILESIZE) + gid.x;
-
-        TileBox currentTile;
-        currentTile.frustumPlanes[0] = c4 - c1; // right
-        currentTile.frustumPlanes[1] = c4 + c1; // left
-        currentTile.frustumPlanes[2] = c4 - c2; // top
-        currentTile.frustumPlanes[3] = c4 + c2; // bottom
-        currentTile.frustumPlanes[5] = float4(0.0f, 0.0f, 1.0f, maxDepth);//near
-        currentTile.frustumPlanes[4] =  float4(0.0f, 0.0f, -1.0f, -minDepth); // far
-
-        [unroll] for (uint p = 0; p < 4; ++p)
+        frustumPlanes[p] *= rcp(length(frustumPlanes[p].xyz));
+    }
+    
+    for (uint y = 0; y < TILESIZE; y++)
+    {
+        for (uint x = 0; x < TILESIZE; x++)
         {
-            currentTile.frustumPlanes[p] *= rcp(length(currentTile.frustumPlanes[p].xyz));
+            uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
+            _DebugTexture[pixelCoord] = 0;
         }
+    }
 
-        _tileBox[index] = currentTile;
+    uint groupIndex = gtid.x + gtid.y * TILESIZE;
+    for (uint lightIndex = groupIndex; lightIndex < PointLightCount; lightIndex += TILE_GROUP_SIZE)
+    {
+        float4 positionView = mul(UNITY_MATRIX_V, float4(PointLightPositionsAndRadius[lightIndex].xyz, 1.0));
+        positionView.xyz/=positionView.w;
+        float r  = PointLightColors[lightIndex].w;
 
+        bool intersects = Intersects(positionView, r, frustumPlanes);
+            
         for (uint y = 0; y < TILESIZE; y++)
         {
             for (uint x = 0; x < TILESIZE; x++)
             {
-                uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
-                _DebugTexture[pixelCoord] = float4(LinearEyeDepth(minDepth, _ZBufferParams),0,0,0);//LinearEyeDepth(maxDepth, _ZBufferParams),0,0) ;
-            }
-        }
-
-        for (int i = 0; i < PointLightCount; ++i)
-        {
-            float4 positionView;
-            positionView = mul(UNITY_MATRIX_V,float4(PointLightPositionsAndRadius[i].xyz, 1.0));
-           // positionView.xyz/=positionView.w;
-            float r  = PointLightColors[i].w;// * tileScale.x;
-
-            bool intersects = Intersects(positionView, r, currentTile);
-
-            
-                for (uint y = 0; y < TILESIZE; y++)
+                if (intersects)
                 {
-                    for (uint x = 0; x < TILESIZE; x++)
-                    {
-                        if (intersects)
-                        {
-                        uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
-                        _DebugTexture[pixelCoord] += float4(PointLightColors[i].rgb,1);
-                    }
+                    uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
+                    _DebugTexture[pixelCoord] += float4(PointLightColors[lightIndex].rgb,1);
                 }
             }
         }

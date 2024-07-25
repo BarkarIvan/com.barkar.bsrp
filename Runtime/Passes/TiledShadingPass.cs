@@ -126,8 +126,8 @@ namespace Barkar.BSRP
             cmd.SetComputeMatrixParam(_tileGenerateShader, "_CameraProjectionInverse", _cameraProjectionInverse);
             cmd.SetComputeTextureParam(_tileGenerateShader, tilegenerate, "_DepthTexture", data.DepthTextureHandle);
             cmd.SetComputeTextureParam(_tileGenerateShader, tilegenerate, "_DebugTexture", data.DebugTexture);
-            cmd.SetRandomWriteTarget(1, data.TileBuffer);
-            cmd.SetRandomWriteTarget(2, data.DebugTexture);
+                //cmd.SetRandomWriteTarget(1, data.TileBuffer);
+            cmd.SetRandomWriteTarget(1, data.DebugTexture);
             cmd.DispatchCompute(_tileGenerateShader, tilegenerate, _tileCount.x, _tileCount.y, 1);
             cmd.ClearRandomWriteTargets();
 
