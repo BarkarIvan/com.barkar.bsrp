@@ -25,26 +25,7 @@ namespace Barkar.BSRP
         private BaseRenderFunc<TileShadigPassData, RenderGraphContext> _renderFunc;
         private Camera _camera;
         private Matrix4x4 _cameraProjection;
-        private Matrix4x4 _cameraProjectionInverse;
         private Vector2Int _tileCount = Vector2Int.one;
-        
-  
-
-        struct PointLight
-        {
-            public Vector3 Color;
-            public float Intencity;
-            public Vector3 Position;
-            public float Radius;
-        }
-
-        public static int lightIndexSizeOf = 2 * sizeof(int);
-
-        struct LightIndex
-        {
-            public int count;
-            public int start;
-        }
 
         private ComputeShader _tileGenerateShader;
 
@@ -52,6 +33,7 @@ namespace Barkar.BSRP
         private int _tilesGenerateKernelIndex;
         private uint _tileSizeX;
         private uint _tileSizeY;
+        private int _keernelIndex;
 
         public TiledShadingPass()
         {
@@ -66,37 +48,37 @@ namespace Barkar.BSRP
 
             var info = renderGraph.GetRenderTargetInfo(input.DepthAttachment);
             _tileGenerateShader = tileShadingShader;
+            _keernelIndex = _tileGenerateShader.FindKernel("TilesGenerate");
+
             _tilesGenerateKernelIndex = _tileGenerateShader.FindKernel("TilesGenerate");
             _tileGenerateShader.GetKernelThreadGroupSizes(_tilesGenerateKernelIndex, out _tileSizeX, out _tileSizeY,
                 out _);
             _tileCount.x = Mathf.CeilToInt((float)info.width / _tileSizeX);
             _tileCount.y = Mathf.CeilToInt((float)info.height / _tileSizeY);
 
-
-            var tileBufferDescriptor = new BufferDesc();
-            tileBufferDescriptor.name = "Tiles Buffer";
-            tileBufferDescriptor.count = _tileCount.x * _tileCount.y;
-            tileBufferDescriptor.stride = sizeof(float) * 4 * 6;
-            tileBufferDescriptor.target = GraphicsBuffer.Target.Structured;
-
-
             _tileGenerateShader = tileShadingShader;
 
-            TextureDesc desc = new TextureDesc(info.width, info.height);
-            desc.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
-            desc.name = "Debug texture";
-            desc.enableRandomWrite = true;
+            TextureDesc debugDesc = new TextureDesc(info.width, info.height);
+            debugDesc.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
+            debugDesc.name = "Debug texture";
+            debugDesc.enableRandomWrite = true;
 
             data.DepthTextureHandle = builder.CreateTransientTexture(input.DepthAttachment);
             Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
             _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);// * viewMatrix;
-            _cameraProjectionInverse = _cameraProjection.inverse;
 
-            data.TileBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(tileBufferDescriptor));
-
+            /*
+            var p = _cameraProjection;
+        _invProjParam= new Vector4(
+                    p.m20 / (p.m00 * p.m23),
+                    p.m21 / (p.m11 * p.m23),
+                    -1f / p.m23,
+                    (-p.m22 + p.m20 * p.m02 / p.m00 + p.m21 * p.m12 / p.m11) / p.m23
+                );
+            */
 
             builder.AllowPassCulling(false);
-            data.DebugTexture = builder.CreateTransientTexture(desc);
+            data.DebugTexture = builder.CreateTransientTexture(debugDesc);
 
             builder.SetRenderFunc(_renderFunc);
         }
@@ -106,19 +88,14 @@ namespace Barkar.BSRP
         {
             var cmd = context.cmd;
 
-            var tilegenerate = _tileGenerateShader.FindKernel("TilesGenerate");
-            cmd.SetComputeBufferParam(_tileGenerateShader, tilegenerate, "_tileBox", data.TileBuffer);
-            cmd.SetComputeMatrixParam(_tileGenerateShader, "_CameraProjection", _cameraProjection);
-            cmd.SetComputeMatrixParam(_tileGenerateShader, "_CameraProjectionInverse", _cameraProjectionInverse);
-            cmd.SetComputeTextureParam(_tileGenerateShader, tilegenerate, "_DepthTexture", data.DepthTextureHandle);
-            cmd.SetComputeTextureParam(_tileGenerateShader, tilegenerate, "_DebugTexture", data.DebugTexture);
-                //cmd.SetRandomWriteTarget(1, data.TileBuffer);
+            cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_tileBox", data.TileBuffer);
+            cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.DepthTextureHandle);
+            cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DebugTexture", data.DebugTexture);
             cmd.SetRandomWriteTarget(1, data.DebugTexture);
-            cmd.DispatchCompute(_tileGenerateShader, tilegenerate, _tileCount.x, _tileCount.y, 1);
+            cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);
+            cmd.Blit(data.DebugTexture, BuiltinRenderTextureType.CameraTarget);
             cmd.ClearRandomWriteTargets();
 
-           // cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget);
-            cmd.Blit(data.DebugTexture, BuiltinRenderTextureType.CameraTarget);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
