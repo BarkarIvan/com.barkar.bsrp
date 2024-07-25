@@ -27,18 +27,8 @@ namespace Barkar.BSRP
         private Matrix4x4 _cameraProjection;
         private Matrix4x4 _cameraProjectionInverse;
         private Vector2Int _tileCount = Vector2Int.one;
-
-
-        public static Vector2Int NumTiles = new Vector2Int(16, 16);
-        public static int MaxNumLights = 1024;
-        public static int MaxNumLightsPerTile = 64;
-
-        public static int pointLightSizeOf = (3 + 1 + 3 + 1) * sizeof(float);
-
-        struct TileBox
-        {
-            public Vector4[] frustumPlanes;
-        }
+        
+  
 
         struct PointLight
         {
@@ -59,7 +49,6 @@ namespace Barkar.BSRP
         private ComputeShader _tileGenerateShader;
 
         //DEBUG
-        private TileBox[] _tileBoxes;
         private int _tilesGenerateKernelIndex;
         private uint _tileSizeX;
         private uint _tileSizeY;
@@ -94,16 +83,13 @@ namespace Barkar.BSRP
             _tileGenerateShader = tileShadingShader;
 
             TextureDesc desc = new TextureDesc(info.width, info.height);
-            //desc.enableRandomWrite = true;
-            // desc.useMipMap = true;
             desc.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             desc.name = "Debug texture";
             desc.enableRandomWrite = true;
-            //desc.depthBufferBits = DepthBits.Depth32;
 
             data.DepthTextureHandle = builder.CreateTransientTexture(input.DepthAttachment);
             Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
-            _cameraProjection = camera.projectionMatrix;//GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);// * viewMatrix;
+            _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false);// * viewMatrix;
             _cameraProjectionInverse = _cameraProjection.inverse;
 
             data.TileBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(tileBufferDescriptor));

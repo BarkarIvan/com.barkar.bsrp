@@ -5,11 +5,10 @@
 
 
 Texture2D<float> _DepthTexture : register(t1);
+Texture2D<float3>_NormalTexture : register(t2);
 RWTexture2D<float4> _DebugTexture : register(u1);
-SamplerState sampler_DepthTexture : register(s3);
 
 float4x4 _CameraProjection;
-float4x4 _CameraProjectionInverse;
 
 #define TILESIZE 16
 #define TILE_GROUP_SIZE (TILESIZE * TILESIZE)
@@ -30,13 +29,13 @@ bool Intersects(float4 positionView, float radius, float4 frustumPlanes[6])
 }
 
 [numthreads(TILESIZE, TILESIZE, 1)]
-void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
+void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint2 textureSize;
     _DepthTexture.GetDimensions(textureSize.x, textureSize.y);
 
     float2 uv = (float2(gid.xy * TILESIZE + gtid.xy) + 0.5f) / textureSize;
-    float depth = _DepthTexture.SampleLevel(sampler_DepthTexture, uv, 0).r;
+    float depth = _DepthTexture.SampleLevel(sampler_point_clamp, uv, 0).r;
     depth = LinearEyeDepth(depth, _ZBufferParams);
     InterlockedMin(minDepthShared, asuint(depth));
     InterlockedMax(maxDepthShared, asuint(depth));
@@ -59,8 +58,8 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
     frustumPlanes[1] = c1; // left
     frustumPlanes[2] = c4 - c2; // top
     frustumPlanes[3] = c2; // bottom
-    frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth);//near
-    frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // far
+    frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth);//far
+    frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // near
 
     [unroll] for (uint p = 0; p < 4; ++p)
     {
@@ -76,11 +75,10 @@ void TilesGenerate(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID)
         }
     }
 
-    uint groupIndex = gtid.x + gtid.y * TILESIZE;
     for (uint lightIndex = groupIndex; lightIndex < PointLightCount; lightIndex += TILE_GROUP_SIZE)
     {
         float4 positionView = mul(UNITY_MATRIX_V, float4(PointLightPositionsAndRadius[lightIndex].xyz, 1.0));
-        positionView.xyz/=positionView.w;
+       // positionView.xyz/=positionView.w;
         float r  = PointLightColors[lightIndex].w;
 
         bool intersects = Intersects(positionView, r, frustumPlanes);
