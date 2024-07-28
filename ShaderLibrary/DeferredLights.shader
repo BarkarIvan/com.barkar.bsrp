@@ -7,15 +7,16 @@ Shader "Hidden/DeferredLights"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
     #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBRDF.hlsl"
     #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
-
     TEXTURE2D_HALF(_GBuffer0); //albedo, smoothness
     TEXTURE2D_HALF(_GBuffer1); //radiance, metallic
     TEXTURE2D_HALF(_GBuffer2); //normal
     TEXTURE2D_HALF(_GBuffer3); //emission
     TEXTURE2D_HALF(_CameraDepth);
 
+    StructuredBuffer<int> _TileLightCountBuffer;
+    StructuredBuffer<int> _TileLightIndicesBuffer;
 
-    half4 LightPassFragment(Varyings IN): SV_Target
+    half4 DirLightPassFragment(Varyings IN): SV_Target
     {
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
         half4 g1 = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv);
@@ -49,9 +50,19 @@ Shader "Hidden/DeferredLights"
         half3 environmentBRDF = EnvironmentBRDF(surface, brdf, lightColor, radiance);
 
         half4 result;
-        result.rgb = environmentBRDF;//* radiance;
+        result.rgb = environmentBRDF; //* radiance;
 
         return half4(result.rgb, 1);
+    }
+
+    half4 PointLightsPassFRagment(Varyings IN): SV_Target
+    {
+        float2 pixelCoord = IN.uv * float2(1280, 800);
+        int2 tileCoord = (pixelCoord / 16);
+        int tileIndex = tileCoord.y * (1280 / 16) + tileCoord.x;
+       // int lightCount = 0;
+        int lightCount = _TileLightCountBuffer[2514];
+        return half4(lightCount,0, 0, 1);
     }
     ENDHLSL
 
@@ -59,7 +70,7 @@ Shader "Hidden/DeferredLights"
     {
 
         Cull Off
-        Blend One One
+        //  Blend One One
         BlendOp Add, Add
         ZWrite On
         ZTest Always
@@ -75,13 +86,19 @@ Shader "Hidden/DeferredLights"
             Name "Directional Light Pass"
             HLSLPROGRAM
             #pragma vertex DefaultPassVertex
-            #pragma fragment LightPassFragment
+            #pragma fragment DirLightPassFragment
             ENDHLSL
         }
 
+
         Pass
         {
-            Name "Point Lights Pass"
+            Name "Point Light Pass"
+            HLSLPROGRAM
+            #pragma vertex DefaultPassVertex
+            #pragma fragment PointLightsPassFRagment
+            ENDHLSL
         }
+
     }
 }

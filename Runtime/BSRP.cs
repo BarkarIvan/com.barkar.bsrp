@@ -52,6 +52,8 @@ public class BSRP : RenderPipeline
     
     //!
     private TiledShadingPass _tileShadingPass = new TiledShadingPass();
+
+   // private Material _testPLMaterial;
     //
     
     Matrix4x4 _matrixVP;
@@ -69,6 +71,9 @@ public class BSRP : RenderPipeline
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
         _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
+
+       // _testPLMaterial = CoreUtils.CreateEngineMaterial("Hidden/TestPL");
+        
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
     }
@@ -139,7 +144,7 @@ public class BSRP : RenderPipeline
             
         //    _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
             
-            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader);
+            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader, _defferedLightingMaterial);
             
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             

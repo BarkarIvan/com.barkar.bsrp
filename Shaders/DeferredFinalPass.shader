@@ -4,7 +4,7 @@ Shader "Hidden/DeferredFinalPass"
     SubShader
     {
         ZTest Always ZWrite Off Cull Off
-        Blend SrcAlpha OneMinusSrcAlpha
+       // Blend One One
         Pass
         {
             HLSLPROGRAM
@@ -44,7 +44,7 @@ Shader "Hidden/DeferredFinalPass"
              // result = pow(result,1.0/2.2);
                  result.rgb = ACESFilmTonemapping(result.rgb);
                  //
-                return half4(result.rgb, 0.5);
+                return half4(result.rgb, 1);
             }
             ENDHLSL
         }
