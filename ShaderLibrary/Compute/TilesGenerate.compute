@@ -12,8 +12,7 @@ RWStructuredBuffer<int> _TileLightIndicesBuffer : register(u1);
 
 #define TILESIZE 16
 #define TILE_GROUP_SIZE (TILESIZE * TILESIZE)
-#define PER_TILE_LIGHT_COUNT 32
-#define MAX_LIGHT_COUNT 1024
+
 
 
 groupshared int minDepthShared = 0xFFFFFFFF;

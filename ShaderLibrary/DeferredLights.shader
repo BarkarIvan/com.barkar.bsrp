@@ -15,6 +15,7 @@ Shader "Hidden/DeferredLights"
 
     StructuredBuffer<int> _TileLightCountBuffer;
     StructuredBuffer<int> _TileLightIndicesBuffer;
+    int2 _TextureParams;
 
     half4 DirLightPassFragment(Varyings IN): SV_Target
     {
@@ -57,12 +58,35 @@ Shader "Hidden/DeferredLights"
 
     half4 PointLightsPassFRagment(Varyings IN): SV_Target
     {
-        float2 pixelCoord = IN.uv * float2(1280, 800);
+        half3 normalWS = SAMPLE_TEXTURE2D(_GBuffer2, sampler_PointClamp, IN.uv) * 2.0 - 1.0;
+
+        float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_PointClamp, IN.uv).r;
+        float4 positionNDC = float4(IN.uv * 2 - 1, depth, 1);
+        float4 positionWS = mul(unity_MatrixIVP, positionNDC);
+        positionWS *= rcp(positionWS.w);
+
+        float2 pixelCoord = IN.uv * _TextureParams;
         int2 tileCoord = (pixelCoord / 16);
-        int tileIndex = tileCoord.y * (1280 / 16) + tileCoord.x;
-       // int lightCount = 0;
-        int lightCount = _TileLightCountBuffer[2514];
-        return half4(lightCount,0, 0, 1);
+        int tileIndex = tileCoord.y * (_TextureParams.x / 16) + tileCoord.x;
+        // int lightCount = 0;
+        half3 result;
+        int lightCount = _TileLightCountBuffer[tileIndex];
+        half constantOffset = 0.1;
+        for (int l = 0; l < lightCount; l++)
+        {
+            int lightIndex = _TileLightIndicesBuffer[tileIndex * PER_TILE_LIGHT_COUNT + l];
+            float4 pos = PointLightPositionsAndRadius[lightIndex];
+            half4 color = PointLightColors[lightIndex];
+            float r = color.w;
+            half dir = normalize(pos.xyz - positionWS.xyz);
+            half dist = distance(positionWS.xyz, pos.xyz);
+            half NoL = max(0, dot(dir, normalize(normalWS)));
+            half  p = dist / r;
+            half attenuation = (1.0 / (constantOffset + dist * dist)) * (1.0 - p * p * p * p);
+            result =  NoL;//saturate(attenuation) * PointLightColors[lightIndex] ;
+            
+        }
+        return half4(result, 1);
     }
     ENDHLSL
 
@@ -70,7 +94,7 @@ Shader "Hidden/DeferredLights"
     {
 
         Cull Off
-        //  Blend One One
+         Blend One One
         BlendOp Add, Add
         ZWrite On
         ZTest Always

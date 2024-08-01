@@ -9,11 +9,12 @@ SAMPLER(samplerunity_SpecCube0);
 TEXTURECUBE(unity_SpecCube1);
 SAMPLER(samplerunity_SpecCube1);
 
-#define MAX_POINT_LIGHT_COUNT 1023
+#define PER_TILE_LIGHT_COUNT 32
+#define MAX_LIGHT_COUNT 1024
 
 int PointLightCount;
-float4 PointLightColors[MAX_POINT_LIGHT_COUNT];
-float4 PointLightPositionsAndRadius[MAX_POINT_LIGHT_COUNT];
+float4 PointLightColors[MAX_LIGHT_COUNT];
+float4 PointLightPositionsAndRadius[MAX_LIGHT_COUNT];
 
 
 CBUFFER_START(UnityPerDraw)

@@ -15,7 +15,7 @@ namespace Barkar.BSRP
         public TextureHandle NormalTexture;
         public TextureHandle DebugTexture;
         public TextureHandle LightAccumTexture;
-        public MaterialPropertyBlock _tempMPB;
+        public MaterialPropertyBlock _tempMPB = new MaterialPropertyBlock();
         public Material _testPLMaterial;
     }
 
@@ -29,6 +29,7 @@ namespace Barkar.BSRP
         private Vector2Int _tileCount = Vector2Int.one;
 
         private ComputeShader _tileGenerateShader;
+        private Vector4 _textureParams;
 
         //DEBUG
         private int _tilesGenerateKernelIndex;
@@ -36,6 +37,7 @@ namespace Barkar.BSRP
         private uint _tileSizeY;
         private int _keernelIndex;
         private int _perTileLightMaxCount = 32;
+        
 
         public TiledShadingPass()
         {
@@ -61,6 +63,7 @@ namespace Barkar.BSRP
 
             _tileGenerateShader = tileShadingShader;
 
+            _textureParams = new Vector4(info.width, info.height, 0, 0);
             TextureDesc debugDesc = new TextureDesc(info.width, info.height);
             debugDesc.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             debugDesc.name = "Debug texture";
@@ -77,7 +80,7 @@ namespace Barkar.BSRP
             bufferDescriptor.name = "TilePointLightIndicesBuffer";
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.TileLightIndicesBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
-
+            data.NormalTexture = builder.ReadTexture(input.ColorAttachment2);
             data.LightAccumTexture = builder.ReadWriteTexture(input.ColorAttachment3);
             builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
 
@@ -99,8 +102,9 @@ namespace Barkar.BSRP
             data.DebugTexture = builder.CreateTransientTexture(debugDesc);
             _camera = camera;
             //test
-            data._tempMPB = new MaterialPropertyBlock();
+            //data._tempMPB = new MaterialPropertyBlock();
             data._testPLMaterial = testLightMaterial;
+            
             data.NormalTexture = builder.ReadWriteTexture(input.ColorAttachment2);
             builder.SetRenderFunc(_renderFunc);
         }
@@ -121,10 +125,7 @@ namespace Barkar.BSRP
             cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
             cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
             cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);
-            //  cmd.Blit(data.DebugTexture, BuiltinRenderTextureType.CameraTarget);
-            // context.renderContext.ExecuteCommandBuffer(cmd);
-            //cmd.Clear();
-            // data._tempMPB.SetTexture("_GBuffer2",data.NormalTexture);
+            
             cmd.ClearRandomWriteTargets();
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
@@ -143,7 +144,9 @@ namespace Barkar.BSRP
             }
             ////
             */
-            
+            data._tempMPB.SetTexture("_GBuffer2", data.NormalTexture);
+            data._tempMPB.SetTexture("_CameraDepth", data.DepthTextureHandle);
+            data._tempMPB.SetVector("_TextureParams", _textureParams);
             data._tempMPB.SetBuffer("_TileLightCountBuffer", data.TileLightCountBuffer);
             data._tempMPB.SetBuffer("_TileLightIndicesBuffer", data.TileLightIndicesBuffer);
             // data._tempMPB.SetVector("_Size", new Vector4(_camera.pixelWidth, _camera.pixelHeight,0,0));
