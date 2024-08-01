@@ -147,8 +147,8 @@ namespace Barkar.BSRP
             data._tempMPB.SetBuffer("_TileLightCountBuffer", data.TileLightCountBuffer);
             data._tempMPB.SetBuffer("_TileLightIndicesBuffer", data.TileLightIndicesBuffer);
             // data._tempMPB.SetVector("_Size", new Vector4(_camera.pixelWidth, _camera.pixelHeight,0,0));
-            cmd.SetRenderTarget(data.LightAccumTexture);
-            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1);
+              cmd.SetRenderTarget(data.LightAccumTexture);
+            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1, data._tempMPB);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
