@@ -69,9 +69,10 @@ Shader "Hidden/DeferredLights"
         float2 pixelCoord = IN.uv * _TextureParams;
         int2 tileCoord = (pixelCoord) / (TILESIZE);
         int tileIndex = tileCoord.y * (_TextureParams.x / TILESIZE) + tileCoord.x;
-        // int lightCount = 0;
+
         half3 result;
         int lightCount = _TileLightCountBuffer[tileIndex];
+        
         for (int l = 0; l < lightCount; l++)
         {
             half constantOffset = 2;
@@ -84,7 +85,7 @@ Shader "Hidden/DeferredLights"
             half NoL = max(0, dot(dir, (normalWS)));
             half  p = distanceToLight * rcp(range);
             half attenuation = rcp(constantOffset + distanceToLight * distanceToLight) * (1.0 - p * p * p * p);
-            result +=  saturate(attenuation) * NoL * PointLightColors[lightIndex] ;
+            result += saturate(attenuation) * NoL * PointLightColors[lightIndex] ;
             
         }
         return half4(result, 1);
@@ -95,9 +96,9 @@ Shader "Hidden/DeferredLights"
     {
 
         Cull Off
-         Blend OneMinusDstColor One
+        Blend One One
         BlendOp Add, Add
-        ZWrite On
+        ZWrite Off
         ZTest Always
 
         Stencil

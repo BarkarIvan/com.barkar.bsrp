@@ -1,16 +1,16 @@
-#pragma kernel TilesGenerate
+#pragma kernel TileShading
 
 #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 
 
 Texture2D<float> _DepthTexture : register(t1);
-RWTexture2D<float4> _DebugTexture : register(u2);
+//RWTexture2D<float4> _DebugTexture : register(u2);
 RWStructuredBuffer<int> _TileLightCountBuffer : register(u0);
 RWStructuredBuffer<int> _TileLightIndicesBuffer : register(u1);
 
-groupshared int minDepthShared = 0xFFFFFFFF;
-groupshared int maxDepthShared = 0;
+groupshared int minDepthShared;// = 0;//0xFFFFFFFF;
+groupshared int maxDepthShared;// = 0;
 
 groupshared int tileVisibleLightIndices[MAX_LIGHT_COUNT];
 groupshared int tileVisibleLightCount = 0;
@@ -28,19 +28,27 @@ bool Intersects(float4 positionView, float radius, float4 frustumPlanes[6])
 
 
 [numthreads(TILESIZE, TILESIZE, 1)]
-void TilesGenerate(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, int groupIdx : SV_GroupIndex)
+void TileShading(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, int groupIdx : SV_GroupIndex)
 {
+    
     int2 textureSize;
     _DepthTexture.GetDimensions(textureSize.x, textureSize.y);
 
     float2 uv = (float2(groupID.xy * TILESIZE + threadID.xy) + 0.5f) / textureSize;
     float depth = _DepthTexture.SampleLevel(sampler_point_clamp, uv, 0).r;
     depth = LinearEyeDepth(depth, _ZBufferParams);
+    depth = asuint(depth);
 
-    InterlockedMin(minDepthShared, asuint(depth));
-    InterlockedMax(maxDepthShared, asuint(depth));
-
+    if (threadID.x == 0 && threadID.y == 0) {
+        minDepthShared = 0;
+        maxDepthShared = 0;
+    }
+    GroupMemoryBarrierWithGroupSync();
     
+    InterlockedMin(minDepthShared, depth);
+    InterlockedMax(maxDepthShared, depth);
+
+    /*
     for (int y = 0; y < TILESIZE; y++)
     {
         for (int x = 0; x < TILESIZE; x++)
@@ -49,18 +57,20 @@ void TilesGenerate(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, 
             _DebugTexture[pixelCoord] = 0;
         }
     }
+    */
 
     GroupMemoryBarrierWithGroupSync();
 
     float minDepth = asfloat(minDepthShared);
     float maxDepth = asfloat(maxDepthShared);
 
+
     float2 tileScale = textureSize * rcp(float(2 * TILESIZE));
     float2 tileBias = tileScale - float2(groupID.xy);
 
     float4 c1 = float4(UNITY_MATRIX_P._m00 * tileScale.x, 0.0f, -tileBias.x, 0.0f);
     float4 c2 = float4(0.0f, -UNITY_MATRIX_P._m11 * tileScale.y, -tileBias.y, 0.0f);
-    float4 c4 = float4(0.0f, 0.0f, 1.0f, 0.0f);
+    float4 c4 = float4(0.0f, 0.0f, -1.0f, 0.0f);
 
 
     float4 frustumPlanes[6];
@@ -90,7 +100,7 @@ void TilesGenerate(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, 
             InterlockedAdd(tileVisibleLightCount, 1, offset);
             tileVisibleLightIndices[offset] = lightIndex;
 
-            
+            /*
             for (int y = 0; y < TILESIZE; y++)
             {
                 for (int x = 0; x < TILESIZE; x++)
@@ -100,17 +110,17 @@ void TilesGenerate(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, 
                         _DebugTexture[pixelCoord] += PointLightColors[lightIndex];
                 }
             }
-            
+            */
         }
     }
-    GroupMemoryBarrierWithGroupSync();
+  //  GroupMemoryBarrierWithGroupSync();
 
     int tileIndex = groupID.y * (textureSize.x / TILESIZE) + groupID.x;
 
     if (groupIdx == 0) {
         _TileLightCountBuffer[tileIndex] = tileVisibleLightCount;
-        int2 pixelCoord = groupID.xy * TILESIZE;
-        _DebugTexture[pixelCoord] = float4(tileVisibleLightCount, 0,0, 1);
+        //int2 pixelCoord = groupID.xy * TILESIZE;
+      //  _DebugTexture[pixelCoord] = float4(tileVisibleLightCount, 0,0, 1);
     }
 
     for (int i = groupIdx; i < tileVisibleLightCount && i < PER_TILE_LIGHT_COUNT; i += TILE_GROUP_SIZE)
@@ -118,19 +128,6 @@ void TilesGenerate(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, 
         _TileLightIndicesBuffer[tileIndex * PER_TILE_LIGHT_COUNT + i] = tileVisibleLightIndices[i];
     }
     
-    /*
-    for (uint y = 0; y < TILESIZE; y++)
-    {
-        for (uint x = 0; x < TILESIZE; x++)
-        {
-            if (intersects)
-            {
-                uint2 pixelCoord = gid.xy * TILESIZE + uint2(x, y);
-                _DebugTexture[pixelCoord] = float4(PointLightColors[lightIndex].rgb,1);
-            }
-        }
-    }
-    */
 }
 
 
