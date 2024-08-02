@@ -9,12 +9,6 @@ RWTexture2D<float4> _DebugTexture : register(u2);
 RWStructuredBuffer<int> _TileLightCountBuffer : register(u0);
 RWStructuredBuffer<int> _TileLightIndicesBuffer : register(u1);
 
-
-#define TILESIZE 16
-#define TILE_GROUP_SIZE (TILESIZE * TILESIZE)
-
-
-
 groupshared int minDepthShared = 0xFFFFFFFF;
 groupshared int maxDepthShared = 0;
 

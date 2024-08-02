@@ -58,7 +58,8 @@ Shader "Hidden/DeferredLights"
 
     half4 PointLightsPassFRagment(Varyings IN): SV_Target
     {
-        half3 normalWS = SAMPLE_TEXTURE2D(_GBuffer2, sampler_PointClamp, IN.uv) * 2.0 - 1.0;
+        half3 normalWS = SAMPLE_TEXTURE2D(_GBuffer2, sampler_PointClamp, IN.uv);
+        normalWS = SafeNormalize(normalWS)* 2.0 - 1.0;
 
         float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_PointClamp, IN.uv).r;
         float4 positionNDC = float4(IN.uv * 2 - 1, depth, 1);
@@ -66,24 +67,24 @@ Shader "Hidden/DeferredLights"
         positionWS *= rcp(positionWS.w);
 
         float2 pixelCoord = IN.uv * _TextureParams;
-        int2 tileCoord = (pixelCoord / 16);
-        int tileIndex = tileCoord.y * (_TextureParams.x / 16) + tileCoord.x;
+        int2 tileCoord = (pixelCoord) / (TILESIZE);
+        int tileIndex = tileCoord.y * (_TextureParams.x / TILESIZE) + tileCoord.x;
         // int lightCount = 0;
         half3 result;
         int lightCount = _TileLightCountBuffer[tileIndex];
-        half constantOffset = 0.1;
         for (int l = 0; l < lightCount; l++)
         {
+            half constantOffset = 2;
             int lightIndex = _TileLightIndicesBuffer[tileIndex * PER_TILE_LIGHT_COUNT + l];
             float4 pos = PointLightPositionsAndRadius[lightIndex];
             half4 color = PointLightColors[lightIndex];
-            float r = color.w;
-            half dir = normalize(pos.xyz - positionWS.xyz);
-            half dist = distance(positionWS.xyz, pos.xyz);
-            half NoL = max(0, dot(dir, normalize(normalWS)));
-            half  p = dist / r;
-            half attenuation = (1.0 / (constantOffset + dist * dist)) * (1.0 - p * p * p * p);
-            result =  NoL;//saturate(attenuation) * PointLightColors[lightIndex] ;
+            float range = color.w;
+            half3 dir = SafeNormalize(pos.xyz - positionWS.xyz);
+            half distanceToLight = distance(positionWS.xyz, pos.xyz);
+            half NoL = max(0, dot(dir, (normalWS)));
+            half  p = distanceToLight * rcp(range);
+            half attenuation = rcp(constantOffset + distanceToLight * distanceToLight) * (1.0 - p * p * p * p);
+            result +=  saturate(attenuation) * NoL * PointLightColors[lightIndex] ;
             
         }
         return half4(result, 1);
@@ -94,7 +95,7 @@ Shader "Hidden/DeferredLights"
     {
 
         Cull Off
-         Blend One One
+         Blend OneMinusDstColor One
         BlendOp Add, Add
         ZWrite On
         ZTest Always

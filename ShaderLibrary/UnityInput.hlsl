@@ -12,6 +12,9 @@ SAMPLER(samplerunity_SpecCube1);
 #define PER_TILE_LIGHT_COUNT 32
 #define MAX_LIGHT_COUNT 1024
 
+#define TILESIZE 16
+#define TILE_GROUP_SIZE (TILESIZE * TILESIZE)
+
 int PointLightCount;
 float4 PointLightColors[MAX_LIGHT_COUNT];
 float4 PointLightPositionsAndRadius[MAX_LIGHT_COUNT];
