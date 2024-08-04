@@ -13,6 +13,8 @@ namespace Barkar.BSRP
         public BufferHandle TileLightIndicesBuffer;
         public TextureHandle DepthTextureHandle;
         public TextureHandle NormalTexture;
+        public TextureHandle AlbedoSmoothnessTexture;
+        public TextureHandle RadianceMetallicTexture;
        // public TextureHandle DebugTexture;
         public TextureHandle LightAccumTexture;
         public MaterialPropertyBlock _tempMPB = new MaterialPropertyBlock();
@@ -53,7 +55,6 @@ namespace Barkar.BSRP
 
             var info = renderGraph.GetRenderTargetInfo(input.DepthAttachment);
             _tileGenerateShader = tileShadingShader;
-            //_keernelIndex = _tileGenerateShader.FindKernel("TilesGenerate");
 
             _tilesGenerateKernelIndex = _tileGenerateShader.FindKernel("TileShading");
             _tileGenerateShader.GetKernelThreadGroupSizes(_tilesGenerateKernelIndex, out _tileSizeX, out _tileSizeY,
@@ -76,15 +77,14 @@ namespace Barkar.BSRP
 
             bufferDescriptor.count = _tileCount.x * _tileCount.y;
             data.TileLightCountBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
-
             bufferDescriptor.name = "TilePointLightIndicesBuffer";
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.TileLightIndicesBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
             data.NormalTexture = builder.ReadTexture(input.ColorAttachment2);
             data.LightAccumTexture = builder.ReadWriteTexture(input.ColorAttachment3);
-            //builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
-
             data.DepthTextureHandle = builder.ReadTexture(input.DepthAttachment);
+            data.AlbedoSmoothnessTexture = builder.ReadTexture(input.ColorAttachment0);
+            data.RadianceMetallicTexture = builder.ReadTexture(input.ColorAttachment2);
           //  Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
           //  _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false); // * viewMatrix;
 
@@ -141,6 +141,8 @@ namespace Barkar.BSRP
             }
             ////
             */
+            data._tempMPB.SetTexture("_GBuffer0", data.AlbedoSmoothnessTexture);
+            data._tempMPB.SetTexture("_Gbuffer1", data.RadianceMetallicTexture);
             data._tempMPB.SetTexture("_GBuffer2", data.NormalTexture);
             data._tempMPB.SetTexture("_CameraDepth", data.DepthTextureHandle);
             data._tempMPB.SetVector("_TextureParams", _textureParams);

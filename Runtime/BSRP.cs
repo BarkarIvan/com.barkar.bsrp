@@ -142,7 +142,7 @@ public class BSRP : RenderPipeline
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, destinationTextures, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial, camera);
             
-        //    _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
+           _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
             
             _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader, _defferedLightingMaterial);
             

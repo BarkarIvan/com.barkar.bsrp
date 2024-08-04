@@ -285,11 +285,11 @@ struct GBuffer
                 BRDF brdf = GetBRDF(surface);
                 lightColor *= DirectBRDF(surface, brdf, light) * radiance;
 
-                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
+                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor);
 
                 //reflectionProbe
                 half3 envirReflection = GetReflectionProbe(surface);
-             //   envirReflection *= surface.metallic + MIN_REFLECTIVITY;
+               envirReflection *= surface.metallic + MIN_REFLECTIVITY;
                 envirReflection *= albedo.rgb;
                 go += envirReflection;
 
