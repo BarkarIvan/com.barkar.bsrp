@@ -80,11 +80,12 @@ namespace Barkar.BSRP
             bufferDescriptor.name = "TilePointLightIndicesBuffer";
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.TileLightIndicesBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
-            data.NormalTexture = builder.ReadTexture(input.ColorAttachment2);
-            data.LightAccumTexture = builder.ReadWriteTexture(input.ColorAttachment3);
+            
             data.DepthTextureHandle = builder.ReadTexture(input.DepthAttachment);
             data.AlbedoSmoothnessTexture = builder.ReadTexture(input.ColorAttachment0);
-            data.RadianceMetallicTexture = builder.ReadTexture(input.ColorAttachment2);
+            data.RadianceMetallicTexture = builder.ReadTexture(input.ColorAttachment1);
+            data.NormalTexture = builder.ReadTexture(input.ColorAttachment2);
+            data.LightAccumTexture = builder.WriteTexture(input.ColorAttachment3);
           //  Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
           //  _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false); // * viewMatrix;
 
@@ -102,8 +103,6 @@ namespace Barkar.BSRP
            // data.DebugTexture = builder.CreateTransientTexture(debugDesc);
             _camera = camera;
             data._testPLMaterial = testLightMaterial;
-            
-            data.NormalTexture = builder.ReadWriteTexture(input.ColorAttachment2);
             builder.SetRenderFunc(_renderFunc);
         }
 

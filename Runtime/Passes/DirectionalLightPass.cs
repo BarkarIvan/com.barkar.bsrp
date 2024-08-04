@@ -47,7 +47,7 @@ namespace Barkar.BSRP.Passes
             passData.Gbuffer1 = builder.ReadTexture(input.ColorAttachment1);
             passData.Gbuffer2 = builder.ReadTexture(input.ColorAttachment2);
             passData.Gbuffer3 = builder.UseColorBuffer(input.ColorAttachment3, 0);
-            passData.CameraDepth = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
+            passData.CameraDepth = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
             passData.TestFinalMaterial = testfinalPassMaterial;
             passData.PropertyBlock = new MaterialPropertyBlock();
             _camera = camera;
