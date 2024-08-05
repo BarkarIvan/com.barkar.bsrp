@@ -114,7 +114,7 @@ Shader "Hidden/DeferredLights"
             half3 resultColor = saturate(attenuation) *( light.color * DirectBRDF(surface, brdf, light));
             
             result += NoL * resultColor;
-            
+           // result += PointLightColors[lightIndex];
         }
         return half4(result, 1);
     }

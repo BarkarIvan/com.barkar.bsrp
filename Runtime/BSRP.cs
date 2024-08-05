@@ -49,9 +49,10 @@ public class BSRP : RenderPipeline
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
+    private PointLightsPass _pointLightsPass = new PointLightsPass();
     
     //!
-    private TiledShadingPass _tileShadingPass = new TiledShadingPass();
+    private PointLightTileCullingPass _tileShadingPass = new PointLightTileCullingPass();
 
    // private Material _testPLMaterial;
     //
@@ -144,8 +145,8 @@ public class BSRP : RenderPipeline
             
            _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
             
-            _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, cullingResults, camera, _tiledDeferredShadingComputeShader, _defferedLightingMaterial);
-            
+            var pointLightCullingData = _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, camera, _tiledDeferredShadingComputeShader);
+            _pointLightsPass.ExecutePointLightPass(RenderGraph, destinationTextures, pointLightCullingData, _defferedLightingMaterial);
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             
            
