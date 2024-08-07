@@ -50,9 +50,10 @@ public class BSRP : RenderPipeline
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
     private PointLightsPass _pointLightsPass = new PointLightsPass();
+    private CopyDepthPass _copyDepthPass = new CopyDepthPass();
     
     //!
-    private PointLightTileCullingPass _tileShadingPass = new PointLightTileCullingPass();
+    private PointLightTileCullingPass _pointLightTileCullingPass = new PointLightTileCullingPass();
 
    // private Material _testPLMaterial;
     //
@@ -140,12 +141,13 @@ public class BSRP : RenderPipeline
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 DrawSkyboxPass.DrawSkybox(RenderGraph, destinationTextures, camera);
 
+            _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, destinationTextures);
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, destinationTextures, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial, camera);
             
            _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
             
-            var pointLightCullingData = _tileShadingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, camera, _tiledDeferredShadingComputeShader);
+            var pointLightCullingData = _pointLightTileCullingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, camera, _tiledDeferredShadingComputeShader);
             _pointLightsPass.ExecutePointLightPass(RenderGraph, destinationTextures, pointLightCullingData, _defferedLightingMaterial);
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
             

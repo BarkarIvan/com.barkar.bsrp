@@ -58,10 +58,16 @@ namespace Barkar.BSRP.Passes.Setup
            textureDescriptor.depthBufferBits = DepthBits.Depth32;
             textureDescriptor.name = "BSRP_Depth_Stencil";
             setupPassData.DepthAttachment = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-           
+           textureDescriptor.name  = "DepthCopy";
+           TextureHandle depthCopyTexture = renderGraph.CreateTexture(textureDescriptor);
             builder.SetRenderFunc(_renderFunc);
 
-            return new RenderDestinationTextures(setupPassData.ColorAttachment0, setupPassData.ColorAttachment1, setupPassData.ColorAttachment2, setupPassData.ColorAttachment3, setupPassData.DepthAttachment);
+            return new RenderDestinationTextures(setupPassData.ColorAttachment0,
+                setupPassData.ColorAttachment1,
+                setupPassData.ColorAttachment2,
+                setupPassData.ColorAttachment3,
+                setupPassData.DepthAttachment,
+                depthCopyTexture);
         }
 
         private void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)

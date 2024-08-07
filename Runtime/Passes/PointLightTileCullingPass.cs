@@ -77,7 +77,7 @@ namespace Barkar.BSRP
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.TileLightIndicesBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
             
-            data.DepthTextureHandle = builder.ReadTexture(input.DepthAttachment);
+            data.DepthTextureHandle = builder.ReadTexture(input.DepthAttachmentCopy);
         
             /*
             var p = _cameraProjection;

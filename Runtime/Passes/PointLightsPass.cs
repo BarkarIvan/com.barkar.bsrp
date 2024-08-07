@@ -1,3 +1,4 @@
+using System.Data;
 using Barkar.BSRP.CameraRenderer;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -9,7 +10,8 @@ namespace Barkar.BSRP
     {
         public BufferHandle TileLightCountBuffer;
         public BufferHandle TileLightIndicesBuffer;
-        public TextureHandle DepthTextureHandle;
+        public TextureHandle CameraDepth;
+        public TextureHandle DepthAttachment;
        public TextureHandle NormalTexture;
         public TextureHandle AlbedoSmoothnessTexture;
         public TextureHandle RadianceMetallicTexture;
@@ -48,7 +50,7 @@ namespace Barkar.BSRP
         }
 
         public void ExecutePointLightPass(RenderGraph renderGraph, in RenderDestinationTextures input,
-            PointLightsCullingData cullingData, Material testLightMaterial)
+           in PointLightsCullingData cullingData, Material testLightMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<PointLightsPassData>(_profilingSampler.name, out var data, _profilingSampler);
@@ -82,11 +84,14 @@ namespace Barkar.BSRP
             // bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.TileLightIndicesBuffer = builder.ReadBuffer(cullingData.TileLightIndicesBuffer);
 
-            data.DepthTextureHandle = builder.ReadTexture(input.DepthAttachment);
+            data.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
+            data.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
+
             data.AlbedoSmoothnessTexture = builder.ReadTexture(input.ColorAttachment0);
             data.RadianceMetallicTexture = builder.ReadTexture(input.ColorAttachment1);
             data.NormalTexture = builder.ReadTexture(input.ColorAttachment2);
-            data.LightAccumTexture = builder.WriteTexture(input.ColorAttachment3);
+            data.LightAccumTexture = builder.UseColorBuffer(input.ColorAttachment3,0);
+            
             //  Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
             //  _cameraProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, false); // * viewMatrix;
 
@@ -104,6 +109,8 @@ namespace Barkar.BSRP
             // data.DebugTexture = builder.CreateTransientTexture(debugDesc);
         //    _camera = camera;
              data._testPLMaterial = testLightMaterial;
+          
+            
             builder.SetRenderFunc(_renderFunc);
         }
 
@@ -111,45 +118,15 @@ namespace Barkar.BSRP
         private void RenderFunction(PointLightsPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-          //  cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_TileLightCountBuffer",
-            //    data.TileLightCountBuffer);
-          //  cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_TileLightIndicesBuffer",
-            //    data.TileLightIndicesBuffer);
-
-           // cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.DepthTextureHandle);
-           // cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DebugTexture", data.DebugTexture);
-           // cmd.SetRandomWriteTarget(2, data.DebugTexture);
-         //   cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
-         //   cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
-          //  cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);
-            
-           // cmd.ClearRandomWriteTargets();
-           // context.renderContext.ExecuteCommandBuffer(cmd);
-           // cmd.Clear();
-            
-            ////
-            /*
-           uint[] lightCountData = new uint[(uint)(_tileCount.x * _tileCount.y)];
-            var b = (GraphicsBuffer)data.TileLightCountBuffer;
-            b.GetData(lightCountData);
-
-
-            for (int i = 0; i < (_tileCount.x * _tileCount.y); i++)
-            {
-                Debug.Log($"Tile {i}: Light Count = {lightCountData[i]}");
-                
-            }
-            ////
-            */
-            data._tempMPB.SetTexture("_GBuffer0", data.AlbedoSmoothnessTexture);
-            data._tempMPB.SetTexture("_Gbuffer1", data.RadianceMetallicTexture);
-            data._tempMPB.SetTexture("_GBuffer2", data.NormalTexture);
-            data._tempMPB.SetTexture("_CameraDepth", data.DepthTextureHandle);
-            data._tempMPB.SetVector("_TextureParams", _textureParams);
-            data._tempMPB.SetBuffer("_TileLightCountBuffer", data.TileLightCountBuffer);
-            data._tempMPB.SetBuffer("_TileLightIndicesBuffer", data.TileLightIndicesBuffer);
-            cmd.SetRenderTarget(data.LightAccumTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, data.DepthTextureHandle, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1, data._tempMPB);
+            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
+           mpb.SetTexture("_GBuffer0", data.AlbedoSmoothnessTexture);
+           mpb.SetTexture("_GBuffer1", data.RadianceMetallicTexture);
+           mpb.SetTexture("_GBuffer2", data.NormalTexture);
+           mpb.SetTexture("_CameraDepth", data.CameraDepth);
+           mpb.SetVector("_TextureParams", _textureParams);
+           mpb.SetBuffer("_TileLightCountBuffer", data.TileLightCountBuffer);
+           mpb.SetBuffer("_TileLightIndicesBuffer", data.TileLightIndicesBuffer);
+            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1, mpb);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

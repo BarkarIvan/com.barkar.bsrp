@@ -11,6 +11,7 @@ namespace Barkar.BSRP
     {
        // public TextureHandle ShadowMap;
         public TextureHandle TargetGBuffer;
+        public TextureHandle CameraDepth;
         public TextureHandle DepthAttachment;
         public Material ScreenSpaceShadowPassMaterial;
       //  public BufferHandle DirectionalLightDataBuffer;
@@ -60,8 +61,9 @@ namespace Barkar.BSRP
                 //passData.ShadowMap = builder.ReadTexture(lightingResources.DirectionalShadowMap);
             passData.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
            // passData.DirectionalLightDataBuffer = builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
-            passData.DepthAttachment = builder.ReadTexture(input.DepthAttachment);
+            passData.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
             passData.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
+            passData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
             builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
             builder.ReadTexture(lightingResources.DirectionalShadowMap);
             _camera = camera;
@@ -79,7 +81,7 @@ namespace Barkar.BSRP
             SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
 
             // mpb.SetTexture(_GBuffer3ID, data.Gbuffer3 );
-            mpb.SetTexture("_CameraDepth", data.DepthAttachment);
+            mpb.SetTexture("_CameraDepth", data.CameraDepth);
             
            // cmd.SetViewport(_camera.pixelRect);
             cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3, 1, mpb);
