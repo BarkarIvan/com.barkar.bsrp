@@ -101,7 +101,7 @@ public class BSRP : RenderPipeline
             _matrixVP = projectionMatrix * viewMatrix;
             _matrixVPI = _matrixVP.inverse;
             
-            Shader.SetGlobalMatrix("unity_MatrixIVP", _matrixVPI);
+            Shader.SetGlobalMatrix(BSRPResources.UnityMatrixIvpID, _matrixVPI);
 
             LightingResources lightingResources =
                 _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);

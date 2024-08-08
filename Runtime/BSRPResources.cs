@@ -11,6 +11,7 @@ namespace Barkar.BSRP
         public static readonly int GBuffer1ID = Shader.PropertyToID("_GBuffer1");
         public static readonly int GBuffer2ID = Shader.PropertyToID("_GBuffer2");
         public static readonly int GBuffer3ID = Shader.PropertyToID("_GBuffer3");
+        public static readonly int UnityMatrixIvpID = Shader.PropertyToID("unity_MatrixIVP");
 
         
     }
