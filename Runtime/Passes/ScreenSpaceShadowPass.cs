@@ -4,40 +4,22 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace Barkar.BSRP
+namespace Barkar.BSRP.Passes
 {
-    
-    public class ScreenSpaceShadowPassData
-    {
-       // public TextureHandle ShadowMap;
-        public TextureHandle TargetGBuffer;
-        public TextureHandle CameraDepth;
-        public TextureHandle DepthAttachment;
-        public Material ScreenSpaceShadowPassMaterial;
-      //  public BufferHandle DirectionalLightDataBuffer;
-
-    }
-
-    
     public class ScreenSpaceShadowPass
     {
-
         private readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Screen Space Shadow Map");
         private BaseRenderFunc<ScreenSpaceShadowPassData, RenderGraphContext> _renderFunc;
         private ShadowSettings _shadowSettings;
 
-        private Camera _camera;
-        
         static readonly GlobalKeyword[] directionalFilterKeywords =
         {
             GlobalKeyword.Create("_SOFT_SHADOWS_LOW"),
             GlobalKeyword.Create("_SOFT_SHADOWS_MEDIUM"),
             GlobalKeyword.Create("_SOFT_SHADOWS_HIGH"),
         };
-        
-        
-        
-        public  void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
+
+        public void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
         {
             for (int i = 0; i < keywords.Length; i++)
             {
@@ -45,49 +27,43 @@ namespace Barkar.BSRP
             }
         }
 
-        
         public ScreenSpaceShadowPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        public void DrawScreenSpaceShadow(RenderGraph renderGraph, in RenderDestinationTextures input, LightingResources lightingResources, ShadowSettings settings, Material screenSpaceShadowMapMaterial, Camera camera)
+        public void DrawScreenSpaceShadow(RenderGraph renderGraph, in RenderDestinationTextures input,
+            in LightingResources lightingResources, ShadowSettings settings, Material screenSpaceShadowMapMaterial)
         {
             using var builder =
-                renderGraph.AddRenderPass<ScreenSpaceShadowPassData>(_profilingSampler.name, out var passData,
+                renderGraph.AddRenderPass<ScreenSpaceShadowPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
 
-            passData.ScreenSpaceShadowPassMaterial = screenSpaceShadowMapMaterial;
-                //passData.ShadowMap = builder.ReadTexture(lightingResources.DirectionalShadowMap);
-            passData.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
-           // passData.DirectionalLightDataBuffer = builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
-            passData.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
-            passData.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
-            passData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
+            data.ScreenSpaceShadowPassMaterial = screenSpaceShadowMapMaterial;
+            data.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
+            data.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
+            data.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
+            data.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
+            data.MPB = new MaterialPropertyBlock();
             builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
             builder.ReadTexture(lightingResources.DirectionalShadowMap);
-            _camera = camera;
             _shadowSettings = settings;
+            
             builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(ScreenSpaceShadowPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-            
-            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
-            //prefilter
-           
-            SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
 
-            // mpb.SetTexture(_GBuffer3ID, data.Gbuffer3 );
-            mpb.SetTexture("_CameraDepth", data.CameraDepth);
-            
-           // cmd.SetViewport(_camera.pixelRect);
-            cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3, 1, mpb);
+            SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
+            data.MPB.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+
+            cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3, 1,
+                data.MPB);
+         
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
-
     }
 }

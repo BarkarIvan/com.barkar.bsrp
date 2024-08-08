@@ -3,13 +3,13 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace Barkar.BSRP
+namespace Barkar.BSRP.Passes
 {
     public class PointLightTileCullingPassData
     {
         public BufferHandle TileLightCountBuffer;
         public BufferHandle TileLightIndicesBuffer;
-        public TextureHandle DepthTextureHandle;
+        public TextureHandle CameraDepthTexture;
     }
 
     public readonly ref struct PointLightsCullingData
@@ -48,8 +48,7 @@ namespace Barkar.BSRP
             
         }
 
-        public PointLightsCullingData ExecuteTileShadingPass(RenderGraph renderGraph, in RenderDestinationTextures input,
-             Camera camera, ComputeShader tileShadingShader)
+        public PointLightsCullingData ExecuteTileCullingPass(RenderGraph renderGraph, in RenderDestinationTextures input, ComputeShader tileShadingShader)
         {
             using var builder =
                 renderGraph.AddRenderPass<PointLightTileCullingPassData>(_profilingSampler.name, out var data, _profilingSampler);
@@ -77,7 +76,7 @@ namespace Barkar.BSRP
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.TileLightIndicesBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
             
-            data.DepthTextureHandle = builder.ReadTexture(input.DepthAttachmentCopy);
+            data.CameraDepthTexture = builder.ReadTexture(input.DepthAttachmentCopy);
         
             /*
             var p = _cameraProjection;
@@ -103,7 +102,7 @@ namespace Barkar.BSRP
             cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_TileLightIndicesBuffer",
                 data.TileLightIndicesBuffer);
 
-            cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.DepthTextureHandle);
+            cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.CameraDepthTexture);
             cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
             cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
             cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);
@@ -112,7 +111,7 @@ namespace Barkar.BSRP
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             
-            ////
+            ////DEBUG
             /*
            uint[] lightCountData = new uint[(uint)(_tileCount.x * _tileCount.y)];
             var b = (GraphicsBuffer)data.TileLightCountBuffer;
@@ -126,7 +125,7 @@ namespace Barkar.BSRP
             }
             ////
         */
-            /// 
+
         }
     }
 }

@@ -23,12 +23,13 @@ public class DrawGeometryPass
 
     public  void DrawGeometry(RenderGraph renderGraph,
         ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in RenderDestinationTextures input,
-        int renderingLayerMask, bool isOpaque, LightingResources lightingResources)
+        int renderingLayerMask, bool isOpaque)
     {
         var profilingSampler = GetProfilingSampler(isOpaque);
 
         using var builder = renderGraph.AddRenderPass<DrawGeometryPassData>(
-            isOpaque ? "Draw Opaque Pass" : "Draw Transparent Pass", out var drawGeometryPassData,
+            isOpaque ? "Draw Opaque Pass" : "Draw Transparent Pass",
+            out var drawGeometryPassData,
             profilingSampler);
 
         //TODO refactor
@@ -36,8 +37,6 @@ public class DrawGeometryPass
         stencil.SetCompareFunction(CompareFunction.Always);
         stencil.SetPassOperation(StencilOp.Replace);
         stencil.SetFailOperation(StencilOp.Keep);
-       // stencil.SetZFailOperation(StencilOp.Keep);
-        
         stencil.enabled = true;
         
         
@@ -51,7 +50,6 @@ public class DrawGeometryPass
                 renderQueueRange = isOpaque ? RenderQueueRange.opaque : RenderQueueRange.transparent,
                 sortingCriteria = isOpaque ? SortingCriteria.CommonOpaque : SortingCriteria.CommonTransparent,
                 renderingLayerMask = (uint)renderingLayerMask,
-                //обязательно иначе глюки в SH и GI 
                 rendererConfiguration = PerObjectData.ReflectionProbes |
                                         PerObjectData.Lightmaps |
                                         PerObjectData.ShadowMask |
@@ -64,8 +62,6 @@ public class DrawGeometryPass
                 //  PerObjectData.LightIndices
                 stateBlock = renderStateBlock
             };
-        
-        
 
         drawGeometryPassData.RendererListHandle =
             builder.UseRendererList(renderGraph.CreateRendererList(_rendererListDesc));
@@ -75,8 +71,7 @@ public class DrawGeometryPass
         drawGeometryPassData.ColorAttachment2 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment2),2);
         drawGeometryPassData.ColorAttachment3 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment3),3);
         drawGeometryPassData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
-
-
+        
         builder.AllowPassCulling(false);
         
         builder.SetRenderFunc(_renderFunction);
@@ -85,7 +80,6 @@ public class DrawGeometryPass
 
     private  void RenderFunction(DrawGeometryPassData drawGeometryPassData, RenderGraphContext context)
     {
-        
         context.cmd.DrawRendererList(drawGeometryPassData.RendererListHandle);
         context.renderContext.ExecuteCommandBuffer(context.cmd);
         context.cmd.Clear();

@@ -47,11 +47,9 @@ Shader "Hidden/DeferredLights"
         Light light = GetMainLight(positionWS);
         BRDF brdf = GetBRDFGBuffer(surface);
         lightColor *= DirectBRDF(surface, brdf, light) * radiance;
-
-    //    half3 environmentBRDF = EnvironmentBRDF(surface, brdf, lightColor, radiance);
-
+        
         half4 result;
-        result.rgb = lightColor;//* radiance;
+        result.rgb = lightColor;
 
         return half4(result.rgb, 1);
     }
@@ -59,24 +57,20 @@ Shader "Hidden/DeferredLights"
     half4 PointLightsPassFRagment(Varyings IN): SV_Target
     {
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
-        half4 g1 = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv);
+        half metallic  = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv).a;
         float3 normalWS = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv).rgb;
 
         half3 albedo = g0.rgb;
         half smoothness = g0.a;
-        half3 radiance = g1.rgb;
-        half metallic = g1.a;
+        
         float3 normal = SafeNormalize(normalWS.rgb * 2 - 1);
 
 
         float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_linear_clamp, IN.uv).r;
-        //depth = 1 - depth;
         float4 positionNDC = float4(IN.uv * 2 - 1, depth, 1);
         float4 positionWS = mul(unity_MatrixIVP, positionNDC);
         positionWS *= rcp(positionWS.w);
-
-       // half3 lightColor = MainLightColor;
-
+        
         Surface surface;
         surface.albedo = albedo;
         surface.normal = normal;
@@ -84,11 +78,8 @@ Shader "Hidden/DeferredLights"
         surface.smoothness = smoothness;
         surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - positionWS.xyz);
         surface.alpha = 1.0;
-        //Light light = GetMainLight(positionWS);
         BRDF brdf = GetBRDFGBuffer(surface);
-       // lightColor *= DirectBRDF(surface, brdf, light);; * radiance;
-        normalWS = SafeNormalize(normalWS)* 2.0 - 1.0;
-
+        normalWS = SafeNormalize(normalWS) * 2.0 - 1.0;
         
         float2 pixelCoord = IN.uv * _TextureParams;
         int2 tileCoord = (pixelCoord) / (TILESIZE);
@@ -99,23 +90,23 @@ Shader "Hidden/DeferredLights"
         Light light;
         for (int l = 0; l < lightCount; l++)
         {
-            half constantOffset = 2;
+            half constantOffset = 0.1;
             int lightIndex = _TileLightIndicesBuffer[tileIndex * PER_TILE_LIGHT_COUNT + l];
             float4 lightPos = PointLightPositionsAndRadius[lightIndex];
             half4 color = PointLightColors[lightIndex];
-            float range = color.w;
+            float lighRange = color.w;
             half3 dir = SafeNormalize(lightPos.xyz - positionWS.xyz);
             half distanceToLight = distance(positionWS.xyz, lightPos.xyz);
             half NoL = max(0, dot(dir, normalWS));
-            half  p = distanceToLight * rcp(range);
-            half attenuation =  rcp(constantOffset + distanceToLight * distanceToLight) * (1.0 - p * p * p * p);
+            half  p = distanceToLight * rcp(lighRange);
+            half attenuation =  rcp(constantOffset + distanceToLight * distanceToLight) * saturate(1.0 - p * p * p * p);
 
             light.color = PointLightColors[lightIndex] ;
             light.direction = dir;
-            half3 resultColor = saturate(attenuation) *( light.color * DirectBRDF(surface, brdf, light));
+            light.shadowAttenuation = 0;
+            half3 resultColor = (attenuation) *( light.color * DirectBRDF(surface, brdf, light));
             
             result += NoL * resultColor;
-          // result = saturate(attenuation);// (distanceToLight);//*distanceToLight);//saturate(attenuation);//PointLightColors[lightIndex];
         }
         return half4(result, 1);
     }
@@ -123,7 +114,6 @@ Shader "Hidden/DeferredLights"
 
     SubShader
     {
-
         Cull Off
         Blend One One
         BlendOp Add, Add
@@ -154,6 +144,5 @@ Shader "Hidden/DeferredLights"
             #pragma fragment PointLightsPassFRagment
             ENDHLSL
         }
-
     }
 }

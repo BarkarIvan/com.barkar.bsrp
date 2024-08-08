@@ -8,7 +8,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
-    public class LightingPassData
+    public class LightingSetupPassData
     {
         public TextureHandle ShadowMap;
         public BufferHandle DirectionalLightDataBuffer;
@@ -39,53 +39,50 @@ namespace Barkar.BSRP.Passes
     }
 
 
-    public class LightingPass
+    public class LightingSetupPass
     {
         private const int maxDirectionalLightsCount = 1;
-        private const int maxPointLightCount = 1024;
-        private  readonly ProfilingSampler _profilingSampler = new ProfilingSampler("LightingPass");
+        private readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Lighting Setup Pass");
 
-        private  int _directionalLightsCount;
-        private  DirectionalLightShadowData _directionalLightShadowData;
+        private int _directionalLightsCount;
+        private DirectionalLightShadowData _directionalLightShadowData;
 
-        private  DirectionalLightData[] _directionalLightData =
+        private DirectionalLightData[] _directionalLightData =
             new DirectionalLightData[maxDirectionalLightsCount];
 
-        private  CullingResults _cullingResults;
-        private  ShadowSettings _shadowSettings;
-        private  Vector4 _mainLightShadowMapSize = Vector4.zero;
+        private CullingResults _cullingResults;
+        private ShadowSettings _shadowSettings;
+        private Vector4 _mainLightShadowMapSize = Vector4.zero;
 
         private int _PointLightCount;
         private Vector4[] _PointLightColor = new Vector4[1023];
         private Vector4[] _PointLightPositionAndRadius = new Vector4[1023];
 
-        private  BaseRenderFunc<LightingPassData, RenderGraphContext> _renderFunc;
+        private BaseRenderFunc<LightingSetupPassData, RenderGraphContext> _renderFunc;
 
-       
-         public LightingPass()
+
+        public LightingSetupPass()
         {
             _renderFunc = RenderFunction;
         }
 
-       
 
-        public  LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
+        public LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
             ShadowSettings shadowSettings)
         {
             _cullingResults = cullingResults;
             _shadowSettings = shadowSettings;
 
-            using (var builder = renderGraph.AddRenderPass<LightingPassData>(_profilingSampler.name,
-                       out var lightingPassData, _profilingSampler))
+            using (var builder = renderGraph.AddRenderPass<LightingSetupPassData>(_profilingSampler.name,
+                       out var data, _profilingSampler))
             {
-
                 var directionalLightDataBufferDescriptor = new BufferDesc();
                 directionalLightDataBufferDescriptor.name = "Main Light Data Buffer";
                 directionalLightDataBufferDescriptor.count = maxDirectionalLightsCount;
                 directionalLightDataBufferDescriptor.stride = DirectionalLightData.stride;
                 directionalLightDataBufferDescriptor.target = GraphicsBuffer.Target.Constant;
 
-                lightingPassData.DirectionalLightDataBuffer =
+                data.DirectionalLightDataBuffer =
                     builder.WriteBuffer(renderGraph.CreateBuffer(directionalLightDataBufferDescriptor));
 
 
@@ -119,14 +116,16 @@ namespace Barkar.BSRP.Passes
 
                                 _directionalLightsCount++;
                             }
+
                             break;
 
                         case LightType.Point:
                             _PointLightColor[_PointLightCount] = visibleLight.finalColor;
-                            _PointLightColor[_PointLightCount].w = visibleLight.range;//1f/Mathf.Max(visibleLight.range * visibleLight.range,0.00001f);;
+                            _PointLightColor[_PointLightCount].w = visibleLight.range;
 
-                            _PointLightPositionAndRadius[_PointLightCount] = visibleLight.localToWorldMatrix.GetColumn(3);
-                            _PointLightCount++; 
+                            _PointLightPositionAndRadius[_PointLightCount] =
+                                visibleLight.localToWorldMatrix.GetColumn(3);
+                            _PointLightCount++;
                             break;
                     }
                 }
@@ -137,87 +136,86 @@ namespace Barkar.BSRP.Passes
                 textureDescriptor.isShadowMap = true;
                 textureDescriptor.name = "Main Light ShadowMap";
 
-                lightingPassData.ShadowMap = builder.ReadWriteTexture(_directionalLightsCount > 0
+                data.ShadowMap = builder.ReadWriteTexture(_directionalLightsCount > 0
                     ? renderGraph.CreateTexture(textureDescriptor)
                     : renderGraph.defaultResources.defaultShadowTexture);
 
                 builder.SetRenderFunc(_renderFunc);
 
 
-                return new LightingResources(lightingPassData.DirectionalLightDataBuffer, lightingPassData.ShadowMap);
+                return new LightingResources(data.DirectionalLightDataBuffer, data.ShadowMap);
             }
         }
 
-        private  void RenderFunction(LightingPassData lightingPassData, RenderGraphContext context)
+        private void RenderFunction(LightingSetupPassData data, RenderGraphContext context)
         {
-                var cmd = context.cmd;
+            var cmd = context.cmd;
 
-                cmd.SetRenderTarget(lightingPassData.ShadowMap, RenderBufferLoadAction.DontCare,
-                    RenderBufferStoreAction.Store);
-                cmd.ClearRenderTarget(true, false, Color.clear);
-                cmd.BeginSample("Main Light Directional Shadow");
+            cmd.SetRenderTarget(data.ShadowMap, RenderBufferLoadAction.DontCare,
+                RenderBufferStoreAction.Store);
+            cmd.ClearRenderTarget(true, false, Color.clear);
+            cmd.BeginSample("Main Light Directional Shadow");
+            context.renderContext.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
+
+            if (_directionalLightsCount > 0)
+            {
+                _cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
+                    _directionalLightShadowData.visibleLightIndex,
+                    0, 1, new Vector3(1.0f, 0.0f, 0.0f),
+                    (int)_shadowSettings.Direcrional.MapSize, _directionalLightShadowData.shadowNearPlane,
+                    out Matrix4x4 shadowViewMatrix,
+                    out Matrix4x4 shadowProjectionMatrix, out ShadowSplitData splitData);
+
+                Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix, shadowViewMatrix);
+
+                cmd.SetGlobalMatrix("_MainLightMatrix", shadowMatrix);
+                cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
+                cmd.SetGlobalDepthBias(0, _directionalLightShadowData.shadowBias);
                 context.renderContext.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
-                if (_directionalLightsCount > 0)
-                {
-                    _cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(
-                        _directionalLightShadowData.visibleLightIndex,
-                        0, 1, new Vector3(1.0f, 0.0f, 0.0f),
-                        (int)_shadowSettings.Direcrional.MapSize, _directionalLightShadowData.shadowNearPlane,
-                        out Matrix4x4 shadowViewMatrix,
-                        out Matrix4x4 shadowProjectionMatrix, out ShadowSplitData splitData);
+                var shadowSeettings =
+                    new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
+                shadowSeettings.useRenderingLayerMaskTest = true;
+                shadowSeettings.objectsFilter = ShadowObjectsFilter.AllObjects;
+                var directionalLightRendererListHandle =
+                    context.renderContext.CreateShadowRendererList(ref shadowSeettings);
 
-                    Matrix4x4 shadowMatrix = ApplyBiasMatrix(shadowProjectionMatrix, shadowViewMatrix);
+                cmd.DrawRendererList(directionalLightRendererListHandle);
+            }
 
-                    cmd.SetGlobalMatrix("_MainLightMatrix", shadowMatrix);
-                    cmd.SetViewProjectionMatrices(shadowViewMatrix, shadowProjectionMatrix);
-                    cmd.SetGlobalDepthBias(0, _directionalLightShadowData.shadowBias);
-                    context.renderContext.ExecuteCommandBuffer(cmd);
-                    cmd.Clear();
+            //Buffers data
+            cmd.SetBufferData(data.DirectionalLightDataBuffer, _directionalLightData);
+            cmd.SetGlobalConstantBuffer(data.DirectionalLightDataBuffer, "MainLightDataBuffer",
+                0, DirectionalLightData.stride);
+            cmd.SetGlobalTexture("_MainLightShadowMap", data.ShadowMap);
 
-                    var shadowSeettings =
-                        new ShadowDrawingSettings(_cullingResults, _directionalLightShadowData.visibleLightIndex);
-                    shadowSeettings.useRenderingLayerMaskTest = true;
-                    shadowSeettings.objectsFilter = ShadowObjectsFilter.AllObjects;
-                    var directionalLightRendererListHandle =
-                        context.renderContext.CreateShadowRendererList(ref shadowSeettings);
+            //globalPointData
+            cmd.SetGlobalVectorArray("PointLightColors", _PointLightColor);
+            cmd.SetGlobalVectorArray("PointLightPositionsAndRadius", _PointLightPositionAndRadius);
+            cmd.SetGlobalInt("PointLightCount", _PointLightCount);
 
-                    cmd.DrawRendererList(directionalLightRendererListHandle);
-                }
+            //map size
+            _mainLightShadowMapSize.x = (float)_shadowSettings.Direcrional.MapSize;
+            _mainLightShadowMapSize.y = 1f / _mainLightShadowMapSize.x;
+            cmd.SetGlobalVector("_MainLightShadowMapSize", _mainLightShadowMapSize);
 
-                //Buffers data
-                cmd.SetBufferData(lightingPassData.DirectionalLightDataBuffer, _directionalLightData);
-                cmd.SetGlobalConstantBuffer(lightingPassData.DirectionalLightDataBuffer, "MainLightDataBuffer",
-                    0, DirectionalLightData.stride);
-                cmd.SetGlobalTexture("_MainLightShadowMap", lightingPassData.ShadowMap);
-                
-                //globalPointData
-cmd.SetGlobalVectorArray("PointLightColors", _PointLightColor);
-cmd.SetGlobalVectorArray("PointLightPositionsAndRadius", _PointLightPositionAndRadius);
-cmd.SetGlobalInt("PointLightCount", _PointLightCount);
-                
-                //map size
-                _mainLightShadowMapSize.x = (float)_shadowSettings.Direcrional.MapSize;
-                _mainLightShadowMapSize.y = 1f / _mainLightShadowMapSize.x;
-                cmd.SetGlobalVector("_MainLightShadowMapSize", _mainLightShadowMapSize);
+            //distance
+            cmd.SetGlobalVector("_MainLightShadowDistanceFade",
+                new Vector4(_shadowSettings.ShadowMaxDistance, _shadowSettings.ShadowDistanceFade,
+                    1f / _shadowSettings.ShadowMaxDistance,
+                    1f / _shadowSettings.ShadowDistanceFade)); //z - cascades fade
 
-                //distance
-                cmd.SetGlobalVector("_MainLightShadowDistanceFade",
-                    new Vector4(_shadowSettings.ShadowMaxDistance, _shadowSettings.ShadowDistanceFade,
-                        1f / _shadowSettings.ShadowMaxDistance,
-                        1f / _shadowSettings.ShadowDistanceFade)); //z - cascades fade
+            //keyWords
 
-                //keyWords
+            cmd.EndSample("Main Light Directional Shadow");
+            context.renderContext.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
 
-                cmd.EndSample("Main Light Directional Shadow");
-                context.renderContext.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-
-                cmd.SetGlobalDepthBias(0f, 0f);
-                context.renderContext.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
-            
+            cmd.SetGlobalDepthBias(0f, 0f);
+            context.renderContext.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
         }
 
 

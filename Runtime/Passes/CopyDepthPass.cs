@@ -3,16 +3,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace Barkar.BSRP
+namespace Barkar.BSRP.Passes
 {
-    //TODO exclude
-
-    public class CopyDepthPassData
-    {
-        public TextureHandle OriginalDepth;
-        public TextureHandle DepthTextureCopy;
-    }
-
+    
     public class CopyDepthPass
     {
         private readonly ProfilingSampler _profilingSampler = new("Copy Depth Pass");

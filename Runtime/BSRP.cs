@@ -22,59 +22,40 @@ public class BSRP : RenderPipeline
     private RenderGraphParameters renderGraphParameters;
 
     private ShadowSettings _shadowSettings;
-    private BloomSettings _bloomSettings;
-
-    // private Material _finalPassMaterial;
-    //
+ 
     private Material _defferedLightingMaterial;
-
     private Material _deferredFinalPassMaterial;
-
     private Material _screenSpaceShadowMaterial;
 
-    private ComputeShader _tiledDeferredShadingComputeShader;
-    //
-    // private Material _postEffectsMaterial;
-    //private Material _dualFilterBlurMaterial;
+    private ComputeShader _pointLightTileCullingCompute;
 
     private LocalKeyword _useLensDirtKeyword;
     private LocalKeyword _useBloomKeyword;
 
-    private LightingPass _lightingPass = new LightingPass();
+    private LightingSetupPass _lightingSetupPass = new LightingSetupPass();
     private SetupPass _setupPass = new SetupPass();
-
     private DrawGeometryPass _drawGeometryPass = new DrawGeometryPass();
-
-    //private PostEffectsPass _postEffectsPass = new PostEffectsPass();
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
     private PointLightsPass _pointLightsPass = new PointLightsPass();
     private CopyDepthPass _copyDepthPass = new CopyDepthPass();
-    
-    //!
     private PointLightTileCullingPass _pointLightTileCullingPass = new PointLightTileCullingPass();
-
-   // private Material _testPLMaterial;
-    //
-    
+    private DrawSkyboxPass _drawSkyboxPass = new DrawSkyboxPass();
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;
     Matrix4x4 _matrixVPIprev;
 
-    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, ComputeShader tiledDeferredShadingComputeShader)
+    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, ComputeShader pointLightTileCullingCompute)
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
-        _bloomSettings = bloomSettings;
 
-        _tiledDeferredShadingComputeShader = tiledDeferredShadingComputeShader;
+        _pointLightTileCullingCompute = pointLightTileCullingCompute;
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
         _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
-
-       // _testPLMaterial = CoreUtils.CreateEngineMaterial("Hidden/TestPL");
         
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
@@ -85,11 +66,8 @@ public class BSRP : RenderPipeline
     {
         BeginContextRendering(context, cameras);
 
-
         foreach (Camera camera in cameras)
         {
-            //destination buffer size
-           
             textureSize.x = (int)(camera.pixelWidth * _renderScale);
             textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
@@ -116,7 +94,6 @@ public class BSRP : RenderPipeline
 
             RenderGraph.BeginRecording(renderGraphParameters);
 
-
             BeginCameraRendering(context, camera);
 
             Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
@@ -124,35 +101,33 @@ public class BSRP : RenderPipeline
             _matrixVP = projectionMatrix * viewMatrix;
             _matrixVPI = _matrixVP.inverse;
             
-
             Shader.SetGlobalMatrix("unity_MatrixIVP", _matrixVPI);
-            //
-           // Shader.SetGlobalMatrix("_testViewMatrix", viewMatrix);
 
             LightingResources lightingResources =
-                _lightingPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
+                _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
 
             RenderDestinationTextures destinationTextures =
                 _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera);
            
             _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
-                destinationTextures, camera.cullingMask, true, lightingResources);
+                destinationTextures, camera.cullingMask, true);
 
             if (camera.clearFlags == CameraClearFlags.Skybox)
-                DrawSkyboxPass.DrawSkybox(RenderGraph, destinationTextures, camera);
+                _drawSkyboxPass.DrawSkybox(RenderGraph, destinationTextures, camera);
 
             _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, destinationTextures);
+         
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, destinationTextures, lightingResources,
-                _shadowSettings, _screenSpaceShadowMaterial, camera);
+                _shadowSettings, _screenSpaceShadowMaterial);
             
-           _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, camera, _defferedLightingMaterial);
+           _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, _defferedLightingMaterial);
             
-            var pointLightCullingData = _pointLightTileCullingPass.ExecuteTileShadingPass(RenderGraph, destinationTextures, camera, _tiledDeferredShadingComputeShader);
-            _pointLightsPass.ExecutePointLightPass(RenderGraph, destinationTextures, pointLightCullingData, _defferedLightingMaterial);
-            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, camera, _deferredFinalPassMaterial);
-            
+            var pointLightCullingData = _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, destinationTextures, _pointLightTileCullingCompute);
            
-
+            _pointLightsPass.ExecutePointLightPass(RenderGraph, destinationTextures, pointLightCullingData, _defferedLightingMaterial);
+          
+            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, _deferredFinalPassMaterial);
+            
             RenderGraph.EndRecordingAndExecute();
         }
 

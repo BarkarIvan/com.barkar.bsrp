@@ -10,20 +10,19 @@ namespace Barkar.BSRP.Passes.Setup
 {
     public class SetupPass
     {
-        private readonly ProfilingSampler _profilingSampler = new ("Setup Pass");
+        private readonly ProfilingSampler _profilingSampler = new("Setup Pass");
         private Camera _camera;
         private Vector2Int _attachmentSize;
 
         private BloomSettings _bloomSettings;
 
         private BaseRenderFunc<SetupPassData, RenderGraphContext> _renderFunc;
-        
 
-        public  RenderDestinationTextures SetupDestinationTextures(RenderGraph renderGraph,
+
+        public RenderDestinationTextures SetupDestinationTextures(RenderGraph renderGraph,
             Vector2Int attachmetSize,
             Camera camera)
         {
-            
             _renderFunc = RenderFunction;
             _camera = camera;
             _attachmentSize = attachmetSize;
@@ -37,7 +36,7 @@ namespace Barkar.BSRP.Passes.Setup
             //texture descriptor
             TextureDesc textureDescriptor =
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
-        
+
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
             textureDescriptor.name = "BSRP_Albedo_Smoothness";
             setupPassData.ColorAttachment0 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
@@ -47,19 +46,17 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "BSRP_Light_Accumulate";
-            //textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
-           textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
+            // textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
+            textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-          
-           // 
-           textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
-           //textureDescriptor.autoGenerateMips = true;
-          // textureDescriptor.useMipMap = true;
-           textureDescriptor.depthBufferBits = DepthBits.Depth32;
+
+            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
+
+            textureDescriptor.depthBufferBits = DepthBits.Depth32;
             textureDescriptor.name = "BSRP_Depth_Stencil";
             setupPassData.DepthAttachment = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-           textureDescriptor.name  = "DepthCopy";
-           TextureHandle depthCopyTexture = renderGraph.CreateTexture(textureDescriptor);
+            textureDescriptor.name = "DepthCopy";
+            TextureHandle depthCopyTexture = renderGraph.CreateTexture(textureDescriptor);
             builder.SetRenderFunc(_renderFunc);
 
             return new RenderDestinationTextures(setupPassData.ColorAttachment0,
@@ -75,23 +72,29 @@ namespace Barkar.BSRP.Passes.Setup
             context.renderContext.SetupCameraProperties(_camera);
 
             CommandBuffer cmd = context.cmd;
-            cmd.SetRenderTarget(setupPassData.ColorAttachment0, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, 
+            cmd.SetRenderTarget(setupPassData.ColorAttachment0, RenderBufferLoadAction.DontCare,
+                RenderBufferStoreAction.Store,
                 setupPassData.DepthAttachment, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             bool isClearDepth = _camera.clearFlags <= CameraClearFlags.Nothing;
             bool isClearColor = _camera.clearFlags <= CameraClearFlags.Color;
-            var clearColor = _camera.clearFlags == CameraClearFlags.Color ? _camera.backgroundColor.linear : Color.clear;
+            var clearColor = _camera.clearFlags == CameraClearFlags.Color
+                ? _camera.backgroundColor.linear
+                : Color.clear;
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-            
-            cmd.SetRenderTarget(setupPassData.ColorAttachment1, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-           
+
+            cmd.SetRenderTarget(setupPassData.ColorAttachment1, RenderBufferLoadAction.DontCare,
+                RenderBufferStoreAction.Store);
+
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-            
-            cmd.SetRenderTarget(setupPassData.ColorAttachment2, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+
+            cmd.SetRenderTarget(setupPassData.ColorAttachment2, RenderBufferLoadAction.DontCare,
+                RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-            
-            cmd.SetRenderTarget(setupPassData.ColorAttachment3, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+
+            cmd.SetRenderTarget(setupPassData.ColorAttachment3, RenderBufferLoadAction.DontCare,
+                RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-            
+
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
