@@ -38,24 +38,26 @@ namespace Barkar.BSRP.Passes.Setup
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
 
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
-            textureDescriptor.name = "BSRP_Albedo_Smoothness";
+            textureDescriptor.name = "Albedo_Smoothness";
             setupPassData.ColorAttachment0 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-            textureDescriptor.name = "BSRP_Radiance_Metallic";
+            textureDescriptor.name = "Radiance_Metallic";
             setupPassData.ColorAttachment1 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-            textureDescriptor.name = "BSRP_NormalMap";
+            textureDescriptor.name = "Normal_Map";
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-            textureDescriptor.name = "BSRP_Light_Accumulate";
+            textureDescriptor.name = "Light_Accumulate";
             // textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
-            textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
+            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-
+            textureDescriptor.name = "Light_Texture_Copy";
+            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
+            TextureHandle lightCopyTexture = renderGraph.CreateTexture(textureDescriptor);
+            
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
-
             textureDescriptor.depthBufferBits = DepthBits.Depth32;
-            textureDescriptor.name = "BSRP_Depth_Stencil";
+            textureDescriptor.name = "Depth_Stencil";
             setupPassData.DepthAttachment = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
-            textureDescriptor.name = "DepthCopy";
+            textureDescriptor.name = "Depth_Copy";
             TextureHandle depthCopyTexture = renderGraph.CreateTexture(textureDescriptor);
             builder.SetRenderFunc(_renderFunc);
 
@@ -66,6 +68,7 @@ namespace Barkar.BSRP.Passes.Setup
             textures.ColorAttachment3 = setupPassData.ColorAttachment3;
             textures.DepthAttachment = setupPassData.DepthAttachment;
             textures.DepthAttachmentCopy = depthCopyTexture;
+            textures.LightTextureCopy = lightCopyTexture;
         }
 
         private void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)

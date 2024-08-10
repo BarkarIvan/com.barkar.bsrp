@@ -68,7 +68,7 @@ namespace Barkar.BSRP.Passes
 
 
         public LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
-            ShadowSettings shadowSettings)
+             ShadowSettings shadowSettings)
         {
             _cullingResults = cullingResults;
             _shadowSettings = shadowSettings;

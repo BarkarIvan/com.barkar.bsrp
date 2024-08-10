@@ -12,6 +12,7 @@ namespace Barkar.BSRP.CameraRenderer
 
         public  TextureHandle DepthAttachment;
         public  TextureHandle DepthAttachmentCopy;
+        public TextureHandle LightTextureCopy;
 
       
         public RenderDestinationTextures()
@@ -22,15 +23,13 @@ namespace Barkar.BSRP.CameraRenderer
             ColorAttachment3 = default;
             DepthAttachment = default;
             DepthAttachmentCopy = default;
+            LightTextureCopy = default;
         }
 
         public override void Reset()
         {
-            ColorAttachment0 = default;
-            ColorAttachment1 = default;
-            ColorAttachment2 = default;
-            ColorAttachment3 = default;
-            DepthAttachment = default;
-            DepthAttachmentCopy = default;        }
+            
+        }
+        
     }
 }  

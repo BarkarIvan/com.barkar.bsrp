@@ -13,7 +13,7 @@ namespace Barkar.BSRP.Passes
         private readonly ProfilingSampler _profilingSampler = new("PostFX");
         private BaseRenderFunc<BloomPassData, RenderGraphContext> _renderFunc;
         
-        private Camera _camera;
+      //  private Camera _camera;
 
         private readonly int _dualFilterOffsetID = Shader.PropertyToID("_DualFilterOffset");
         private readonly int _filterID = Shader.PropertyToID("_Filter");
@@ -35,7 +35,7 @@ namespace Barkar.BSRP.Passes
         }
         
         public  void DrawBloom( RenderGraph renderGraph, BloomSettings settings,
-            in RenderDestinationTextures input, Camera camera, Material bloomMaterial, Material finalPassMaterial)
+            ContextContainer container, Material bloomMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<BloomPassData>(_profilingSampler.name, out var bloomPassData,
@@ -43,10 +43,11 @@ namespace Barkar.BSRP.Passes
 
            builder.AllowPassCulling(false);
            
-           bloomPassData.ColorSource = builder.ReadTexture(input.ColorAttachment0);
+           RenderDestinationTextures destinationTextures = container.Get<RenderDestinationTextures>();
+           bloomPassData.ColorSource = builder.ReadTexture(destinationTextures.LightTextureCopy);
 
 
-           _camera = camera;
+           //_camera = camera;
            //prefilter
             float knee = (settings.HDRThreshold * settings.HDRSoftThreshold);
             bloomPassData.Prefilter.x = settings.HDRThreshold;
@@ -55,11 +56,11 @@ namespace Barkar.BSRP.Passes
             bloomPassData.Prefilter.w = 0.25f / (knee + 0.0001f);
 
             /// bloom
-            var rtinfo = renderGraph.GetRenderTargetInfo(input.ColorAttachment0);
+            var rtinfo = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
             
             bloomPassData.OriginalSize = new Vector2Int(rtinfo.width, rtinfo.height);
             bloomPassData.BloomMaterial = bloomMaterial;
-            bloomPassData.CompositingMaterial = finalPassMaterial;
+           // bloomPassData.CompositingMaterial = finalPassMaterial;
             
 
             var width = bloomPassData.OriginalSize.x >> settings.Downsample;
@@ -68,7 +69,9 @@ namespace Barkar.BSRP.Passes
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             textureDescriptor.name = "Bloom Texture [0]";
           
-            bloomPassData.BloomPassTexture = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
+            bloomPassData.BloomPassTexture = builder.CreateTransientTexture((textureDescriptor));
+            //bloomPassData.DestinationTexture = builder.WriteTexture(destinationTextures.ColorAttachment3);
+           
             bloomPassData.BlurPyramid[0] = bloomPassData.BloomPassTexture;
             bloomPassData.LensDirtTexture = settings.LensDirtTexture;
             for (int i = 1; i < settings.BlurPassesCount + 1; i++)
@@ -84,7 +87,7 @@ namespace Barkar.BSRP.Passes
                 TextureDesc desc = new TextureDesc(sizeX, sizeY)
                 {
                     name = "Blur Pyramid " + "[" + i + "]",
-                    colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR),
+                    colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32,
                     depthBufferBits = DepthBits.None,
                     msaaSamples = MSAASamples.None,
                     useMipMap = false,
@@ -111,7 +114,7 @@ namespace Barkar.BSRP.Passes
             bloomPassData.BlurPassesCount = settings.BlurPassesCount;
             bloomPassData.UseLensDirt = settings.UseLensDirt;
             bloomPassData.BloomEnable = settings.BloomEnable;
-
+            
             builder.SetRenderFunc(_renderFunc);
             
         }
@@ -185,6 +188,7 @@ namespace Barkar.BSRP.Passes
                 }
             }
             
+            /*
             //Composite
             var composotingMPB = context.renderGraphPool.GetTempMaterialPropertyBlock();
             composotingMPB.SetTexture(_bloomTextureID, data.BloomPassTexture);
@@ -194,11 +198,12 @@ namespace Barkar.BSRP.Passes
            
             cmd.SetKeyword(_useLensDirtKeyword, data.UseLensDirt);
             cmd.SetKeyword(_useBloomKeyWord, data.BloomEnable);
-            cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare,
+            cmd.SetRenderTarget(data.DestinationTexture, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
-            cmd.SetViewport(_camera.pixelRect);
             cmd.DrawProcedural(Matrix4x4.identity, data.CompositingMaterial, 0, MeshTopology.Triangles,
                 3, 1, composotingMPB);
+                */
+            cmd.SetGlobalTexture("_BloomTexture", data.BloomPassTexture);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

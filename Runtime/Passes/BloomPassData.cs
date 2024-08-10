@@ -8,6 +8,7 @@ namespace Barkar.BSRP.Data
         const int kMaxBlurPassCount = 8;
         public TextureHandle ColorSource;
         public TextureHandle BloomPassTexture;
+        public TextureHandle DestinationTexture;
         public TextureHandle[] BlurPyramid = new TextureHandle[kMaxBlurPassCount];
         public Material BloomMaterial;
         public Material CompositingMaterial;

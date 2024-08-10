@@ -25,6 +25,7 @@ Shader "Hidden/DeferredFinalPass"
             };
             
             TEXTURE2D_HALF(_GBuffer3); //emission
+            TEXTURE2D_HALF(_BloomTexture);
 
             half3 ACESFilmTonemapping(half3 col)
             {
@@ -40,7 +41,10 @@ Shader "Hidden/DeferredFinalPass"
             {
                 half3 g3 = SAMPLE_TEXTURE2D(_GBuffer3, sampler_linear_clamp, IN.uv);
                 half4 result = half4(g3, 1.0);
+                half3 bloom = SAMPLE_TEXTURE2D(_BloomTexture, sampler_linear_clamp, IN.uv).rgb;
                 
+              //  bloom.rgb *=  BloomIntensity;
+                result.rgb +=  bloom.rgb;
              // result = pow(result,1.0/2.2);
                  result.rgb = ACESFilmTonemapping(result.rgb);
                  //
