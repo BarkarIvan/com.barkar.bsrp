@@ -22,7 +22,7 @@ public class DrawGeometryPass
     
 
     public  void DrawGeometry(RenderGraph renderGraph,
-        ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in RenderDestinationTextures input,
+        ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in ContextContainer input,
         int renderingLayerMask, bool isOpaque)
     {
         var profilingSampler = GetProfilingSampler(isOpaque);
@@ -66,11 +66,12 @@ public class DrawGeometryPass
         drawGeometryPassData.RendererListHandle =
             builder.UseRendererList(renderGraph.CreateRendererList(_rendererListDesc));
 
-        drawGeometryPassData.ColorAttachment0 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment0),0);
-        drawGeometryPassData.ColorAttachment1 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment1),1);
-        drawGeometryPassData.ColorAttachment2 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment2),2);
-        drawGeometryPassData.ColorAttachment3 = builder.UseColorBuffer(builder.WriteTexture(input.ColorAttachment3),3);
-        drawGeometryPassData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
+        RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+        drawGeometryPassData.ColorAttachment0 = builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment0),0);
+        drawGeometryPassData.ColorAttachment1 = builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment1),1);
+        drawGeometryPassData.ColorAttachment2 = builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment2),2);
+        drawGeometryPassData.ColorAttachment3 = builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment3),3);
+        drawGeometryPassData.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.ReadWrite);
         
         builder.AllowPassCulling(false);
         

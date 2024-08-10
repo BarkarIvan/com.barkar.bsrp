@@ -35,26 +35,27 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void ExecutePointLightPass(RenderGraph renderGraph, in RenderDestinationTextures input,
+        public void ExecutePointLightPass(RenderGraph renderGraph, in ContextContainer input,
             in PointLightsCullingData cullingData, Material testLightMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<PointLightsPassData>(_profilingSampler.name, out var data, _profilingSampler);
-            
-            var info = renderGraph.GetRenderTargetInfo(input.DepthAttachment);
+            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+
+            var info = renderGraph.GetRenderTargetInfo(destinationTextures.DepthAttachment);
 
             _textureParams = new Vector4(info.width, info.height, 0, 0);
 
             data.TileLightCountBuffer = builder.ReadBuffer(cullingData.TileLightCountBuffer);
             data.TileLightIndicesBuffer = builder.ReadBuffer(cullingData.TileLightIndicesBuffer);
 
-            data.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
-            data.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
+            data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
+            data.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
 
-            data.AlbedoSmoothnessTexture = builder.ReadTexture(input.ColorAttachment0);
-            data.RadianceMetallicTexture = builder.ReadTexture(input.ColorAttachment1);
-            data.NormalTexture = builder.ReadTexture(input.ColorAttachment2);
-            data.LightAccumTexture = builder.UseColorBuffer(input.ColorAttachment3, 0);
+            data.AlbedoSmoothnessTexture = builder.ReadTexture(destinationTextures.ColorAttachment0);
+            data.RadianceMetallicTexture = builder.ReadTexture(destinationTextures.ColorAttachment1);
+            data.NormalTexture = builder.ReadTexture(destinationTextures.ColorAttachment2);
+            data.LightAccumTexture = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             
             builder.AllowPassCulling(false);
             data._testPLMaterial = testLightMaterial;

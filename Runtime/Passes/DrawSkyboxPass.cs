@@ -18,15 +18,17 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void DrawSkybox(RenderGraph renderGraph, in RenderDestinationTextures input, Camera camera)
+        public void DrawSkybox(RenderGraph renderGraph, in ContextContainer input, Camera camera)
         {
             using var builder = renderGraph.AddRenderPass<DrawSkyboxPassData>(SkyboxProfilingSampler.name,
                     out var drawSkyboxPassData,
                     SkyboxProfilingSampler);
 
-            drawSkyboxPassData.ColorAttacment = builder.UseColorBuffer(input.ColorAttachment3, 0);
+            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+
+            drawSkyboxPassData.ColorAttacment = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             drawSkyboxPassData.DepthAttachment =
-                builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.ReadWrite);
+                builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.ReadWrite);
 
             _camera = camera;
             builder.SetRenderFunc(_renderFunc);

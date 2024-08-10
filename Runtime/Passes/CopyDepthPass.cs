@@ -16,13 +16,15 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void ExecuteCopyDepthPass(RenderGraph renderGraph, in RenderDestinationTextures input)
+        public void ExecuteCopyDepthPass(RenderGraph renderGraph, in ContextContainer input)
         {
             using var builder =
                 renderGraph.AddRenderPass<CopyDepthPassData>(_profilingSampler.name, out var data, _profilingSampler);
 
-            data.DepthTextureCopy = builder.WriteTexture(input.DepthAttachmentCopy);
-            data.OriginalDepth = builder.ReadTexture(input.DepthAttachment);
+            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+
+            data.DepthTextureCopy = builder.WriteTexture(destinationTextures.DepthAttachmentCopy);
+            data.OriginalDepth = builder.ReadTexture(destinationTextures.DepthAttachment);
             builder.AllowPassCulling(false);
 
             builder.SetRenderFunc(_renderFunc);

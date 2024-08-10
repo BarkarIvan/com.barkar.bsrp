@@ -32,18 +32,20 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void DrawScreenSpaceShadow(RenderGraph renderGraph, in RenderDestinationTextures input,
+        public void DrawScreenSpaceShadow(RenderGraph renderGraph, in ContextContainer input,
             in LightingResources lightingResources, ShadowSettings settings, Material screenSpaceShadowMapMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<ScreenSpaceShadowPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
 
+            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+
             data.ScreenSpaceShadowPassMaterial = screenSpaceShadowMapMaterial;
-            data.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
-            data.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
-            data.TargetGBuffer = builder.UseColorBuffer(input.ColorAttachment3, 0);
-            data.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
+            data.TargetGBuffer = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
+            data.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
+            data.TargetGBuffer = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
+            data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             data.MPB = new MaterialPropertyBlock();
             builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
             builder.ReadTexture(lightingResources.DirectionalShadowMap);

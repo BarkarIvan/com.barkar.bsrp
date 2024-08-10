@@ -19,9 +19,9 @@ namespace Barkar.BSRP.Passes.Setup
         private BaseRenderFunc<SetupPassData, RenderGraphContext> _renderFunc;
 
 
-        public RenderDestinationTextures SetupDestinationTextures(RenderGraph renderGraph,
+        public void SetupDestinationTextures(RenderGraph renderGraph,
             Vector2Int attachmetSize,
-            Camera camera)
+            Camera camera, ContextContainer container)
         {
             _renderFunc = RenderFunction;
             _camera = camera;
@@ -59,12 +59,13 @@ namespace Barkar.BSRP.Passes.Setup
             TextureHandle depthCopyTexture = renderGraph.CreateTexture(textureDescriptor);
             builder.SetRenderFunc(_renderFunc);
 
-            return new RenderDestinationTextures(setupPassData.ColorAttachment0,
-                setupPassData.ColorAttachment1,
-                setupPassData.ColorAttachment2,
-                setupPassData.ColorAttachment3,
-                setupPassData.DepthAttachment,
-                depthCopyTexture);
+            RenderDestinationTextures textures = container.GetOrCreate<RenderDestinationTextures>();
+            textures.ColorAttachment0 = setupPassData.ColorAttachment0;
+            textures.ColorAttachment1 = setupPassData.ColorAttachment1;
+            textures.ColorAttachment2 = setupPassData.ColorAttachment2;
+            textures.ColorAttachment3 = setupPassData.ColorAttachment3;
+            textures.DepthAttachment = setupPassData.DepthAttachment;
+            textures.DepthAttachmentCopy = depthCopyTexture;
         }
 
         private void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)

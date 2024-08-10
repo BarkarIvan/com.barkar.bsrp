@@ -18,6 +18,8 @@ public class BSRP : RenderPipeline
     private readonly ShaderTagId[] _commonShaderTags =
         { new ShaderTagId("BSRPGBuffer"), new ShaderTagId("SRPDefaultUnlit") };
 
+    private ContextContainer _container;
+    
     private Vector2Int textureSize = default;
     private RenderGraphParameters renderGraphParameters;
 
@@ -59,6 +61,7 @@ public class BSRP : RenderPipeline
         
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
+        _container = new ContextContainer();
     }
 
 
@@ -105,28 +108,27 @@ public class BSRP : RenderPipeline
 
             LightingResources lightingResources =
                 _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
-
-            RenderDestinationTextures destinationTextures =
-                _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera);
+            
+                _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera, _container);
            
             _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
-                destinationTextures, camera.cullingMask, true);
+                _container, camera.cullingMask, true);
 
             if (camera.clearFlags == CameraClearFlags.Skybox)
-                _drawSkyboxPass.DrawSkybox(RenderGraph, destinationTextures, camera);
+                _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
 
-            _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, destinationTextures);
+            _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
          
-            _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, destinationTextures, lightingResources,
+            _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
             
-           _directionalLight.DrawDirectinalLight(RenderGraph, destinationTextures, _defferedLightingMaterial);
+           _directionalLight.DrawDirectinalLight(RenderGraph, _container, _defferedLightingMaterial);
             
-            var pointLightCullingData = _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, destinationTextures, _pointLightTileCullingCompute);
+            var pointLightCullingData = _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, _container, _pointLightTileCullingCompute);
            
-            _pointLightsPass.ExecutePointLightPass(RenderGraph, destinationTextures, pointLightCullingData, _defferedLightingMaterial);
+            _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData, _defferedLightingMaterial);
           
-            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, destinationTextures, _deferredFinalPassMaterial);
+            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, _container, _deferredFinalPassMaterial);
             
             RenderGraph.EndRecordingAndExecute();
         }

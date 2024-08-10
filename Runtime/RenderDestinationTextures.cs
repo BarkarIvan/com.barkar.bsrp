@@ -1,27 +1,36 @@
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.CameraRenderer
 {
-    public readonly ref struct RenderDestinationTextures
+    public class RenderDestinationTextures : ContextItem
     {
-        public readonly TextureHandle ColorAttachment0;
-        public readonly TextureHandle ColorAttachment1;
-        public readonly TextureHandle ColorAttachment2;
-        public readonly TextureHandle ColorAttachment3;
+        public  TextureHandle ColorAttachment0;
+        public  TextureHandle ColorAttachment1;
+        public  TextureHandle ColorAttachment2;
+        public  TextureHandle ColorAttachment3;
 
-        public readonly TextureHandle DepthAttachment;
-        public readonly TextureHandle DepthAttachmentCopy;
+        public  TextureHandle DepthAttachment;
+        public  TextureHandle DepthAttachmentCopy;
 
-        public RenderDestinationTextures(TextureHandle colorAttachment0, TextureHandle colorAttachment1, TextureHandle colorAttachment2, TextureHandle colorAttachment3, TextureHandle depthAttachment, TextureHandle depthAttachmentCopy)
+      
+        public RenderDestinationTextures()
         {
-            ColorAttachment0 = colorAttachment0;
-            ColorAttachment1 = colorAttachment1;
-            ColorAttachment2 = colorAttachment2;
-            ColorAttachment3 = colorAttachment3;
-            DepthAttachment = depthAttachment;
-            DepthAttachmentCopy = depthAttachmentCopy;
-
+            ColorAttachment0 = default;
+            ColorAttachment1 = default;
+            ColorAttachment2 = default;
+            ColorAttachment3 = default;
+            DepthAttachment = default;
+            DepthAttachmentCopy = default;
         }
+
+        public override void Reset()
+        {
+            ColorAttachment0 = default;
+            ColorAttachment1 = default;
+            ColorAttachment2 = default;
+            ColorAttachment3 = default;
+            DepthAttachment = default;
+            DepthAttachmentCopy = default;        }
     }
-}
-  
+}  

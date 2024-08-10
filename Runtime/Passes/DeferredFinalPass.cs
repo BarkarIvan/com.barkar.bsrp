@@ -25,7 +25,7 @@ namespace Barkar.BSRP.Passes
         }
         
         public void DrawDeferredFinalPass(RenderGraph renderGraph,
-            in RenderDestinationTextures input,Material DeferredFinalPassMaterial)
+            in ContextContainer input,Material DeferredFinalPassMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<DeferredFinalPassData>(_profilingSampler.name, out var data,
@@ -33,7 +33,9 @@ namespace Barkar.BSRP.Passes
 
             builder.AllowPassCulling(false);
             data.MPB = new MaterialPropertyBlock();
-            data.GBuffer3 = builder.ReadTexture(input.ColorAttachment3);
+            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+
+            data.GBuffer3 = builder.ReadTexture(destinationTextures.ColorAttachment3);
             data.DeffereFinalPassMaterial = DeferredFinalPassMaterial;
             builder.SetRenderFunc(_renderFunc);
         }

@@ -18,20 +18,21 @@ namespace Barkar.BSRP.Passes
         }
 
         public void DrawDirectinalLight(RenderGraph renderGraph,
-            in RenderDestinationTextures input, Material testfinalPassMaterial)
+            in ContextContainer input, Material testfinalPassMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<DirectionalLightPassData>(_profilingSampler.name, out var passData,
                     _profilingSampler);
 
             builder.AllowPassCulling(false);
+            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
 
-            passData.Gbuffer0 = builder.ReadTexture(input.ColorAttachment0);
-            passData.Gbuffer1 = builder.ReadTexture(input.ColorAttachment1);
-            passData.Gbuffer2 = builder.ReadTexture(input.ColorAttachment2);
-            passData.Gbuffer3 = builder.UseColorBuffer(input.ColorAttachment3, 0);
-            passData.DepthAttachment = builder.UseDepthBuffer(input.DepthAttachment, DepthAccess.Read);
-            passData.CameraDepth = builder.ReadTexture(input.DepthAttachmentCopy);
+            passData.Gbuffer0 = builder.ReadTexture(destinationTextures.ColorAttachment0);
+            passData.Gbuffer1 = builder.ReadTexture(destinationTextures.ColorAttachment1);
+            passData.Gbuffer2 = builder.ReadTexture(destinationTextures.ColorAttachment2);
+            passData.Gbuffer3 = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
+            passData.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
+            passData.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
 
             passData.TestFinalMaterial = testfinalPassMaterial;
             passData.PropertyBlock = new MaterialPropertyBlock();
