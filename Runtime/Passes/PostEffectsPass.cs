@@ -150,13 +150,7 @@ namespace Barkar.BSRP.Passes
 
                     var texelSize = Vector2.one / new Vector2(sizeX, sizeY);
                     var halfPixel = texelSize * 0.5f;
-                    
-                   // var prevMipIndex = (i == 0) ? 0 : (i - 1); 
-                    //var prevMip = data.BlurPyramid[prevMipIndex];
-
-                    //bloomMPB.SetTexture("_PrevMip", prevMip);
-
-
+                   
                     bloomMPB.SetVector(_dualFilterOffsetID,
                         new Vector4(halfPixel.x * offset, halfPixel.y * offset, 1, 1));
                     bloomMPB.SetTexture(_sourceTextureID, src);
@@ -186,14 +180,9 @@ namespace Barkar.BSRP.Passes
                     bloomMPB.SetVector(_dualFilterOffsetID,
                         new Vector4(halfPixel.x * offset, halfPixel.y * offset, 1, 1));
                     bloomMPB.SetTexture(_sourceTextureID, src);
-                 
-                    var prevMipIndex = (i + 1) % (data.BlurPassesCount);
-                    var prevMip = data.BlurPyramid[prevMipIndex];
-    
-                    bloomMPB.SetTexture("_PrevMip", prevMip);
                     
                     cmd.SetRenderTarget( dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-                    cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
+                  //  cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
                     cmd.DrawProcedural(Matrix4x4.identity, data.BloomMaterial, 2, MeshTopology.Triangles, 3, 1, bloomMPB);
                     context.renderContext.ExecuteCommandBuffer(cmd);
                     cmd.Clear();
