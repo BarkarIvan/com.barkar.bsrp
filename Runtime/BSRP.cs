@@ -33,8 +33,8 @@ public class BSRP : RenderPipeline
 
     private ComputeShader _pointLightTileCullingCompute;
 
-    private LocalKeyword _useLensDirtKeyword;
-    private LocalKeyword _useBloomKeyword;
+    private GlobalKeyword _useLensDirtKeyword;
+    private GlobalKeyword _useBloomKeyWord;
 
     private LightingSetupPass _lightingSetupPass = new LightingSetupPass();
     private SetupPass _setupPass = new SetupPass();
@@ -70,6 +70,9 @@ public class BSRP : RenderPipeline
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         _bloomSettings = bloomSettings;
         _container = new ContextContainer();
+        
+        _useLensDirtKeyword = GlobalKeyword.Create("_USE_LENSDIRT");
+        _useBloomKeyWord = GlobalKeyword.Create("_USE_BLOOM");
     }
 
 
@@ -79,6 +82,10 @@ public class BSRP : RenderPipeline
 
         foreach (Camera camera in cameras)
         {
+            
+            Shader.SetKeyword(_useBloomKeyWord, _bloomSettings.BloomEnable);
+            Shader.SetKeyword(_useLensDirtKeyword, _bloomSettings.UseLensDirt);
+            
             textureSize.x = (int)(camera.pixelWidth * _renderScale);
             textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
@@ -141,7 +148,7 @@ public class BSRP : RenderPipeline
             
             _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
             
-            _postEffectsPass.DrawBloom(RenderGraph, _bloomSettings,_container, _postFXMaterial );
+            _postEffectsPass.ExecutePostFXPass(RenderGraph, _bloomSettings,_container, _postFXMaterial );
 
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, _container, _deferredFinalPassMaterial);
 

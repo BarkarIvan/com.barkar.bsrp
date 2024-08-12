@@ -46,24 +46,23 @@ namespace Barkar.BSRP.Passes
             data.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
             data.TargetGBuffer = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
-            data.MPB = new MaterialPropertyBlock();
             builder.ReadBuffer(lightingResources.DirectionalLightBuffer);
             builder.ReadTexture(lightingResources.DirectionalShadowMap);
             _shadowSettings = settings;
-            
+
             builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(ScreenSpaceShadowPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-
+            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
             SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
-            data.MPB.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+            mpb.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
 
             cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3, 1,
-                data.MPB);
-         
+                mpb);
+
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

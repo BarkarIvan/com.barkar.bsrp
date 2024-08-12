@@ -10,5 +10,4 @@ public class DirectionalLightPassData
     public TextureHandle DepthAttachment;
     public TextureHandle CameraDepth;
     public Material TestFinalMaterial;
-    public MaterialPropertyBlock PropertyBlock;
 }

@@ -11,7 +11,6 @@ namespace Barkar.BSRP.Passes
         private BaseRenderFunc<DirectionalLightPassData, RenderGraphContext> _renderFunc;
 
 
-
         public DirectionalLightPass()
         {
             _renderFunc = RenderFunction;
@@ -35,22 +34,21 @@ namespace Barkar.BSRP.Passes
             passData.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
 
             passData.TestFinalMaterial = testfinalPassMaterial;
-            passData.PropertyBlock = new MaterialPropertyBlock();
-            
+
             builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(DirectionalLightPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-
-            data.PropertyBlock.SetTexture(BSRPResources.GBuffer0ID, data.Gbuffer0);
-            data.PropertyBlock.SetTexture(BSRPResources.GBuffer1ID, data.Gbuffer1);
-            data.PropertyBlock.SetTexture(BSRPResources.GBuffer2ID, data.Gbuffer2);
-            data.PropertyBlock.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
+            mpb.SetTexture(BSRPResources.GBuffer0ID, data.Gbuffer0);
+            mpb.SetTexture(BSRPResources.GBuffer1ID, data.Gbuffer1);
+            mpb.SetTexture(BSRPResources.GBuffer2ID, data.Gbuffer2);
+            mpb.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
 
             cmd.DrawProcedural(Matrix4x4.identity, data.TestFinalMaterial, 0, MeshTopology.Triangles,
-                3, 1, data.PropertyBlock);
+                3, 1, mpb);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

@@ -15,19 +15,18 @@ namespace Barkar.BSRP.Passes
         public TextureHandle AlbedoSmoothnessTexture;
         public TextureHandle RadianceMetallicTexture;
         public TextureHandle LightAccumTexture;
-        public MaterialPropertyBlock MPB;
         public Material _testPLMaterial;
     }
 
     public class PointLightsPass
     {
         private readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Point Lights Pass");
-        
+
         private Vector4 _textureParams;
         private static readonly int TextureParams = Shader.PropertyToID("_TextureParams");
         private static readonly int TileLightCountBuffer = Shader.PropertyToID("_TileLightCountBuffer");
         private static readonly int TileLightIndicesBuffer = Shader.PropertyToID("_TileLightIndicesBuffer");
-        
+
         private BaseRenderFunc<PointLightsPassData, RenderGraphContext> _renderFunc;
 
         public PointLightsPass()
@@ -56,10 +55,9 @@ namespace Barkar.BSRP.Passes
             data.RadianceMetallicTexture = builder.ReadTexture(destinationTextures.ColorAttachment1);
             data.NormalTexture = builder.ReadTexture(destinationTextures.ColorAttachment2);
             data.LightAccumTexture = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
-            
+
             builder.AllowPassCulling(false);
             data._testPLMaterial = testLightMaterial;
-            data.MPB = new MaterialPropertyBlock();
 
             builder.SetRenderFunc(_renderFunc);
         }
@@ -68,15 +66,16 @@ namespace Barkar.BSRP.Passes
         private void RenderFunction(PointLightsPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-           
-            data.MPB.SetTexture(BSRPResources.GBuffer0ID, data.AlbedoSmoothnessTexture);
-            data.MPB.SetTexture(BSRPResources.GBuffer1ID, data.RadianceMetallicTexture);
-            data.MPB.SetTexture(BSRPResources.GBuffer2ID, data.NormalTexture);
-            data.MPB.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
-            data.MPB.SetVector(TextureParams, _textureParams);
-            data.MPB.SetBuffer(TileLightCountBuffer, data.TileLightCountBuffer);
-            data.MPB.SetBuffer(TileLightIndicesBuffer, data.TileLightIndicesBuffer);
-            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1, data.MPB);
+            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
+
+            mpb.SetTexture(BSRPResources.GBuffer0ID, data.AlbedoSmoothnessTexture);
+            mpb.SetTexture(BSRPResources.GBuffer1ID, data.RadianceMetallicTexture);
+            mpb.SetTexture(BSRPResources.GBuffer2ID, data.NormalTexture);
+            mpb.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+            mpb.SetVector(TextureParams, _textureParams);
+            mpb.SetBuffer(TileLightCountBuffer, data.TileLightCountBuffer);
+            mpb.SetBuffer(TileLightIndicesBuffer, data.TileLightIndicesBuffer);
+            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1, mpb);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

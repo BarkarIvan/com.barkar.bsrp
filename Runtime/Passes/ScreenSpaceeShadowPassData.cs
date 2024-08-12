@@ -7,5 +7,4 @@ public class ScreenSpaceShadowPassData
     public TextureHandle CameraDepth;
     public TextureHandle DepthAttachment;
     public Material ScreenSpaceShadowPassMaterial;
-    public MaterialPropertyBlock MPB;
 }

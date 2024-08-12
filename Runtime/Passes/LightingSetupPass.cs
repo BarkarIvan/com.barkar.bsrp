@@ -152,7 +152,7 @@ namespace Barkar.BSRP.Passes
             var cmd = context.cmd;
 
             cmd.SetRenderTarget(data.ShadowMap, RenderBufferLoadAction.DontCare,
-                RenderBufferStoreAction.Store);
+                RenderBufferStoreAction.DontCare, RenderBufferLoadAction.Load, RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(true, false, Color.clear);
             cmd.BeginSample("Main Light Directional Shadow");
             context.renderContext.ExecuteCommandBuffer(cmd);
