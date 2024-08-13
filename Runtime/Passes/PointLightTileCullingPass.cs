@@ -48,22 +48,19 @@ namespace Barkar.BSRP.Passes
             
         }
 
-        public PointLightsCullingData ExecuteTileCullingPass(RenderGraph renderGraph, ContextContainer input, ComputeShader tileShadingShader)
+        public PointLightsCullingData ExecuteTileCullingPass(RenderGraph renderGraph, ContextContainer input)
         {
             using var builder =
                 renderGraph.AddRenderPass<PointLightTileCullingPassData>(_profilingSampler.name, out var data, _profilingSampler);
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
 
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.DepthAttachment);
-            _tileGenerateShader = tileShadingShader;
-
-            _tilesGenerateKernelIndex = _tileGenerateShader.FindKernel("TileShading");
+            _tileGenerateShader = BSRPResourcesLoader.PointLightsTileCullingComputeShader;
+            _tilesGenerateKernelIndex = _tileGenerateShader.FindKernel("PointLightTileCulling");
             _tileGenerateShader.GetKernelThreadGroupSizes(_tilesGenerateKernelIndex, out _tileSizeX, out _tileSizeY,
                 out _);
             _tileCount.x = Mathf.CeilToInt((float)info.width / _tileSizeX);
             _tileCount.y = Mathf.CeilToInt((float)info.height / _tileSizeY);
-
-            _tileGenerateShader = tileShadingShader;
             
             var bufferDescriptor = new BufferDesc();
             bufferDescriptor.name = "TilePointLightCount";

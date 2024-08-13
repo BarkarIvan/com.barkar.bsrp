@@ -58,7 +58,7 @@ namespace Barkar.BSRP.Passes
             var cmd = context.cmd;
             var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
             SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
-            mpb.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+            mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
 
             cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3, 1,
                 mpb);

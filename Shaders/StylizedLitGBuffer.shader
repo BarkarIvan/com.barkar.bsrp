@@ -297,9 +297,7 @@ struct GBuffer
                 half3 rim = 0;
                 #if defined (_RIM)
                 half NoV = dot(surface.viewDir, surface.normal);
-                 rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
-                result.rgb += rim;
-                result.rgb = saturate(result.rgb);
+                rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
                 #endif
 
                 //Emission

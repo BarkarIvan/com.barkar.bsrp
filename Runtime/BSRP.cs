@@ -30,9 +30,7 @@ public class BSRP : RenderPipeline
     private Material _deferredFinalPassMaterial;
     private Material _screenSpaceShadowMaterial;
     private Material _postFXMaterial;
-
-    private ComputeShader _pointLightTileCullingCompute;
-
+    
     private GlobalKeyword _useLensDirtKeyword;
     private GlobalKeyword _useBloomKeyWord;
 
@@ -47,20 +45,18 @@ public class BSRP : RenderPipeline
     private CopyLightTexturePass _copyLightTexturePass = new CopyLightTexturePass();
     private PointLightTileCullingPass _pointLightTileCullingPass = new PointLightTileCullingPass();
     private DrawSkyboxPass _drawSkyboxPass = new DrawSkyboxPass();
-    private PostEffectsPass _postEffectsPass = new PostEffectsPass();
+    private BloomPass _bloomPass = new BloomPass();
     
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;
     Matrix4x4 _matrixVPIprev;
 
-    public BSRP(bool hdr, float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings,
-        ComputeShader pointLightTileCullingCompute)
+    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
-
-        _pointLightTileCullingCompute = pointLightTileCullingCompute;
+        
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
         _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
@@ -119,7 +115,7 @@ public class BSRP : RenderPipeline
             _matrixVP = projectionMatrix * viewMatrix;
             _matrixVPI = _matrixVP.inverse;
 
-            Shader.SetGlobalMatrix(BSRPResources.UnityMatrixIvpID, _matrixVPI);
+            Shader.SetGlobalMatrix(BSRPShaderIDs.UnityMatrixIvpID, _matrixVPI);
 
             LightingResources lightingResources =
                 _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
@@ -140,15 +136,17 @@ public class BSRP : RenderPipeline
             _directionalLight.DrawDirectinalLight(RenderGraph, _container, _defferedLightingMaterial);
 
             var pointLightCullingData =
-                _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, _container,
-                    _pointLightTileCullingCompute);
+                _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, _container);
 
             _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
                 _defferedLightingMaterial);
             
             _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
-            
-            _postEffectsPass.ExecutePostFXPass(RenderGraph, _bloomSettings,_container, _postFXMaterial );
+          
+            if (_bloomSettings.BloomEnable)
+            {
+                _bloomPass.ExecuteBloomPass(RenderGraph, _bloomSettings, _container, _postFXMaterial);
+            }
 
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, _container, _deferredFinalPassMaterial);
 

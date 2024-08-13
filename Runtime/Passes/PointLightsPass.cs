@@ -68,10 +68,10 @@ namespace Barkar.BSRP.Passes
             var cmd = context.cmd;
             var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
 
-            mpb.SetTexture(BSRPResources.GBuffer0ID, data.AlbedoSmoothnessTexture);
-            mpb.SetTexture(BSRPResources.GBuffer1ID, data.RadianceMetallicTexture);
-            mpb.SetTexture(BSRPResources.GBuffer2ID, data.NormalTexture);
-            mpb.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer0ID, data.AlbedoSmoothnessTexture);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer1ID, data.RadianceMetallicTexture);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer2ID, data.NormalTexture);
+            mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
             mpb.SetVector(TextureParams, _textureParams);
             mpb.SetBuffer(TileLightCountBuffer, data.TileLightCountBuffer);
             mpb.SetBuffer(TileLightIndicesBuffer, data.TileLightIndicesBuffer);

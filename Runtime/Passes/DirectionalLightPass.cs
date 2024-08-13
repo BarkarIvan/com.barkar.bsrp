@@ -32,6 +32,7 @@ namespace Barkar.BSRP.Passes
             passData.Gbuffer3 = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             passData.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             passData.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
+         
 
             passData.TestFinalMaterial = testfinalPassMaterial;
 
@@ -42,10 +43,10 @@ namespace Barkar.BSRP.Passes
         {
             var cmd = context.cmd;
             var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
-            mpb.SetTexture(BSRPResources.GBuffer0ID, data.Gbuffer0);
-            mpb.SetTexture(BSRPResources.GBuffer1ID, data.Gbuffer1);
-            mpb.SetTexture(BSRPResources.GBuffer2ID, data.Gbuffer2);
-            mpb.SetTexture(BSRPResources.CameraDepthID, data.CameraDepth);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer0ID, data.Gbuffer0);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer1ID, data.Gbuffer1);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer2ID, data.Gbuffer2);
+            mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
 
             cmd.DrawProcedural(Matrix4x4.identity, data.TestFinalMaterial, 0, MeshTopology.Triangles,
                 3, 1, mpb);

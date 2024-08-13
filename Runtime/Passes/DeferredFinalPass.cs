@@ -1,5 +1,4 @@
 using Barkar.BSRP.CameraRenderer;
-using Barkar.BSRP.Passes.Bloom;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -9,6 +8,7 @@ namespace Barkar.BSRP.Passes
     public class DeferredFinalPassData
     {
         public TextureHandle GBuffer3;
+        public TextureHandle BackBuffer;
         public Material DeferreFinalPassMaterial;
     }
     
@@ -25,17 +25,19 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
         
-        public void DrawDeferredFinalPass(RenderGraph renderGraph, ContextContainer container,Material DeferredFinalPassMaterial)
+        public void DrawDeferredFinalPass(RenderGraph renderGraph, ContextContainer container,Material deferredFinalPassMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<DeferredFinalPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
-
-            builder.AllowPassCulling(false);
             RenderDestinationTextures destinationTextures = container.Get<RenderDestinationTextures>();
 
             data.GBuffer3 = builder.ReadTexture(destinationTextures.ColorAttachment3);
-            data.DeferreFinalPassMaterial = DeferredFinalPassMaterial;
+            data.DeferreFinalPassMaterial = deferredFinalPassMaterial;
+            data.BackBuffer =
+                builder.UseColorBuffer(renderGraph.ImportBackbuffer(BuiltinRenderTextureType.CameraTarget), 0);
+            
+            builder.AllowPassCulling(false);
             builder.SetRenderFunc(_renderFunc);
         }
 
@@ -43,8 +45,7 @@ namespace Barkar.BSRP.Passes
         {
             var cmd = context.cmd;
             var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
-            mpb.SetTexture(BSRPResources.GBuffer3ID, data.GBuffer3 );
-            cmd.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+            mpb.SetTexture(BSRPShaderIDs.GBuffer3ID, data.GBuffer3 );
             cmd.DrawProcedural(Matrix4x4.identity, data.DeferreFinalPassMaterial, 0, MeshTopology.Triangles,
                 3, 1, mpb);
 
