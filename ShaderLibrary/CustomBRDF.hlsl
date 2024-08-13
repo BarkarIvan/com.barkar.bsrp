@@ -15,23 +15,6 @@ struct BRDF
     half roughness;
 };
 
-struct BRDFData
-{
-    half3 albedo;
-    half3 diffuse;
-    half3 specular;
-    half reflectivity;
-    half perceptualRoughness;
-    half roughness;
-    half roughness2;
-    half grazingTerm;
-
-    // We save some light invariant BRDF terms so we don't have to recompute
-    // them in the light loop. Take a look at DirectBRDF function for detailed explaination.
-   // half normalizationTerm;     // roughness * 4.0 + 2.0
-   // half roughness2MinusOne;    // roughness^2 - 1.0
-};
-
 half OneMinusReflectivity(half metallic)
 {
     half range = kDielectricSpec.a;
@@ -138,7 +121,7 @@ half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 s
     half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
     return (specularTerm  + (indirectDiffuse * brdf.diffuse  + tempC * (specularTerm * brdf.specular) ))* radiance;
 }
-
+/// delete
 half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 specularTerm, half3 radiance )
 {
     half g = 1.0h - surface.smoothness;

@@ -45,7 +45,6 @@ namespace Barkar.BSRP.Passes
         public PointLightTileCullingPass()
         {
             _renderFunc = RenderFunction;
-            
         }
 
         public PointLightsCullingData ExecuteTileCullingPass(RenderGraph renderGraph, ContextContainer input)

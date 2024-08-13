@@ -83,7 +83,6 @@ Shader "BSRP/StylizedLitGBUFFER"
             #pragma shader_feature_local _BRUSHTEX
             #pragma shader_feature_local _USEALPHACLIP
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
-            #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
 
             #pragma multi_compile_fog
 
@@ -285,11 +284,11 @@ struct GBuffer
                 BRDF brdf = GetBRDF(surface);
                 lightColor *= DirectBRDF(surface, brdf, light) * radiance;
 
-                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor);
+                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
 
                 //reflectionProbe
                 half3 envirReflection = GetReflectionProbe(surface);
-               envirReflection *= surface.metallic + MIN_REFLECTIVITY;
+                envirReflection *= surface.metallic + MIN_REFLECTIVITY;
                 envirReflection *= albedo.rgb;
                 go += envirReflection;
 
