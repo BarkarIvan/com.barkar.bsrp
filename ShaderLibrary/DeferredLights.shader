@@ -17,6 +17,18 @@ Shader "Hidden/DeferredLights"
     StructuredBuffer<int> _TileLightIndicesBuffer;
     int2 _TextureParams;
 
+    
+    half3 SpheremapDecodeNormal(half2 enc)
+    {
+        half2 fenc = enc*4-2;
+    half f = dot(fenc,fenc);
+    half g = sqrt(1-f/4);
+    half3 n;
+    n.xy = fenc*g;
+    n.z = 1-f/2;
+    return n;
+    }
+
     half4 DirLightPassFragment(Varyings IN): SV_Target
     {
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
@@ -27,7 +39,8 @@ Shader "Hidden/DeferredLights"
         half smoothness = g0.a;
         half3 radiance = g1.rgb;
         half metallic = g1.a;
-        float3 normal = SafeNormalize(g2.rgb * 2 - 1);
+        half3 normal = g2.rgb;
+        normal = SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(normal))));
 
 
         float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_linear_clamp, IN.uv);
@@ -58,12 +71,13 @@ Shader "Hidden/DeferredLights"
     {
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
         half metallic  = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv).a;
-        float3 normalWS = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv).rgb;
-
+        half2 normal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv).rg;
+        half3 normalWS = SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(normal))));
+        
         half3 albedo = g0.rgb;
         half smoothness = g0.a;
         
-        float3 normal = SafeNormalize(normalWS.rgb * 2 - 1);
+        //float3 normal = SafeNormalize(normalWS.rgb * 2 - 1);
 
 
         float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_linear_clamp, IN.uv).r;
@@ -73,13 +87,13 @@ Shader "Hidden/DeferredLights"
         
         Surface surface;
         surface.albedo = albedo;
-        surface.normal = normal;
+        surface.normal = normalWS;
         surface.metallic = metallic;
         surface.smoothness = smoothness;
         surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - positionWS.xyz);
         surface.alpha = 1.0;
         BRDF brdf = GetBRDFGBuffer(surface);
-        normalWS = SafeNormalize(normalWS) * 2.0 - 1.0;
+        //normalWS = SafeNormalize(normalWS) * 2.0 - 1.0;
         
         float2 pixelCoord = IN.uv * _TextureParams;
         int2 tileCoord = (pixelCoord) / (TILESIZE);

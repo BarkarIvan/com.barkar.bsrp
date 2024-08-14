@@ -124,11 +124,14 @@ public class BSRP : RenderPipeline
 
             _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask, true);
+           
+            _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
+            _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
 
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
 
-            _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
+           
 
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
@@ -141,7 +144,6 @@ public class BSRP : RenderPipeline
             _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
                 _defferedLightingMaterial);
             
-            _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
           
             if (_bloomSettings.BloomEnable)
             {

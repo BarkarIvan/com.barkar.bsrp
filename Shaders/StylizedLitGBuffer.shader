@@ -142,7 +142,6 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half _ReflectBrushStrength;
             CBUFFER_END
 
-           
 
             struct Attributes
             {
@@ -170,14 +169,20 @@ Shader "BSRP/StylizedLitGBUFFER"
             };
 
             //TODO to gbuffer hlsl
-struct GBuffer
-{
-	half4 GBUFFER0 : SV_TARGET0;
-	half4 GBUFFER1 : SV_TARGET1;
-	half4 GBUFFER2 : SV_TARGET3;
-	half4 GBUFFER3 : SV_TARGET4;
-};
-//
+            struct GBuffer
+            {
+                half4 GBUFFER0 : SV_TARGET0;
+                half4 GBUFFER1 : SV_TARGET1;
+                half4 GBUFFER2 : SV_TARGET3;
+                half4 GBUFFER3 : SV_TARGET4;
+            };
+
+            //
+            half2 SpheremapEncodeNormal(float3 n)
+            {
+                half p = sqrt(n.z * 8 + 8);
+                return half4(n.xy / p + 0.5, 0, 0);
+            }
 
             Varyings BSRPStylizedVertex(Attributes IN)
             {
@@ -306,14 +311,14 @@ struct GBuffer
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
-               
+
 
                 GBuffer gbo;
                 gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);
                 gbo.GBUFFER1 = half4(radiance, surface.metallic); //radiance & dir shadow
-                gbo.GBUFFER2 = float4(surface.normal.rgb * 0.5 + 0.5, 1.0);
+                gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, surface.normal.rgb))), 0.0, 0.0);
                 gbo.GBUFFER3 = float4(go + emissionColor + rim, 1.0);
-                
+
                 return gbo;
             }
             ENDHLSL
