@@ -36,7 +36,7 @@ public class BSRP : RenderPipeline
 
     private LightingSetupPass _lightingSetupPass = new LightingSetupPass();
     private SetupPass _setupPass = new SetupPass();
-    private DrawGeometryPass _drawGeometryPass = new DrawGeometryPass();
+    private DrawOpaquePass _drawOpaquePass = new DrawOpaquePass();
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
@@ -122,8 +122,8 @@ public class BSRP : RenderPipeline
 
             _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera, _container);
 
-            _drawGeometryPass.DrawGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
-                _container, camera.cullingMask, true);
+            _drawOpaquePass.DrawOpaqueGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
+                _container, camera.cullingMask);
            
             _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
             _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);

@@ -4,7 +4,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes.Data
 {
-    public class DrawGeometryPassData
+    public class DrawOpaqueGeometryPassData
     {
         public TextureHandle ColorAttachment0;
         public TextureHandle ColorAttachment1;
@@ -13,6 +13,6 @@ namespace Barkar.BSRP.Passes.Data
 
 
         public TextureHandle DepthAttachment;
-        public RendererListHandle RendererListHandle;
+        public RendererListHandle RendererList;
     }
 }

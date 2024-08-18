@@ -29,6 +29,45 @@
 SAMPLER(sampler_linear_clamp);
 SAMPLER(sampler_point_clamp);
 
+
+//pack
+// ToRGBE - takes a float RGB value and converts it to a float RGB value with a shared exponent
+float4 ToRGBE(float4 inColor)
+{
+	float base = max(inColor.r, max(inColor.g, inColor.b));
+	int e;
+	float m = frexp(base, e);
+	return float4(saturate(inColor.rgb / exp2(e)), e + 127);
+}
+
+// FromRGBE takes a float RGB value with a sahred exponent and converts it to a 
+//	float RGB value
+float4 FromRGBE(float4 inColor)
+{
+	return float4(inColor.rgb*exp2(inColor.a - 127), inColor.a);
+}
+
+
+uint PackRGBA(float4 unpackedInput)
+{
+	uint4 u = (uint4)(unpackedInput * float4(255, 255, 255, 1.0f));
+	uint packedOutput = (u.w << 24UL) | (u.z << 16UL) | (u.y << 8UL) | u.x;
+	return packedOutput;
+}
+
+float4 UnpackRGBA(uint packedInput)
+{
+	float4 unpackedOutput;
+	uint4 p = uint4((packedInput & 0xFFUL),
+		(packedInput >> 8UL) & 0xFFUL,
+		(packedInput >> 16UL) & 0xFFUL,
+		(packedInput >> 24UL));
+
+	unpackedOutput = ((float4)p) / float4(255, 255, 255, 1.0f);
+	return unpackedOutput;
+}
+///
+
 bool IsOrthographicCamera()
 {
 	return unity_OrthoParams.w;
@@ -54,6 +93,7 @@ float DistanceSquared(float3 pA, float3 pB)
 {
 	return dot(pA - pB, pA - pB);
 }
+
 
 
 float3 DecodeNormal(float4 sample, float scale)
