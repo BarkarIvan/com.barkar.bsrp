@@ -1,6 +1,7 @@
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Data;
 using Barkar.BSRP.Passes.Bloom;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -45,13 +46,16 @@ namespace Barkar.BSRP.Passes
 
             /// bloom
             var rtinfo = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
+            float aspect = (float)rtinfo.width / (float)rtinfo.height;
+            bloomPassData.OriginalSize = new Vector2Int((int)(480 * aspect), 480);
             
-            bloomPassData.OriginalSize = new Vector2Int(rtinfo.width, rtinfo.height);
+            //TODO maybe opcional between 480p and downsampling
+           // bloomPassData.OriginalSize = new Vector2Int(rtinfo.width, rtinfo.height);
             bloomPassData.BloomMaterial = bloomMaterial;
-            
+           
 
-            var width = bloomPassData.OriginalSize.x >> settings.Downsample;
-            var height = bloomPassData.OriginalSize.y >> settings.Downsample;
+            var width = bloomPassData.OriginalSize.x;// >> settings.Downsample;
+            var height = bloomPassData.OriginalSize.y;// >> settings.Downsample;
             TextureDesc textureDescriptor = new TextureDesc(width, height);
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             textureDescriptor.name = "Bloom Pass Texture [0]";
