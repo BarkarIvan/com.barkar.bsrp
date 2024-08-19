@@ -18,6 +18,7 @@ public class BSRP : RenderPipeline
     private readonly ShaderTagId[] _commonShaderTags =
         { new ShaderTagId("BSRPGBuffer"), new ShaderTagId("SRPDefaultUnlit") };
 
+    private readonly ShaderTagId[] _transpatentShaaderTag = { new ShaderTagId("BSRPTransparent") };
     private ContextContainer _container;
 
     private Vector2Int textureSize = default;

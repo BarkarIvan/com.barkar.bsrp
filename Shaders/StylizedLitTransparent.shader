@@ -1,4 +1,4 @@
-Shader "BSRP/StylizedLitGBUFFER"
+Shader "BSRP/StylizedLit_Transparent"
 {
     Properties
     {
@@ -56,7 +56,7 @@ Shader "BSRP/StylizedLitGBUFFER"
     {
         Tags
         {
-            "RenderPipeline"="BSRP" "Queue"="Geometry"
+            "RenderPipeline"="BSRP"
         }
 
         Cull [_Cull]
@@ -67,14 +67,12 @@ Shader "BSRP/StylizedLitGBUFFER"
         {
             Tags
             {
-                "LightMode" = "BSRPGBuffer"
+                "LightMode" = "BSRPTransparent"
             }
 
-
-
             HLSLPROGRAM
-            #pragma vertex BSRPStylizedVertex
-            #pragma fragment BSRPStylizedFragment
+            #pragma vertex StylizedTransparentVertex
+            #pragma fragment StylizedTransparentFragment
 
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local _ADDITIONALMAP
@@ -82,7 +80,6 @@ Shader "BSRP/StylizedLitGBUFFER"
             #pragma shader_feature_local _EMISSION
             #pragma shader_feature_local _BRUSHTEX
             #pragma shader_feature_local _USEALPHACLIP
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 
             #pragma multi_compile_fog
 
@@ -96,6 +93,7 @@ Shader "BSRP/StylizedLitGBUFFER"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBRDF.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
 
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/OITUtils.hlsl"
             //to inputs include
 
             TEXTURE2D(_BaseMap);
@@ -106,6 +104,8 @@ Shader "BSRP/StylizedLitGBUFFER"
             SAMPLER(sampler_EmissionMap);
             TEXTURE2D(_BrushTexture);
             SAMPLER(sampler_BrushTexture);
+
+            
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
@@ -142,7 +142,6 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half _ReflectBrushStrength;
             CBUFFER_END
 
-
             struct Attributes
             {
                 float3 positionOS : POSITION;
@@ -163,22 +162,11 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half3 tangentWS : TEXCOORD3;
                 half3 bitangentWS : TEXCOORD4;
                 #endif
-                float4 shadowCoord : TEXCOORD5;
                 half3 SH : TEXCOORD6;
                 half4 color : COLOR;
             };
 
-            //TODO to gbuffer hlsl
-            struct GBuffer
-            {
-                half4 GBUFFER0 : SV_TARGET0;
-                half4 GBUFFER1 : SV_TARGET1;
-                half4 GBUFFER2 : SV_TARGET3;
-                half4 GBUFFER3 : SV_TARGET4;
-            };
-
-            
-            Varyings BSRPStylizedVertex(Attributes IN)
+            Varyings StylizedTransparentVertex(Attributes IN)
             {
                 Varyings OUT;
                 VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS);
@@ -202,12 +190,11 @@ Shader "BSRP/StylizedLitGBUFFER"
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.addUv = TRANSFORM_TEX(IN.uv, _AdditionalMap);
                 OUT.color = IN.color;
-                OUT.shadowCoord = GetShadowCoord(positionInputs);
 
                 return OUT;
             }
 
-            GBuffer BSRPStylizedFragment(Varyings IN): SV_Target
+            void StylizedTransparentFragment(Varyings IN): SV_Target
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -251,10 +238,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                 surface.alpha = step(_AlphaClip, surface.alpha);
                 #endif
 
-                half4 shadowCoord = IN.shadowCoord;
-
-
-                Light light = GetMainLight(shadowCoord, IN.positionWS);
+                Light light = GetMainLight(IN.positionWS);
                 half NoL = dot(surface.normal, light.direction);
 
                 Ramp ramp;
@@ -276,7 +260,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp,
                                    NoL, brush,half3(_MedBrushStrength, _ShadowBrushStrength, _ReflectBrushStrength));
                 #else
-                half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp, NoL, 0, 0);
+                half3 radiance = CalculateStylizedRadiance(ramp, NoL, 0, 0);
                 #endif
 
                 //brdf
@@ -289,13 +273,15 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half3 envirReflection = GetReflectionProbe(surface);
                 envirReflection *= surface.metallic + MIN_REFLECTIVITY;
                 envirReflection *= albedo.rgb;
-                go += envirReflection;
+                result.rgb = saturate(go + envirReflection);
+                result.a = surface.alpha;
 
                 //rim
-                half3 rim = 0;
                 #if defined (_RIM)
                 half NoV = dot(surface.viewDir, surface.normal);
-                rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
+                half3 rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
+                result.rgb += rim;
+                result.rgb = saturate(result.rgb);
                 #endif
 
                 //Emission
@@ -305,15 +291,19 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
+                result.rgb += emissionColor;
 
+                //LOD
+                //  #ifdef LOD_FADE_CROSSFADE
+                //  LODFadeCrossFade(IN.positionCS);
+                // #endif
 
-                GBuffer gbo;
-                gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);
-                gbo.GBUFFER1 = half4(radiance, surface.metallic); //radiance & dir shadow
-                gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, surface.normal.rgb))), 0.0, 0.0);
-                gbo.GBUFFER3 = float4(go + emissionColor + rim, 1.0);
+                //FOG
+                #if (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+                result.rgb = CalculateFog(result, IN.positionWS);
+                #endif
 
-                return gbo;
+               // return result;
             }
             ENDHLSL
         }
@@ -383,6 +373,7 @@ Shader "BSRP/StylizedLitGBUFFER"
 
             half4 ShadowPassFragment(Varyings input) : SV_TARGET
             {
+                //dItHERED?
                 return 0;
             }
             ENDHLSL
