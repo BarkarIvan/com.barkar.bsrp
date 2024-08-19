@@ -30,7 +30,7 @@ public class BSRP : RenderPipeline
     private Material _deferredFinalPassMaterial;
     private Material _screenSpaceShadowMaterial;
     private Material _postFXMaterial;
-    
+
     private GlobalKeyword _useLensDirtKeyword;
     private GlobalKeyword _useBloomKeyWord;
 
@@ -46,7 +46,7 @@ public class BSRP : RenderPipeline
     private PointLightTileCullingPass _pointLightTileCullingPass = new PointLightTileCullingPass();
     private DrawSkyboxPass _drawSkyboxPass = new DrawSkyboxPass();
     private BloomPass _bloomPass = new BloomPass();
-    
+
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;
@@ -56,17 +56,17 @@ public class BSRP : RenderPipeline
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
-        
+
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
         _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
         _postFXMaterial = CoreUtils.CreateEngineMaterial("Hidden/PostEffectPasses");
-        
+
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         _bloomSettings = bloomSettings;
         _container = new ContextContainer();
-        
+
         _useLensDirtKeyword = GlobalKeyword.Create("_USE_LENSDIRT");
         _useBloomKeyWord = GlobalKeyword.Create("_USE_BLOOM");
     }
@@ -78,10 +78,9 @@ public class BSRP : RenderPipeline
 
         foreach (Camera camera in cameras)
         {
-            
             Shader.SetKeyword(_useBloomKeyWord, _bloomSettings.BloomEnable);
             Shader.SetKeyword(_useLensDirtKeyword, _bloomSettings.UseLensDirt);
-            
+
             textureSize.x = (int)(camera.pixelWidth * _renderScale);
             textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
@@ -124,14 +123,12 @@ public class BSRP : RenderPipeline
 
             _drawOpaquePass.DrawOpaqueGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
-           
+
             _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
-            _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
 
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
 
-           
 
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
@@ -143,8 +140,9 @@ public class BSRP : RenderPipeline
 
             _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
                 _defferedLightingMaterial);
-            
-          
+            _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
+
+
             if (_bloomSettings.BloomEnable)
             {
                 _bloomPass.ExecuteBloomPass(RenderGraph, _bloomSettings, _container, _postFXMaterial);
