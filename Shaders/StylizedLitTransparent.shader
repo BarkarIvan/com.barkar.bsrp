@@ -59,16 +59,17 @@ Shader "BSRP/StylizedLit_Transparent"
             "RenderPipeline"="BSRP"
         }
 
-        Cull [_Cull]
-        Blend [_Blend1] [_Blend2]
-        ZWrite [_ZWrite]
-
         Pass
         {
             Tags
             {
                 "LightMode" = "BSRPTransparent"
             }
+
+            Cull [_Cull]
+            Blend [_Blend1] [_Blend2]
+            ZWrite [_ZWrite]
+            ColorMask 0
 
             HLSLPROGRAM
             #pragma vertex StylizedTransparentVertex
@@ -84,6 +85,8 @@ Shader "BSRP/StylizedLit_Transparent"
             #pragma multi_compile_fog
 
             #pragma prefer_hlslcc gles
+            #pragma target 5.0
+			// #pragma enable_d3d11_debug_symbols
             #pragma exclude_renderers d3d11_9x
 
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
@@ -105,7 +108,6 @@ Shader "BSRP/StylizedLit_Transparent"
             TEXTURE2D(_BrushTexture);
             SAMPLER(sampler_BrushTexture);
 
-            
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
@@ -194,7 +196,8 @@ Shader "BSRP/StylizedLit_Transparent"
                 return OUT;
             }
 
-            void StylizedTransparentFragment(Varyings IN): SV_Target
+            [earlydepthstencil]
+            void StylizedTransparentFragment(Varyings IN)
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -303,7 +306,23 @@ Shader "BSRP/StylizedLit_Transparent"
                 result.rgb = CalculateFog(result, IN.positionWS);
                 #endif
 
-               // return result;
+                // return result;
+                float depth = Linear01Depth(IN.positionCS.z, _ZBufferParams);
+                float transmission = 1.0 - result.a;
+                uint transmissionInt = (uint)(transmission * 255.0);  //  0 - 255
+                uint depthInt = (uint)(depth * 16777215.0);  //  0 - 2^24-1
+                
+                //oit
+                uint fragCount = _FragmentLinksBuffer.IncrementCounter();
+                //buffer adress
+                uint startOffsetAdress = 4 * ((_RenderSizeParams.x * (IN.positionCS.y - 0.5)) + (IN.positionCS.x - 0.5));
+                uint startOffsetOld;
+                _StartOffsetBuffer.InterlockedExchange(startOffsetAdress, fragCount, startOffsetOld);
+                Fragment fragment;
+                fragment.colour = PackRGBA(ToRGBE(result));
+                fragment.transmissionAndDepth =(transmissionInt & 0xFF) | (depthInt << 8);
+                fragment.next = startOffsetOld;
+                _FragmentLinksBuffer[fragCount] = fragment;
             }
             ENDHLSL
         }

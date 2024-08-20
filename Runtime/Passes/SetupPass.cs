@@ -12,7 +12,7 @@ namespace Barkar.BSRP.Passes.Setup
     {
         private readonly ProfilingSampler _profilingSampler = new("Setup Pass");
         private Camera _camera;
-        private Vector2Int _attachmentSize;
+        private Vector4 _attachmentSize;
 
         private BloomSettings _bloomSettings;
 
@@ -20,12 +20,12 @@ namespace Barkar.BSRP.Passes.Setup
 
 
         public void SetupDestinationTextures(RenderGraph renderGraph,
-            Vector2Int attachmetSize,
+            Vector2 attachmetSize,
             Camera camera, ContextContainer container)
         {
             _renderFunc = RenderFunction;
             _camera = camera;
-            _attachmentSize = attachmetSize;
+            _attachmentSize = new Vector4( attachmetSize.x, attachmetSize.y, 1.0f / attachmetSize.x, 1.0f / attachmetSize.y);
 
 
             using var builder =
@@ -35,7 +35,7 @@ namespace Barkar.BSRP.Passes.Setup
 
             //texture descriptor
             TextureDesc textureDescriptor =
-                new TextureDesc(_attachmentSize.x, _attachmentSize.y);
+                new TextureDesc((int)_attachmentSize.x, (int)_attachmentSize.y);
 
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
             textureDescriptor.name = "Albedo_Smoothness";
@@ -90,7 +90,7 @@ namespace Barkar.BSRP.Passes.Setup
                 RenderBufferStoreAction.Store);
 
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-
+            
             cmd.SetRenderTarget(setupPassData.ColorAttachment2, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
@@ -98,7 +98,7 @@ namespace Barkar.BSRP.Passes.Setup
             cmd.SetRenderTarget(setupPassData.ColorAttachment3, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-
+            cmd.SetGlobalVector(BSRPShaderIDs.RenderSizeParamsID, _attachmentSize);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
