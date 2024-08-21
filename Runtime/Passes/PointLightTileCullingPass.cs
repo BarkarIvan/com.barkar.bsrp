@@ -28,7 +28,7 @@ namespace Barkar.BSRP.Passes
     public class PointLightTileCullingPass
     {
         private readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Point Light Tile Culling Pass");
-        private BaseRenderFunc<PointLightTileCullingPassData, RenderGraphContext> _renderFunc;
+        private BaseRenderFunc<PointLightTileCullingPassData, ComputeGraphContext> _renderFunc;
         private Matrix4x4 _cameraProjection;
         private Vector2Int _tileCount = Vector2Int.one;
 
@@ -50,7 +50,7 @@ namespace Barkar.BSRP.Passes
         public PointLightsCullingData ExecuteTileCullingPass(RenderGraph renderGraph, ContextContainer input)
         {
             using var builder =
-                renderGraph.AddRenderPass<PointLightTileCullingPassData>(_profilingSampler.name, out var data, _profilingSampler);
+                renderGraph.AddComputePass<PointLightTileCullingPassData>(_profilingSampler.name, out var data, _profilingSampler);
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
 
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.DepthAttachment);
@@ -66,11 +66,12 @@ namespace Barkar.BSRP.Passes
             bufferDescriptor.stride = sizeof(uint);
             bufferDescriptor.target = GraphicsBuffer.Target.Structured;
             bufferDescriptor.count = _tileCount.x * _tileCount.y;
-            data.TileLightCountBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
+            data.TileLightCountBuffer = builder.UseBuffer(renderGraph.CreateBuffer(bufferDescriptor), AccessFlags.Write);
             bufferDescriptor.name = "TilePointLightIndicesBuffer";
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
-            data.TileLightIndicesBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDescriptor));
-            data.CameraDepthTexture = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
+            data.CameraDepthTexture = (destinationTextures.DepthAttachmentCopy);
+            builder.UseTexture(data.CameraDepthTexture);
+            data.TileLightIndicesBuffer = builder.UseBuffer(renderGraph.CreateBuffer(bufferDescriptor), AccessFlags.Write);
         
             /*
             var p = _cameraProjection;
@@ -83,12 +84,14 @@ namespace Barkar.BSRP.Passes
             */
 
             builder.AllowPassCulling(false);
+            builder.EnableAsyncCompute(true); // ??
+
             builder.SetRenderFunc(_renderFunc);
             return new PointLightsCullingData(data.TileLightCountBuffer, data.TileLightIndicesBuffer);
         }
 
 
-        private void RenderFunction(PointLightTileCullingPassData data, RenderGraphContext context)
+        private void RenderFunction(PointLightTileCullingPassData data, ComputeGraphContext context)
         {
             var cmd = context.cmd;
             cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_TileLightCountBuffer",
@@ -97,13 +100,15 @@ namespace Barkar.BSRP.Passes
                 data.TileLightIndicesBuffer);
 
             cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.CameraDepthTexture);
-            cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
-            cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
+        
+            //used whenn it was render pass
+            // cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
+            // cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
             cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);
             
-            cmd.ClearRandomWriteTargets();
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
+           // cmd.ClearRandomWriteTargets();
+           //  context.cmd.ExecuteCommandBuffer(cmd);
+           //  cmd.Clear();
             
             ////DEBUG
             /*
