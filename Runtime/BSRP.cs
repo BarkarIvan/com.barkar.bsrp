@@ -21,8 +21,8 @@ public class BSRP : RenderPipeline
     private readonly ShaderTagId[] _transpatentShaaderTag = { new ShaderTagId("BSRPTransparent") };
     private ContextContainer _container;
 
-    private Vector2Int textureSize = default;
-    private RenderGraphParameters renderGraphParameters;
+    private Vector2Int _textureSize = default;
+    private RenderGraphParameters _renderGraphParameters;
 
     private ShadowSettings _shadowSettings;
     private BloomSettings _bloomSettings;
@@ -38,6 +38,7 @@ public class BSRP : RenderPipeline
     private LightingSetupPass _lightingSetupPass = new LightingSetupPass();
     private SetupPass _setupPass = new SetupPass();
     private DrawOpaquePass _drawOpaquePass = new DrawOpaquePass();
+    private DrawTransparencyPass _drawTransparency = new DrawTransparencyPass();
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
@@ -82,8 +83,8 @@ public class BSRP : RenderPipeline
             Shader.SetKeyword(_useBloomKeyWord, _bloomSettings.BloomEnable);
             Shader.SetKeyword(_useLensDirtKeyword, _bloomSettings.UseLensDirt);
 
-            textureSize.x = (int)(camera.pixelWidth * _renderScale);
-            textureSize.y = (int)(camera.pixelHeight * _renderScale);
+            _textureSize.x = (int)(camera.pixelWidth * _renderScale);
+            _textureSize.y = (int)(camera.pixelHeight * _renderScale);
 
             if (!camera.TryGetCullingParameters(out ScriptableCullingParameters cullingParameters)) continue;
             cullingParameters.shadowDistance = Mathf.Min(camera.farClipPlane, _shadowSettings.ShadowMaxDistance);
@@ -93,11 +94,11 @@ public class BSRP : RenderPipeline
             if (camera.cameraType == CameraType.SceneView)
             {
                 ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
-                textureSize.x = camera.pixelWidth;
-                textureSize.y = camera.pixelHeight;
+                _textureSize.x = camera.pixelWidth;
+                _textureSize.y = camera.pixelHeight;
             }
 #endif
-            renderGraphParameters = new RenderGraphParameters
+            _renderGraphParameters = new RenderGraphParameters
             {
                 commandBuffer = CommandBufferPool.Get(),
                 currentFrameIndex = Time.frameCount,
@@ -106,7 +107,7 @@ public class BSRP : RenderPipeline
                 scriptableRenderContext = context
             };
 
-            RenderGraph.BeginRecording(renderGraphParameters);
+            RenderGraph.BeginRecording(_renderGraphParameters);
 
             BeginCameraRendering(context, camera);
 
@@ -120,7 +121,7 @@ public class BSRP : RenderPipeline
             LightingResources lightingResources =
                 _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
 
-            _setupPass.SetupDestinationTextures(RenderGraph, textureSize, camera, _container);
+            _setupPass.SetupDestinationTextures(RenderGraph, _textureSize, camera, _container);
 
             _drawOpaquePass.DrawOpaqueGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
@@ -130,13 +131,14 @@ public class BSRP : RenderPipeline
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
 
+            _drawTransparency.DrawTransparencyGeometry(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
 
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
 
             _directionalLight.DrawDirectinalLight(RenderGraph, _container, _defferedLightingMaterial);
 
-            var pointLightCullingData =
+            PointLightsCullingData pointLightCullingData =
                 _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, _container);
 
             _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
@@ -154,9 +156,9 @@ public class BSRP : RenderPipeline
             RenderGraph.EndRecordingAndExecute();
         }
 
-        context.ExecuteCommandBuffer(renderGraphParameters.commandBuffer);
+        context.ExecuteCommandBuffer(_renderGraphParameters.commandBuffer);
         context.Submit();
-        CommandBufferPool.Release(renderGraphParameters.commandBuffer);
+        CommandBufferPool.Release(_renderGraphParameters.commandBuffer);
 
         RenderGraph.EndFrame();
     }

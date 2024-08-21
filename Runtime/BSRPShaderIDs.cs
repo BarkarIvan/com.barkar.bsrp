@@ -19,7 +19,6 @@ namespace Barkar.BSRP
         public static readonly int _customBloomLensDirtTextureID = Shader.PropertyToID("_CustomBloomLensDirtTexture");
         public static readonly int _customBloomParamsID = Shader.PropertyToID("_CustomBloomParams");
         
-        
      
     }
 }

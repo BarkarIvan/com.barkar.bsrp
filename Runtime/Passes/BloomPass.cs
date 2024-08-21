@@ -48,8 +48,8 @@ namespace Barkar.BSRP.Passes
             var rtinfo = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
             float aspect = (float)rtinfo.width / (float)rtinfo.height;
             bloomPassData.OriginalSize = new Vector2Int((int)(480 * aspect), 480);
-            
-            //TODO maybe opcional between 480p and downsampling
+            //TODO check orientation
+            //TODO maybe optional between 480p and downsampling
            // bloomPassData.OriginalSize = new Vector2Int(rtinfo.width, rtinfo.height);
             bloomPassData.BloomMaterial = bloomMaterial;
            
@@ -102,7 +102,9 @@ namespace Barkar.BSRP.Passes
             bloomPassData.BlurPassOffset = settings.BlurOffset;
             bloomPassData.BlurPassesCount = settings.BlurPassesCount;
             bloomPassData.UseLensDirt = settings.UseLensDirt;
-            bloomPassData.BloomEnable = settings.BloomEnable;
+            bloomPassData.BloomEnable = settings.BloomEnable; 
+            
+            //where is builder methods for global texture? only compute pass?
             builder.SetRenderFunc(_renderFunc);
         }
 
@@ -172,7 +174,7 @@ namespace Barkar.BSRP.Passes
                     cmd.Clear();
                 }
             }
-            
+            //to resources?
             cmd.SetGlobalTexture(BSRPShaderIDs.BloomTextureID, data.BloomPassTexture);
             cmd.SetGlobalTexture(BSRPShaderIDs._customBloomLensDirtTextureID, data.LensDirtTexture);
             cmd.SetGlobalVector(BSRPShaderIDs._customBloomParamsID, data.BloomParams);

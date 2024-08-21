@@ -1,0 +1,21 @@
+#pragma kernel RenderTransparent
+
+#include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
+#include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
+#include "Packages/com.barkar.bsrp/ShaderLibrary/OITUtils.hlsl"
+
+Texture2D<float> _LightAccumTexture : register(t1);
+RWStructuredBuffer<Fragment> _FragmentLinksBuffer : register(u1);
+RWByteAddressBuffer _StartOffsetBuffer : register(u2);
+
+
+
+[numthreads(8, 8, 1)]
+void RenderTransparent(uint3 groupId : SV_GroupID, uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint groupIdx : SV_GroupIndex)
+{
+
+    
+}
+
+
+

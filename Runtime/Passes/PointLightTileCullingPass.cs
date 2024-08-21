@@ -23,8 +23,7 @@ namespace Barkar.BSRP.Passes
             TileLightIndicesBuffer = tileLightIndicesBuffer;
         }
     }
-
-
+    
     public class PointLightTileCullingPass
     {
         private readonly ProfilingSampler _profilingSampler = new ProfilingSampler("Point Light Tile Culling Pass");
@@ -34,14 +33,12 @@ namespace Barkar.BSRP.Passes
 
         private ComputeShader _tileGenerateShader;
 
-        //DEBUG
         private int _tilesGenerateKernelIndex;
         private uint _tileSizeX;
         private uint _tileSizeY;
         private int _keernelIndex;
         private int _perTileLightMaxCount = 32;
         
-
         public PointLightTileCullingPass()
         {
             _renderFunc = RenderFunction;
@@ -70,7 +67,7 @@ namespace Barkar.BSRP.Passes
             bufferDescriptor.name = "TilePointLightIndicesBuffer";
             bufferDescriptor.count = (_tileCount.x * _tileCount.y) * _perTileLightMaxCount;
             data.CameraDepthTexture = (destinationTextures.DepthAttachmentCopy);
-            builder.UseTexture(data.CameraDepthTexture);
+            builder.UseTexture(data.CameraDepthTexture); 
             data.TileLightIndicesBuffer = builder.UseBuffer(renderGraph.CreateBuffer(bufferDescriptor), AccessFlags.Write);
         
             /*
@@ -101,7 +98,7 @@ namespace Barkar.BSRP.Passes
 
             cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.CameraDepthTexture);
         
-            //used whenn it was render pass
+            //used when it was render pass
             // cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
             // cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
             cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);

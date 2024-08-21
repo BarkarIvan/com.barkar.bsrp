@@ -10,6 +10,7 @@ namespace Barkar.BSRP.Passes
     {
         public RendererListHandle RendererList;
         public TextureHandle DepthAttachment;
+        public TextureHandle Destination;
         public BufferHandle FragmentLinksBuffer;
         public BufferHandle StartOffsetBuffer;
     }
@@ -23,6 +24,12 @@ namespace Barkar.BSRP.Passes
         private RendererListDesc _rendererListDesc;
         private BaseRenderFunc<DrawTransparencyPassData, RenderGraphContext> _renderFunc;
 
+        
+        //move to another compute pass
+        private ComputeShader _renderTransparencyCompute;
+        private int _renderTransparencyKernel;
+        
+        //
         public DrawTransparencyPass()
         {
             _renderFunc = RenderFunction;
@@ -69,7 +76,17 @@ namespace Barkar.BSRP.Passes
             bufferDesc.stride = sizeof(uint);
             bufferDesc.target = GraphicsBuffer.Target.Raw;
             data.StartOffsetBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDesc));
+
+            data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
+            data.Destination = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
+           
+            //to compute pass
+            _renderTransparencyCompute = BSRPResourcesLoader.RenderTransparentComputeShader;
+            _renderTransparencyKernel = _renderTransparencyCompute.FindKernel("RenderTransparent");
+          
+            //
             
+            builder.AllowPassCulling(false); //del
             builder.SetRenderFunc(_renderFunc);
         }
 
@@ -79,15 +96,15 @@ namespace Barkar.BSRP.Passes
             
             cmd.SetRandomWriteTarget(1, data.FragmentLinksBuffer);
             cmd.SetRandomWriteTarget(2, data.StartOffsetBuffer);
-            
             cmd.DrawRendererList(data.RendererList);
+            cmd.ClearRandomWriteTargets();
+            
+            //TODO Separate to compute pass!
+            //render transparency WIP
+            
             
             context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.ClearRandomWriteTargets();
             cmd.Clear();
-            
-            
-            
         }
     }
 }

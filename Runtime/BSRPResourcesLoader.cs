@@ -6,7 +6,8 @@ namespace Barkar.BSRP
     public class BSRPResourcesLoader
     {
         public static ComputeShader PointLightsTileCullingComputeShader { get; private set; }
-
+        public static ComputeShader RenderTransparentComputeShader { get; private set; }
+        
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void LoadStaticAssetsRuntime()
         {
@@ -24,6 +25,7 @@ namespace Barkar.BSRP
         private static void LoadStaticAssets()
         {
             PointLightsTileCullingComputeShader = Resources.Load<ComputeShader>("PointLightsTileCullingComputeShader");
+            RenderTransparentComputeShader = Resources.Load<ComputeShader>("RenderTransparentComputeShader");
         }
     }
 }

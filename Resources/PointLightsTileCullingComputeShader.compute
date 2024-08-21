@@ -10,8 +10,8 @@ RWStructuredBuffer<int> _TileLightIndicesBuffer : register(u1);
 groupshared int minDepthShared;
 groupshared int maxDepthShared;
 
-groupshared int tileVisibleLightIndices[MAX_LIGHT_COUNT];
-groupshared int tileVisibleLightCount = 0;
+groupshared uint tileVisibleLightIndices[MAX_LIGHT_COUNT];
+groupshared uint tileVisibleLightCount = 0;
 
 bool Intersects(float4 positionView, float radius, float4 frustumPlanes[6])
 {
@@ -26,10 +26,9 @@ bool Intersects(float4 positionView, float radius, float4 frustumPlanes[6])
 
 
 [numthreads(TILESIZE, TILESIZE, 1)]
-void PointLightTileCulling(int3 threadID : SV_GroupThreadID, int3 groupID : SV_GroupID, int groupIdx : SV_GroupIndex)
+void PointLightTileCulling(uint3 threadID : SV_GroupThreadID, uint3 groupID : SV_GroupID, uint groupIdx : SV_GroupIndex)
 {
-    
-    int2 textureSize;
+    uint2 textureSize;
     _DepthTexture.GetDimensions(textureSize.x, textureSize.y);
 
     float2 uv = (float2(groupID.xy * TILESIZE + threadID.xy) + 0.5f) / textureSize;
@@ -65,7 +64,7 @@ void PointLightTileCulling(int3 threadID : SV_GroupThreadID, int3 groupID : SV_G
     frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, maxDepth); //far
     frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, -minDepth); // near
 
-    [unroll] for (int p = 0; p < 4; ++p)
+    [unroll] for (uint p = 0; p < 4; ++p)
     {
         frustumPlanes[p] *= rcp(length(frustumPlanes[p].xyz));
     }

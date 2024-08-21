@@ -44,12 +44,6 @@ Shader "BSRP/StylizedLit_Transparent"
         _MedBrushStrength("Brush strength on Medium", Range(0,1)) = 0
         _ShadowBrushStrength("Brush strength on Shadows", Range(0,1)) = 0
         _ReflectBrushStrength("Brush strength on Reflection", Range(0,1)) = 0
-
-        [Space(40)]
-        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Int) = 2
-        [Enum(UnityEngine.Rendering.BlendMode)] _Blend1 ("Blend mode", Float) = 1
-        [Enum(UnityEngine.Rendering.BlendMode)] _Blend2 ("Blend mode", Float) = 0
-        [Enum(Off,0,On,1)] _ZWrite ("ZWrite", Float) = 1
     }
 
     SubShader
@@ -65,11 +59,12 @@ Shader "BSRP/StylizedLit_Transparent"
             {
                 "LightMode" = "BSRPTransparent"
             }
-
-            Cull [_Cull]
-            Blend [_Blend1] [_Blend2]
-            ZWrite [_ZWrite]
-            ColorMask 0
+            Name "Create Linked List"
+            
+            ZTest LEqual
+			ZWrite Off
+			ColorMask 0
+			Cull Off
 
             HLSLPROGRAM
             #pragma vertex StylizedTransparentVertex
@@ -144,6 +139,10 @@ Shader "BSRP/StylizedLit_Transparent"
                 half _ReflectBrushStrength;
             CBUFFER_END
 
+            
+                RWStructuredBuffer<Fragment> _FragmentLinksBuffer : register(u1);
+                RWByteAddressBuffer _StartOffsetBuffer : register(u2);
+
             struct Attributes
             {
                 float3 positionOS : POSITION;
@@ -197,7 +196,7 @@ Shader "BSRP/StylizedLit_Transparent"
             }
 
             [earlydepthstencil]
-            void StylizedTransparentFragment(Varyings IN)
+            half4  StylizedTransparentFragment(Varyings IN) : SV_Target
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -269,7 +268,6 @@ Shader "BSRP/StylizedLit_Transparent"
                 //brdf
                 BRDF brdf = GetBRDF(surface);
                 lightColor *= DirectBRDF(surface, brdf, light) * radiance;
-
                 half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
 
                 //reflectionProbe
@@ -311,7 +309,9 @@ Shader "BSRP/StylizedLit_Transparent"
                 float transmission = 1.0 - result.a;
                 uint transmissionInt = (uint)(transmission * 255.0);  //  0 - 255
                 uint depthInt = (uint)(depth * 16777215.0);  //  0 - 2^24-1
-                
+
+
+                //TODO to oit utils
                 //oit
                 uint fragCount = _FragmentLinksBuffer.IncrementCounter();
                 //buffer adress
@@ -323,11 +323,12 @@ Shader "BSRP/StylizedLit_Transparent"
                 fragment.transmissionAndDepth =(transmissionInt & 0xFF) | (depthInt << 8);
                 fragment.next = startOffsetOld;
                 _FragmentLinksBuffer[fragCount] = fragment;
+                return result;
             }
             ENDHLSL
         }
 
-        //to shadowcaster hlsl
+        //to shadowcaster include
 
         Pass
         {
@@ -399,5 +400,5 @@ Shader "BSRP/StylizedLit_Transparent"
         }
     }
 
-    CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
+   // CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
 }
