@@ -81,6 +81,8 @@ Shader "BSRP/StylizedLit"
             #pragma shader_feature_local _BRUSHTEX
             #pragma shader_feature_local _USEALPHACLIP
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
+
             #pragma multi_compile_fog
 
             #pragma prefer_hlslcc gles
@@ -205,7 +207,7 @@ Shader "BSRP/StylizedLit"
                 surface.metallic = _Metallic;
                 surface.smoothness = _Smoothness;
                 surface.normal = SafeNormalize(IN.normalWS.xyz);
-                surface.color = albedo.rgb;
+                surface.albedo = albedo.rgb;
                 surface.alpha = albedo.a;
                 surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
 
@@ -237,13 +239,8 @@ Shader "BSRP/StylizedLit"
                 surface.alpha = step(_AlphaClip, surface.alpha);
                 #endif
 
-                //light
-                half4 shadowCoord = half4(0, 0, 0, 0);
-                #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-                shadowCoord = IN.shadowCoord;
-                #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-                shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
-                #endif
+                 half4 shadowCoord = IN.shadowCoord;
+               
 
                 Light light = GetMainLight(shadowCoord, IN.positionWS);
                 half NoL = dot(surface.normal, light.direction);
@@ -340,7 +337,7 @@ Shader "BSRP/StylizedLit"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
+                half3 normalOS : NORMAL;
             };
 
             struct Varyings
@@ -351,14 +348,14 @@ Shader "BSRP/StylizedLit"
             float4 GetShadowPositionHClip(Attributes input)
             {
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
-              //  half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
+                half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
 
                 //apply bias
-               // half invNdotL = 1.0 - saturate(dot(MainLightDirectionaAndMask.xyz, normalWS.xyz));
-                //half scale = invNdotL * MainLightShadowsData.y;
+                half invNdotL = 1.0 - saturate(dot(MainLightDirectionaAndMask.xyz, normalWS.xyz));
+                half scale = invNdotL * MainLightShadowsData.y;
 
-                //positionWS = _MainLightPosition.xyz * _ShadowBias.xxx + positionWS.xyz;
-                //positionWS = normalWS * scale.xxx + positionWS;
+                positionWS = MainLightDirectionaAndMask.xyz * MainLightShadowsData.yyy + positionWS.xyz;
+                positionWS = normalWS * scale.xxx + positionWS;
                 //
                 float4 positionCS = TransformWorldToHClip(positionWS);
 

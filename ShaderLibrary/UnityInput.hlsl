@@ -9,6 +9,16 @@ SAMPLER(samplerunity_SpecCube0);
 TEXTURECUBE(unity_SpecCube1);
 SAMPLER(samplerunity_SpecCube1);
 
+#define PER_TILE_LIGHT_COUNT 32
+#define MAX_LIGHT_COUNT 1024
+
+#define TILESIZE 16
+#define TILE_GROUP_SIZE (TILESIZE * TILESIZE)
+
+int PointLightCount;
+float4 PointLightColors[MAX_LIGHT_COUNT];
+float4 PointLightPositionsAndRadius[MAX_LIGHT_COUNT];
+
 
 CBUFFER_START(UnityPerDraw)
 	float4x4 unity_ObjectToWorld;
@@ -47,6 +57,7 @@ float4x4 unity_MatrixV;
 float4x4 unity_MatrixInvV;
 float4x4 unity_prev_MatrixM;
 float4x4 unity_prev_MatrixIM;
+float4x4 unity_MatrixIVP;
 float4x4 glstate_matrix_projection;
 
 float3 _WorldSpaceCameraPos;
@@ -54,6 +65,7 @@ float3 _WorldSpaceCameraPos;
 float4 unity_OrthoParams;
 float4 _ProjectionParams;
 float4 _ScreenParams;
+float4 _RenderSizeParams;
 float4 _ZBufferParams;
 
 real4 glstate_lightmodel_ambient;

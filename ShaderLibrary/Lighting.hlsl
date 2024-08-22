@@ -99,7 +99,7 @@ half3 CalculateStylizedRadiance(half attenuation, Ramp ramp, half NoL, half3 bru
 
     half smoothMed = LinearStep(ramp.MediumThreshold - ramp.MediumSmooth, ramp.MediumThreshold + ramp.MediumSmooth, halfLambertMed);
     half3 colorMed = lerp(ramp.MediumColor, 1, smoothMed);
-    half smoothShadow = LinearStep(ramp.ShadowThreshold - ramp.ShadowSmooth, ramp.ShadowThreshold + ramp.ShadowSmooth, halfLambertShadow* (attenuation*(NoL))); 
+    half smoothShadow = LinearStep(ramp.ShadowThreshold - ramp.ShadowSmooth, ramp.ShadowThreshold + ramp.ShadowSmooth, halfLambertShadow ); 
     half3 colorShadow = lerp(ramp.ShadowColor, colorMed, smoothShadow);
     half smoothRefl = LinearStep(ramp.ReflectThreshold - ramp.ReflectSmooth, ramp.ReflectThreshold + ramp.ReflectSmooth, halfLambertRefl);
     half3 colorRefl = lerp(ramp.ReflectColor, colorShadow, smoothRefl);
@@ -107,5 +107,28 @@ half3 CalculateStylizedRadiance(half attenuation, Ramp ramp, half NoL, half3 bru
     
 } 
 
+
+half3 CalculateStylizedRadiance( Ramp ramp, half NoL, half3 brush, half3 brushStrenghtRGB)
+{
+    
+    #if defined (_BRUSHTEX)
+    half halfLambertMed = NoL * lerp(0.5, brush.r, brushStrenghtRGB.r)+0.5;
+    half halfLambertShadow = NoL * lerp(0.5, brush.g, brushStrenghtRGB.g)+0.5;
+    half halfLambertRefl = NoL * lerp(0.5, brush.b, brushStrenghtRGB.b)+0.5;
+    #else
+    half halfLambertMed = 0.5*NoL+0.5;
+    half halfLambertShadow = halfLambertMed;
+    half halfLambertRefl = halfLambertMed;
+    #endif
+
+    half smoothMed = LinearStep(ramp.MediumThreshold - ramp.MediumSmooth, ramp.MediumThreshold + ramp.MediumSmooth, halfLambertMed);
+    half3 colorMed = lerp(ramp.MediumColor, 1, smoothMed);
+    half smoothShadow = LinearStep(ramp.ShadowThreshold - ramp.ShadowSmooth, ramp.ShadowThreshold + ramp.ShadowSmooth, halfLambertShadow); 
+    half3 colorShadow = lerp(ramp.ShadowColor, colorMed, smoothShadow);
+    half smoothRefl = LinearStep(ramp.ReflectThreshold - ramp.ReflectSmooth, ramp.ReflectThreshold + ramp.ReflectSmooth, halfLambertRefl);
+    half3 colorRefl = lerp(ramp.ReflectColor, colorShadow, smoothRefl);
+    return colorRefl;
+    
+} 
 
 #endif

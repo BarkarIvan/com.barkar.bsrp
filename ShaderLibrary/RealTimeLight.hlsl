@@ -24,9 +24,18 @@ Light GetMainLight(float4 shadowCoord, float3 positionWS)
 {
     Light mainLight;
     mainLight.color =  MainLightColor;
-    mainLight.direction = MainLightDirectionaAndMask.xyz;
+    mainLight.direction = SafeNormalize(MainLightDirectionaAndMask.xyz);
     mainLight.layerMask = MainLightDirectionaAndMask.w;
     mainLight.shadowAttenuation = SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
+    return mainLight;
+}
+
+Light GetMainLight(float3 positionWS)
+{
+    Light mainLight;
+    mainLight.color =  MainLightColor;
+    mainLight.direction = MainLightDirectionaAndMask.xyz;
+    mainLight.layerMask = MainLightDirectionaAndMask.w;
     return mainLight;
 }
 

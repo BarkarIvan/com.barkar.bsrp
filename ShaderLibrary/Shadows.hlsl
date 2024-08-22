@@ -38,9 +38,9 @@ float4 TransformWorldToShadowCoord(float3 positionWS)
    // half cascadeIndex = half(0.0);
    // #endif
 
-    float4 shadowCoord = mul(_MainLightMatrix, float4(positionWS, 1.0));
+    float4 shadowCoord = mul(_MainLightMatrix, float4(positionWS.xyz , 1.0));
 
-    return float4(shadowCoord.xyz, 0);
+    return float4(shadowCoord.xyz, 1.0);
 }
 
 float4 GetShadowCoord(VertexPositionInputs vertexInput)
@@ -48,7 +48,7 @@ float4 GetShadowCoord(VertexPositionInputs vertexInput)
    // #if defined(_MAIN_LIGHT_SHADOWS_SCREEN) && !defined(_SURFACE_TYPE_TRANSPARENT)
    // return ComputeScreenPos(vertexInput.positionCS);
    // #else
-    return TransformWorldToShadowCoord(vertexInput.positionWS);
+    return TransformWorldToShadowCoord(vertexInput.positionWS + MainLightShadowsData.y);
     //#endif
 }
 

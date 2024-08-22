@@ -1,17 +1,35 @@
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.CameraRenderer
 {
-    public readonly ref struct RenderDestinationTextures
+    public class RenderDestinationTextures : ContextItem
     {
-        public readonly TextureHandle ColorAttachment;
-        public readonly TextureHandle DepthAttachment;
+        public  TextureHandle ColorAttachment0;
+        public  TextureHandle ColorAttachment1;
+        public  TextureHandle ColorAttachment2;
+        public  TextureHandle ColorAttachment3;
 
-        public RenderDestinationTextures(TextureHandle colorAttachment, TextureHandle depthAttachment)
+        public  TextureHandle DepthAttachment;
+        public  TextureHandle DepthAttachmentCopy;
+        public TextureHandle LightTextureCopy;
+
+      
+        public RenderDestinationTextures()
         {
-            ColorAttachment = colorAttachment;
-            DepthAttachment = depthAttachment;
+            ColorAttachment0 = default;
+            ColorAttachment1 = default;
+            ColorAttachment2 = default;
+            ColorAttachment3 = default;
+            DepthAttachment = default;
+            DepthAttachmentCopy = default;
+            LightTextureCopy = default;
         }
+
+        public override void Reset()
+        {
+            
+        }
+        
     }
-}
-  
+}  

@@ -5,11 +5,15 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
 #include "UnityInput.hlsl"
 
+
+
+
 #define UNITY_MATRIX_M unity_ObjectToWorld
 #define UNITY_MATRIX_I_M unity_WorldToObject
 #define UNITY_MATRIX_V unity_MatrixV
 #define UNITY_MATRIX_I_V unity_MatrixInvV
 #define UNITY_MATRIX_VP unity_MatrixVP
+#define UNITY_MATRIX_I_VP unity_MatrixIVP
 #define UNITY_MATRIX_P glstate_matrix_projection
 #define UNITY_PREV_MATRIX_M unity_prev_MatrixM
 #define UNITY_PREV_MATRIX_I_M unity_prev_MatrixIM
@@ -24,6 +28,45 @@
 
 SAMPLER(sampler_linear_clamp);
 SAMPLER(sampler_point_clamp);
+
+
+//pack
+// ToRGBE - takes a float RGB value and converts it to a float RGB value with a shared exponent
+float4 ToRGBE(float4 inColor)
+{
+	float base = max(inColor.r, max(inColor.g, inColor.b));
+	int e;
+	float m = frexp(base, e);
+	return float4(saturate(inColor.rgb / exp2(e)), e + 127);
+}
+
+// FromRGBE takes a float RGB value with a sahred exponent and converts it to a 
+//	float RGB value
+float4 FromRGBE(float4 inColor)
+{
+	return float4(inColor.rgb*exp2(inColor.a - 127), inColor.a);
+}
+
+
+uint PackRGBA(float4 unpackedInput)
+{
+	uint4 u = (uint4)(unpackedInput * float4(255, 255, 255, 1.0f));
+	uint packedOutput = (u.w << 24UL) | (u.z << 16UL) | (u.y << 8UL) | u.x;
+	return packedOutput;
+}
+
+float4 UnpackRGBA(uint packedInput)
+{
+	float4 unpackedOutput;
+	uint4 p = uint4((packedInput & 0xFFUL),
+		(packedInput >> 8UL) & 0xFFUL,
+		(packedInput >> 16UL) & 0xFFUL,
+		(packedInput >> 24UL));
+
+	unpackedOutput = ((float4)p) / float4(255, 255, 255, 1.0f);
+	return unpackedOutput;
+}
+///
 
 bool IsOrthographicCamera()
 {
@@ -52,6 +95,7 @@ float DistanceSquared(float3 pA, float3 pB)
 }
 
 
+
 float3 DecodeNormal(float4 sample, float scale)
 {
 	#if defined(UNITY_NO_DXT5nm)
@@ -59,6 +103,12 @@ float3 DecodeNormal(float4 sample, float scale)
 	#else
 	    return normalize(UnpackNormalmapRGorAG(sample, scale));
 	#endif
+}
+
+half2 SpheremapEncodeNormal(float3 n)
+{
+	half p = sqrt(n.z * 8 + 8);
+	return half4(n.xy / p + 0.5, 0, 0);
 }
 
 float3 NormalTangentToWorld(float3 normalTS, float3 normalWS, float4 tangentWS)

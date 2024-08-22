@@ -5,7 +5,7 @@ struct Surface
 {
     half3 normal;
     half3 viewDir;
-    half3 color;
+    half3 albedo;
     half alpha;
     half metallic;
     half smoothness;

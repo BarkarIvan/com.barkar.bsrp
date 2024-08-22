@@ -5,6 +5,8 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
 
 #define MIN_REFLECTIVITY 0.04
+#define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04) // standard dielectric reflectivity coef at incident angle (= 4%)
+
 
 struct BRDF
 {
@@ -15,20 +17,40 @@ struct BRDF
 
 half OneMinusReflectivity(half metallic)
 {
-    half range = 1.0 - MIN_REFLECTIVITY;
+    half range = kDielectricSpec.a;
     return range - metallic * range;
 }
 
+
+half MetallicFromReflectivity(half reflectivity)
+{
+    half oneMinusDielectricSpec = kDielectricSpec.a;
+    return (reflectivity - kDielectricSpec.r) / oneMinusDielectricSpec;
+}
+
 BRDF GetBRDF(Surface surface)
+ {
+     BRDF brdf;
+ 
+     half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
+ 
+     brdf.diffuse = surface.albedo * oneMinusReflectivity;
+     brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, (surface.metallic));
+     half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
+     brdf.roughness = max(PerceptualRoughnessToRoughness(perceptualRoughness), HALF_MIN_SQRT);
+     return brdf;
+ }
+
+BRDF GetBRDFGBuffer(Surface surface)
 {
     BRDF brdf;
 
     half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
 
-    brdf.diffuse = surface.color * oneMinusReflectivity;
-    brdf.specular = lerp(MIN_REFLECTIVITY, surface.color, surface.metallic);
+    brdf.diffuse = surface.albedo * oneMinusReflectivity;
+    brdf.specular = lerp(kDielectricSpec.rgb, surface.albedo, surface.metallic);
     half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
-    brdf.roughness = PerceptualRoughnessToRoughness(perceptualRoughness);
+    brdf.roughness = max(PerceptualRoughnessToRoughness(perceptualRoughness), HALF_MIN_SQRT);
     return brdf;
 }
 
@@ -38,9 +60,9 @@ BRDF GetBRDFPremultiplyAlpha(Surface surface)
 
     half oneMinusReflectivity = OneMinusReflectivity(surface.metallic);
 
-    brdf.diffuse = surface.color * oneMinusReflectivity;
+    brdf.diffuse = surface.albedo * oneMinusReflectivity;
     brdf.diffuse *= surface.alpha;
-    brdf.specular = lerp(MIN_REFLECTIVITY, surface.color, surface.metallic);
+    brdf.specular = lerp(MIN_REFLECTIVITY, surface.albedo, surface.metallic);
     half perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness);
     brdf.roughness = PerceptualRoughnessToRoughness(perceptualRoughness);
     return brdf;
@@ -73,7 +95,7 @@ half3 DirectBRDF(Surface surface, BRDF brdf, Light light)
 
 
 //SpecOps approach
-half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 specularTerm )
+half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 specularTerm )
 {
     half g = 1.0h - surface.smoothness;
     half4 t = half4(1.042h, 0.475h, 0.0182h, 0.25h);
@@ -83,7 +105,7 @@ half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 s
     half a0 = t.x * min(t.y, exp2(-9.28h * NoV)) + t.z;
     half a1 = t.w;
     half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
-    return specularTerm + ((indirectDiffuse * brdf.diffuse) + tempC * (specularTerm * brdf.specular));
+    return specularTerm + ((brdf.diffuse) + tempC * (specularTerm * brdf.specular));
 }
 
 ///STYLIZED
@@ -97,7 +119,20 @@ half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 s
     half a0 = t.x * min(t.y, exp2(-9.28h * NoV)) + t.z;
     half a1 = t.w;
     half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
-    return (specularTerm  + (indirectDiffuse * brdf.diffuse  + tempC * (specularTerm * brdf.specular) )) * radiance;
+    return (specularTerm  + (indirectDiffuse * brdf.diffuse  + tempC * (specularTerm * brdf.specular) ))* radiance;
+}
+/// delete
+half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 specularTerm, half3 radiance )
+{
+    half g = 1.0h - surface.smoothness;
+    half4 t = half4(1.042h, 0.475h, 0.0182h, 0.25h);
+    t *= half4(g, g, g, g);
+    t += half4(0, 0, -0.0156h, 0.75h);
+    half NoV = saturate(dot(surface.normal, surface.viewDir));
+    half a0 = t.x * min(t.y, exp2(-9.28h * NoV)) + t.z;
+    half a1 = t.w;
+    half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
+    return (specularTerm  + (brdf.diffuse* radiance  + tempC * (specularTerm * brdf.specular) ));
 }
 
 #endif
