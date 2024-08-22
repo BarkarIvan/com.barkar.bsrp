@@ -60,11 +60,11 @@ Shader "BSRP/StylizedLit_Transparent"
                 "LightMode" = "BSRPTransparent"
             }
             Name "Create Linked List"
-            
+
             ZTest LEqual
-			ZWrite Off
-			ColorMask 0
-			Cull Off
+            ZWrite Off
+            ColorMask 0
+            Cull Off
 
             HLSLPROGRAM
             #pragma vertex StylizedTransparentVertex
@@ -81,7 +81,7 @@ Shader "BSRP/StylizedLit_Transparent"
 
             #pragma prefer_hlslcc gles
             #pragma target 5.0
-			// #pragma enable_d3d11_debug_symbols
+            // #pragma enable_d3d11_debug_symbols
             #pragma exclude_renderers d3d11_9x
 
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
@@ -139,9 +139,6 @@ Shader "BSRP/StylizedLit_Transparent"
                 half _ReflectBrushStrength;
             CBUFFER_END
 
-            
-                RWStructuredBuffer<Fragment> _FragmentLinksBuffer : register(u1);
-                RWByteAddressBuffer _StartOffsetBuffer : register(u2);
 
             struct Attributes
             {
@@ -196,7 +193,7 @@ Shader "BSRP/StylizedLit_Transparent"
             }
 
             [earlydepthstencil]
-            half4  StylizedTransparentFragment(Varyings IN) : SV_Target
+            half4 StylizedTransparentFragment(Varyings IN) : SV_Target
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -305,22 +302,30 @@ Shader "BSRP/StylizedLit_Transparent"
                 #endif
 
                 // return result;
+
+                //to vertex
+                float3 ndcPos = IN.positionCS.xyz / IN.positionCS.w;
+                uint2 screenPos;
+                screenPos.x = (uint)((ndcPos.x * 0.5 + 0.5) * _RenderSizeParams.x);
+                screenPos.y = (uint)((ndcPos.y * 0.5 + 0.5) * _RenderSizeParams.y);
+
                 float depth = Linear01Depth(IN.positionCS.z, _ZBufferParams);
                 float transmission = 1.0 - result.a;
-                uint transmissionInt = (uint)(transmission * 255.0);  //  0 - 255
-                uint depthInt = (uint)(depth * 16777215.0);  //  0 - 2^24-1
+                uint transmissionInt = (uint)(transmission * 255.0); //  0 - 255
+                uint depthInt = (uint)(depth * 16777215.0); //  0 - 2^24-1
 
 
                 //TODO to oit utils
                 //oit
                 uint fragCount = _FragmentLinksBuffer.IncrementCounter();
                 //buffer adress
-                uint startOffsetAdress = 4 * ((_RenderSizeParams.x * (IN.positionCS.y - 0.5)) + (IN.positionCS.x - 0.5));
+                uint startOffsetAddress = 4 * (_RenderSizeParams.x * screenPos.y + screenPos.x);
+
                 uint startOffsetOld;
-                _StartOffsetBuffer.InterlockedExchange(startOffsetAdress, fragCount, startOffsetOld);
+                _StartOffsetBuffer.InterlockedExchange(startOffsetAddress, fragCount, startOffsetOld);
                 Fragment fragment;
                 fragment.colour = PackRGBA(ToRGBE(result));
-                fragment.transmissionAndDepth =(transmissionInt & 0xFF) | (depthInt << 8);
+                fragment.transmissionAndDepth = (transmissionInt & 0xFF) | (depthInt << 8);
                 fragment.next = startOffsetOld;
                 _FragmentLinksBuffer[fragCount] = fragment;
                 return result;
@@ -400,5 +405,5 @@ Shader "BSRP/StylizedLit_Transparent"
         }
     }
 
-   // CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
+    // CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
 }

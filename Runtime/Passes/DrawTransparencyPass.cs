@@ -14,22 +14,27 @@ namespace Barkar.BSRP.Passes
         public BufferHandle FragmentLinksBuffer;
         public BufferHandle StartOffsetBuffer;
     }
-    
+
     public class DrawTransparencyPass
     {
         private readonly ProfilingSampler _profilingSampler = new("Draw Transparent Objects");
 
-        private int nodesPerPixel = 5;
-        
-        private RendererListDesc _rendererListDesc;
-        private BaseRenderFunc<DrawTransparencyPassData, RenderGraphContext> _renderFunc;
+        private readonly int nodesPerPixel = 5;
 
-        
+        private RendererListDesc _rendererListDesc;
+        private readonly BaseRenderFunc<DrawTransparencyPassData, RenderGraphContext> _renderFunc;
+
+
         //move to another compute pass
         private ComputeShader _renderTransparencyCompute;
         private int _renderTransparencyKernel;
-        
+
+        private Vector2 _textureSize;
+
+        private int _temCount;
         //
+
+
         public DrawTransparencyPass()
         {
             _renderFunc = RenderFunction;
@@ -41,7 +46,7 @@ namespace Barkar.BSRP.Passes
             using var builder =
                 renderGraph.AddRenderPass<DrawTransparencyPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
-            
+
             _rendererListDesc =
                 new RendererListDesc(shaderTagIds, cullingResults, camera)
                 {
@@ -54,17 +59,16 @@ namespace Barkar.BSRP.Passes
                                             PerObjectData.LightProbe |
                                             PerObjectData.OcclusionProbe |
                                             PerObjectData.LightProbeProxyVolume |
-                                            PerObjectData.OcclusionProbeProxyVolume,
-
+                                            PerObjectData.OcclusionProbeProxyVolume
                 };
 
             data.RendererList = builder.UseRendererList(renderGraph.CreateRendererList(_rendererListDesc));
-           
-            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
+
+            var destinationTextures = input.Get<RenderDestinationTextures>();
             data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
 
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
-            BufferDesc bufferDesc = new BufferDesc();
+            var bufferDesc = new BufferDesc();
             bufferDesc.name = "Fragment links buffer";
             bufferDesc.count = info.width * info.height * nodesPerPixel;
             bufferDesc.stride = sizeof(uint) * 4; //col, transmission, depth, next
@@ -79,13 +83,13 @@ namespace Barkar.BSRP.Passes
 
             data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             data.Destination = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
-           
+
             //to compute pass
             _renderTransparencyCompute = BSRPResourcesLoader.RenderTransparentComputeShader;
             _renderTransparencyKernel = _renderTransparencyCompute.FindKernel("RenderTransparent");
-          
-            //
-            
+            _textureSize = new Vector2(info.width, info.height);
+           _temCount = info.width * info.height;
+           
             builder.AllowPassCulling(false); //del
             builder.SetRenderFunc(_renderFunc);
         }
@@ -96,13 +100,27 @@ namespace Barkar.BSRP.Passes
             
             cmd.SetRandomWriteTarget(1, data.FragmentLinksBuffer);
             cmd.SetRandomWriteTarget(2, data.StartOffsetBuffer);
+            cmd.SetRandomWriteTarget(0, data.Destination);
             cmd.DrawRendererList(data.RendererList);
             cmd.ClearRandomWriteTargets();
-            
+            context.renderContext.ExecuteCommandBuffer(cmd);
+        
             //TODO Separate to compute pass!
             //render transparency WIP
-            
-            
+            //!!
+            uint[] reset = new uint[_temCount];
+            var b = (GraphicsBuffer)data.StartOffsetBuffer;
+            b.SetData(reset);
+            //
+            cmd.SetBufferCounterValue(data.FragmentLinksBuffer, 0);
+            cmd.SetComputeBufferParam(_renderTransparencyCompute, _renderTransparencyKernel, "_FragmentLinksBuffer",
+                data.FragmentLinksBuffer);
+            cmd.SetComputeBufferParam(_renderTransparencyCompute, _renderTransparencyKernel, "_StartOffsetBuffer",
+                data.StartOffsetBuffer);
+            cmd.SetComputeTextureParam(_renderTransparencyCompute, _renderTransparencyKernel, "_LightAccumTexture",
+                data.Destination);
+            cmd.DispatchCompute(_renderTransparencyCompute, _renderTransparencyKernel,(int)(_textureSize.x / 8), (int)(_textureSize.y / 8f), 1);
+
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

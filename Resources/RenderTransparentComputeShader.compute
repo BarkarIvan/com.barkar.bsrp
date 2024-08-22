@@ -4,18 +4,61 @@
 #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/OITUtils.hlsl"
 
-Texture2D<float> _LightAccumTexture : register(t1);
-RWStructuredBuffer<Fragment> _FragmentLinksBuffer : register(u1);
-RWByteAddressBuffer _StartOffsetBuffer : register(u2);
-
+RWTexture2D<float4> _LightAccumTexture : register(u0);
 
 
 [numthreads(8, 8, 1)]
 void RenderTransparent(uint3 groupId : SV_GroupID, uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint groupIdx : SV_GroupIndex)
 {
+    uint2 pos = dispatchThreadId.xy;
+    Fragment frags[MAX_SORTED_PIXELS];
 
-    
+    int numFrags = 0;
+    uint offsetAddress = 4 * (_RenderSizeParams.x * pos.y + pos.x);
+    uint offset = _StartOffsetBuffer.Load(offsetAddress);
+
+    //copy list to array
+    [loop]
+    while(offset != UINT_MAX && numFrags < MAX_SORTED_PIXELS)
+    {
+        frags[numFrags] = _FragmentLinksBuffer[offset];
+        numFrags++;
+        offset = frags[numFrags - 1].next;
+    }
+
+    //sort
+    [loop]
+    for(uint i = 1; i < numFrags; i++)
+    {
+        Fragment insertFrag = frags[i];
+        float depth = float(insertFrag.transmissionAndDepth >> 8) / 16777215.0f;
+        float transmission = float(insertFrag.transmissionAndDepth & 0xFF) / 255.0f;
+
+        uint j = i;
+        float pDepth = float(frags[j-1].transmissionAndDepth >> 8) / 16777215.0f;
+
+        while(j > 0 && depth > pDepth)
+        {
+            frags[j] = frags[j-1];
+            j--;
+            if (j > 0)
+                pDepth = float(frags[j-1].transmissionAndDepth >> 8) / 16777215.0f;
+        }
+        frags[j] = insertFrag;
+    }
+
+    //color
+    float3 col = _LightAccumTexture[dispatchThreadId.xy].rgb;
+
+    //combine
+    for(uint i = 0; i < numFrags; i++)
+    {
+        Fragment frag = frags[i];
+        float transmission = float(frag.transmissionAndDepth & 0xFF)/ 255.0f;
+        float depth = float(frag.transmissionAndDepth >> 8) / 16777215.0f;
+        float3 rgb = FromRGBE(UnpackRGBA(frag.colour)).rgb;
+        col = transmission;// lerp(rgb, col, transmission);
+    }
+
+    _LightAccumTexture[pos] =  float4(col, 1.0f);
 }
-
-
-

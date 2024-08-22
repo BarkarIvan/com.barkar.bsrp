@@ -46,9 +46,11 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "Light_Accumulate";
+            textureDescriptor.enableRandomWrite = true; // TODO: 
             // textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
+            textureDescriptor.enableRandomWrite = false;
             textureDescriptor.name = "Light_Texture_Copy";
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             TextureHandle lightCopyTexture = renderGraph.CreateTexture(textureDescriptor);
