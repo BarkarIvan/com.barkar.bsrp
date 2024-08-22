@@ -5,6 +5,9 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.RendererUtils;
 using UnityEngine.Rendering.RenderGraphModule;
 
+namespace Barkar.BSRP.Passes
+{
+  
 public class DrawOpaquePass
 {
     private readonly ProfilingSampler _profilingSampler = new("Draw Opaque Pass");
@@ -80,4 +83,5 @@ public class DrawOpaquePass
         context.renderContext.ExecuteCommandBuffer(context.cmd);
         context.cmd.Clear();
     }
+}
 }
