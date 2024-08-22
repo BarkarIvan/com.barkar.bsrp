@@ -71,18 +71,18 @@ namespace Barkar.BSRP.Passes
             var bufferDesc = new BufferDesc();
             bufferDesc.name = "Fragment links buffer";
             bufferDesc.count = info.width * info.height * nodesPerPixel;
-            bufferDesc.stride = sizeof(uint) * 4; //col, transmission, depth, next
+            bufferDesc.stride = sizeof(uint) + sizeof(float) * 6; //col, transmission, depth, next
             bufferDesc.target = GraphicsBuffer.Target.Counter;
             data.FragmentLinksBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDesc));
 
             bufferDesc.name = "Start Offset Buffer";
-            bufferDesc.count = info.width * info.height;
+            bufferDesc.count = info.width * info.height ;
             bufferDesc.stride = sizeof(uint);
             bufferDesc.target = GraphicsBuffer.Target.Raw;
             data.StartOffsetBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDesc));
 
             data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
-            data.Destination = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
+            data.Destination = destinationTextures.ColorAttachment3;
 
             //to compute pass
             _renderTransparencyCompute = BSRPResourcesLoader.RenderTransparentComputeShader;
@@ -103,11 +103,13 @@ namespace Barkar.BSRP.Passes
             cmd.SetRandomWriteTarget(0, data.Destination);
             cmd.DrawRendererList(data.RendererList);
             cmd.ClearRandomWriteTargets();
+
             context.renderContext.ExecuteCommandBuffer(cmd);
-        
-            //TODO Separate to compute pass!
+            cmd.Clear();
+           
+            //TODO Separate to compute pass
             //render transparency WIP
-            //!!
+            //todo reset into compute
             uint[] reset = new uint[_temCount];
             var b = (GraphicsBuffer)data.StartOffsetBuffer;
             b.SetData(reset);
@@ -119,7 +121,9 @@ namespace Barkar.BSRP.Passes
                 data.StartOffsetBuffer);
             cmd.SetComputeTextureParam(_renderTransparencyCompute, _renderTransparencyKernel, "_LightAccumTexture",
                 data.Destination);
-            cmd.DispatchCompute(_renderTransparencyCompute, _renderTransparencyKernel,(int)(_textureSize.x / 8), (int)(_textureSize.y / 8f), 1);
+            int groupsX = Mathf.CeilToInt(_textureSize.x / 8f);
+            int groupsY = Mathf.CeilToInt(_textureSize.y / 8f);
+            cmd.DispatchCompute(_renderTransparencyCompute, _renderTransparencyKernel,groupsX, groupsY, 1);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

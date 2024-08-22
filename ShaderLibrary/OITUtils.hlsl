@@ -5,8 +5,11 @@
 
 struct Fragment
 {
-    uint colour;
-    uint transmissionAndDepth;
+   // uint colour;
+    float4 testColor;
+   // uint transmissionAndDepth;
+    float testdepth;
+    float testtransmission;
     uint next;
 };
 RWStructuredBuffer<Fragment> _FragmentLinksBuffer : register(u1);

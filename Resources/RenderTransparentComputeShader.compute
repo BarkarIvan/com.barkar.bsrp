@@ -6,9 +6,20 @@
 
 RWTexture2D<float4> _LightAccumTexture : register(u0);
 
+float GetDepth(uint encoded)
+{
+    uint depthInt = encoded >> 8;
+    return float(depthInt) / 16777215.0;
+}
+
+float GetTransmission(uint encoded)
+{
+    uint transmissionInt = encoded & 255;
+    return float(transmissionInt) / 255.0;
+}
 
 [numthreads(8, 8, 1)]
-void RenderTransparent(uint3 groupId : SV_GroupID, uint3 dispatchThreadId : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint groupIdx : SV_GroupIndex)
+void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
     uint2 pos = dispatchThreadId.xy;
     Fragment frags[MAX_SORTED_PIXELS];
@@ -19,30 +30,27 @@ void RenderTransparent(uint3 groupId : SV_GroupID, uint3 dispatchThreadId : SV_D
 
     //copy list to array
     [loop]
-    while(offset != UINT_MAX && numFrags < MAX_SORTED_PIXELS)
+    while (offset != UINT_MAX && numFrags < MAX_SORTED_PIXELS)
     {
         frags[numFrags] = _FragmentLinksBuffer[offset];
         numFrags++;
-        offset = frags[numFrags - 1].next;
+        offset = frags[offset].next;
     }
 
     //sort
     [loop]
-    for(uint i = 1; i < numFrags; i++)
+    for (uint i = 1; i < numFrags; i++)
     {
         Fragment insertFrag = frags[i];
-        float depth = float(insertFrag.transmissionAndDepth >> 8) / 16777215.0f;
-        float transmission = float(insertFrag.transmissionAndDepth & 0xFF) / 255.0f;
+        float depth = insertFrag.testdepth;//GetDepth(insertFrag.transmissionAndDepth);
 
         uint j = i;
-        float pDepth = float(frags[j-1].transmissionAndDepth >> 8) / 16777215.0f;
+        float pDepth = frags[j-1].testdepth;//GetDepth(frags[j - 1].transmissionAndDepth);
 
-        while(j > 0 && depth > pDepth)
+        while (j > 0 && depth > pDepth)
         {
-            frags[j] = frags[j-1];
+            frags[j] = frags[j - 1];
             j--;
-            if (j > 0)
-                pDepth = float(frags[j-1].transmissionAndDepth >> 8) / 16777215.0f;
         }
         frags[j] = insertFrag;
     }
@@ -51,14 +59,13 @@ void RenderTransparent(uint3 groupId : SV_GroupID, uint3 dispatchThreadId : SV_D
     float3 col = _LightAccumTexture[dispatchThreadId.xy].rgb;
 
     //combine
-    for(uint i = 0; i < numFrags; i++)
+    for (uint i = 0; i < numFrags; i++)
     {
         Fragment frag = frags[i];
-        float transmission = float(frag.transmissionAndDepth & 0xFF)/ 255.0f;
-        float depth = float(frag.transmissionAndDepth >> 8) / 16777215.0f;
-        float3 rgb = FromRGBE(UnpackRGBA(frag.colour)).rgb;
-        col = transmission;// lerp(rgb, col, transmission);
+        float transmission = frag.testtransmission;//GetTransmission(frag.transmissionAndDepth);
+        float3 rgb = frag.testColor;//FromRGBE(UnpackRGBA(frag.colour)).rgb;
+        col = lerp(rgb, col, transmission);
     }
 
-    _LightAccumTexture[pos] =  float4(col, 1.0f);
+    _LightAccumTexture[pos] = float4(col, 1.0f);
 }

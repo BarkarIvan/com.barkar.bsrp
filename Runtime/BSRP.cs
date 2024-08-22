@@ -130,9 +130,9 @@ public class BSRP : RenderPipeline
 
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
-
-            _drawTransparency.DrawTransparencyGeometry(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
-
+            //WIP
+           // _drawTransparency.DrawTransparencyGeometry(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
+           //
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
 
