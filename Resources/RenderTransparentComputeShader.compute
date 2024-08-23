@@ -1,4 +1,5 @@
 #pragma kernel RenderTransparent
+#pragma kernel ResetStartOffsetBuffer
 
 #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
@@ -17,6 +18,13 @@ float GetTransmission(uint encoded)
     uint transmissionInt = encoded & 255;
     return float(transmissionInt) / 255.0;
 }
+
+[numthreads(64,1,1)]
+void ResetStartOffsetBuffer(uint3 dispatchThreadID)
+{
+    _LightAccumTexture[dispatchThreadID.x] = 0;
+}
+
 
 [numthreads(8, 8, 1)]
 void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
