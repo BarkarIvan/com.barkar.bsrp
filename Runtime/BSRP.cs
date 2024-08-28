@@ -39,6 +39,7 @@ public class BSRP : RenderPipeline
     private SetupPass _setupPass = new SetupPass();
     private DrawOpaquePass _drawOpaquePass = new DrawOpaquePass();
     private CreatePerPixelLinkedListPass _createPerPixelLinkedList = new CreatePerPixelLinkedListPass();
+    private RenderTransparencyPPLLPass _renderTransparency = new RenderTransparencyPPLLPass();
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
@@ -131,8 +132,9 @@ public class BSRP : RenderPipeline
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
             //WIP
-            _createPerPixelLinkedList.DrawTransparencyGeometry(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
-           //
+            _createPerPixelLinkedList.ExecutePass(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
+          _renderTransparency.DrawTransparencyGeometry(RenderGraph, _container);
+            //
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
 

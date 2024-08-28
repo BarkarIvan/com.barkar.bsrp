@@ -319,7 +319,7 @@ Shader "BSRP/StylizedLit_Transparent"
                 //oit
                 uint fragCount = _FragmentLinksBuffer.IncrementCounter();
                 //buffer adress
-                uint startOffsetAddress = 4 * (_RenderSizeParams.x * screenPos.y + screenPos.x);
+                uint startOffsetAddress = 4 * ((_RenderSizeParams.x * screenPos.y) + screenPos.x);
 
                 uint startOffsetOld;
                 _StartOffsetBuffer.InterlockedExchange(startOffsetAddress, fragCount, startOffsetOld);

@@ -6,6 +6,22 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
+    
+    //TEMP!!!!
+    
+    public class PerPixelLinkedListData : ContextItem
+    {
+        public BufferHandle FragmentLinksBuffer;
+        public BufferHandle StartOffsetBuffer;
+        
+        public override void Reset()
+        {
+            FragmentLinksBuffer = default;
+            StartOffsetBuffer = default;
+        }
+    }
+    
+    //
     public class CreatePerPixelLinkedListPassData
     {
         public RendererListHandle RendererList;
@@ -40,7 +56,7 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void DrawTransparencyGeometry(RenderGraph renderGraph, ShaderTagId[] shaderTagIds, Camera camera,
+        public void ExecutePass(RenderGraph renderGraph, ShaderTagId[] shaderTagIds, Camera camera,
             CullingResults cullingResults, in ContextContainer input, int renderingLayerMask)
         {
             using var builder =
@@ -91,6 +107,10 @@ namespace Barkar.BSRP.Passes
            */
             builder.AllowPassCulling(false); //del
             builder.SetRenderFunc(_renderFunc);
+            var output = input.GetOrCreate<PerPixelLinkedListData>();
+            output.FragmentLinksBuffer = data.FragmentLinksBuffer;
+            output.StartOffsetBuffer = data.StartOffsetBuffer;
+
         }
 
         private void RenderFunction(CreatePerPixelLinkedListPassData data, RenderGraphContext context)

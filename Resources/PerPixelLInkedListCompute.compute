@@ -1,5 +1,5 @@
-#pragma kernel RenderTransparent
 #pragma kernel ResetStartOffsetBuffer
+#pragma kernel RenderTransparent
 
 #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
@@ -19,10 +19,11 @@ float GetTransmission(uint encoded)
     return float(transmissionInt) / 255.0;
 }
 
-[numthreads(64,1,1)]
+[numthreads(8, 1, 1)]
 void ResetStartOffsetBuffer(uint3 dispatchThreadID)
 {
-    _LightAccumTexture[dispatchThreadID.x] = 0;
+  //  uint index = dispatchThreadID.x; 
+  //  _StartOffsetBuffer.Store(index, 0);  
 }
 
 
@@ -35,7 +36,7 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
     int numFrags = 0;
     uint offsetAddress = 4 * (_RenderSizeParams.x * pos.y + pos.x);
     uint offset = _StartOffsetBuffer.Load(offsetAddress);
-
+    
     //copy list to array
     [loop]
     while (offset != UINT_MAX && numFrags < MAX_SORTED_PIXELS)
@@ -64,8 +65,9 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
     }
 
     //color
-    float3 col = _LightAccumTexture[dispatchThreadId.xy].rgb;
+    float3 col = _LightAccumTexture[pos].rgb;
 
+    float t;
     //combine
     for (uint i = 0; i < numFrags; i++)
     {
@@ -73,7 +75,9 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
         float transmission = frag.testtransmission;//GetTransmission(frag.transmissionAndDepth);
         float3 rgb = frag.testColor;//FromRGBE(UnpackRGBA(frag.colour)).rgb;
         col = lerp(rgb, col, transmission);
+         t = offset;
     }
 
-    _LightAccumTexture[pos] = float4(col, 1.0f);
+    _LightAccumTexture[pos] = float4(t, t, t, 1.0f);
+   
 }

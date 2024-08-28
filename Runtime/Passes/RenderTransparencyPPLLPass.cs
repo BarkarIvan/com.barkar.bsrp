@@ -9,9 +9,9 @@ namespace Barkar.BSRP.Passes
     public class RenderTransparencyPPLLPassData
     
     {
-        public RendererListHandle RendererList;
-        public TextureHandle DepthAttachment;
-     //   public TextureHandle Destination;
+       // public RendererListHandle RendererList;
+       // public TextureHandle DepthAttachment;
+        public TextureHandle Destination;
         public BufferHandle FragmentLinksBuffer;
         public BufferHandle StartOffsetBuffer;
     }
@@ -29,6 +29,7 @@ namespace Barkar.BSRP.Passes
         //move to another compute pass
         private ComputeShader _renderTransparencyCompute;
         private int _renderTransparencyKernel;
+        private int _clearBufferKernel;
 
         private Vector2 _textureSize;
 
@@ -41,41 +42,42 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void DrawTransparencyGeometry(RenderGraph renderGraph, ShaderTagId[] shaderTagIds, Camera camera,
-            CullingResults cullingResults, in ContextContainer input, int renderingLayerMask)
+        public void DrawTransparencyGeometry(RenderGraph renderGraph, in ContextContainer input)
         {
             using var builder =
-                renderGraph.AddComputePass<CreatePerPixelLinkedListPassData>(_profilingSampler.name, out var data,
+                renderGraph.AddComputePass<RenderTransparencyPPLLPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
 
             
             var destinationTextures = input.Get<RenderDestinationTextures>();
-         
+            var inputData = input.Get<PerPixelLinkedListData>();
 
-          //  data.Destination = destinationTextures.ColorAttachment3;
-/*
+            builder.UseTexture(destinationTextures.ColorAttachment3);
+            data.Destination = destinationTextures.ColorAttachment3;
+            data.FragmentLinksBuffer = builder.UseBuffer(inputData.FragmentLinksBuffer);
+            data.StartOffsetBuffer = builder.UseBuffer(inputData.StartOffsetBuffer);
+
+            var info = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
             //to compute pass
-            _renderTransparencyCompute = BSRPResourcesLoader.RenderTransparentComputeShader;
+            _renderTransparencyCompute = BSRPResourcesLoader.RenderTransparencyCompute;
             _renderTransparencyKernel = _renderTransparencyCompute.FindKernel("RenderTransparent");
+            _clearBufferKernel = _renderTransparencyCompute.FindKernel("ResetStartOffsetBuffer");
             _textureSize = new Vector2(info.width, info.height);
            _temCount = info.width * info.height;
-           */
+           
             builder.AllowPassCulling(false); //del
             builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(RenderTransparencyPPLLPassData data, ComputeGraphContext context)
         {
-            var cmd = context.cmd;
-       
-            /*
-            //TODO Separate to compute pass
-            //render transparency WIP
+            
             //todo reset into compute
             uint[] reset = new uint[_temCount];
             var b = (GraphicsBuffer)data.StartOffsetBuffer;
             b.SetData(reset);
             //
+            var cmd = context.cmd;
             cmd.SetBufferCounterValue(data.FragmentLinksBuffer, 0);
             cmd.SetComputeBufferParam(_renderTransparencyCompute, _renderTransparencyKernel, "_FragmentLinksBuffer",
                 data.FragmentLinksBuffer);
@@ -86,10 +88,8 @@ namespace Barkar.BSRP.Passes
             int groupsX = Mathf.CeilToInt(_textureSize.x / 8f);
             int groupsY = Mathf.CeilToInt(_textureSize.y / 8f);
             cmd.DispatchCompute(_renderTransparencyCompute, _renderTransparencyKernel,groupsX, groupsY, 1);
-
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
-            */
+         //   cmd.DispatchCompute(_renderTransparencyCompute, _clearBufferKernel, _temCount/8, 1,1 );
+         
         }
     }
 }
