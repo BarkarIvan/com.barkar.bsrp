@@ -305,10 +305,10 @@ Shader "BSRP/StylizedLit_Transparent"
 
                 //to vertex
                 float3 ndcPos = IN.positionCS.xyz / IN.positionCS.w;
-                uint2 screenPos;
-                screenPos.x = (uint)((ndcPos.x * 0.5 + 0.5) * _RenderSizeParams.x);
-                screenPos.y = (uint)((ndcPos.y * 0.5 + 0.5) * _RenderSizeParams.y);
-                screenPos = IN.positionCS;
+                float3 pos;
+                pos.x = (uint)((ndcPos.x * 0.5 + 0.5) * _RenderSizeParams.x);
+                pos.y = (uint)((ndcPos.y * 0.5 + 0.5) * _RenderSizeParams.y);
+                pos = IN.positionCS;
                 float depth = Linear01Depth(IN.positionCS.z, _ZBufferParams);
                 float transmission = 1.0 - result.a;
                 uint transmissionInt = (uint)(transmission * 255.0); //  0 - 255
@@ -319,7 +319,7 @@ Shader "BSRP/StylizedLit_Transparent"
                 //oit
                 uint fragCount = _FragmentLinksBuffer.IncrementCounter();
                 //buffer adress
-                uint startOffsetAddress = 4 * ((_RenderSizeParams.x * screenPos.y) + screenPos.x);
+                uint startOffsetAddress = 4 * ((_RenderSizeParams.x * (pos.y-0.5)) + (pos.x-0.5));
 
                 uint startOffsetOld;
                 _StartOffsetBuffer.InterlockedExchange(startOffsetAddress, fragCount, startOffsetOld);
