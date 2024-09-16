@@ -5,7 +5,7 @@
 #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/OITUtils.hlsl"
 
-RWTexture2D<float4> _LightAccumTexture : register(u0);
+RWTexture2D<float4> _LightAccumTexture : register(u3);
 
 float GetDepth(uint encoded)
 {
@@ -19,11 +19,11 @@ float GetTransmission(uint encoded)
     return float(transmissionInt) / 255.0;
 }
 
-[numthreads(8, 1, 1)]
-void ResetStartOffsetBuffer(uint3 dispatchThreadID)
+[numthreads(32, 32, 1)]
+void ResetStartOffsetBuffer(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
-  //  uint index = dispatchThreadID.x; 
-  //  _StartOffsetBuffer.Store(index, 0);  
+    uint index = 4 * (_RenderSizeParams.x * dispatchThreadId.y + dispatchThreadId.x); 
+    _StartOffsetBuffer.Store(index, UINT_MAX);  
 }
 
 
@@ -40,24 +40,29 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
     //copy list to array
     [loop]
     int numFrags = 0;
-    while (offset != 0)// && numFrags < MAX_SORTED_PIXELS)
+    while (offset != UINT_MAX && numFrags < MAX_SORTED_PIXELS)
     {
         frags[numFrags] = _FragmentLinksBuffer[offset];
         numFrags++;
-        offset = (numFrags >= MAX_SORTED_PIXELS) ? 0 :  frags[offset].next;
+        offset = _FragmentLinksBuffer[offset].next;
     }
 
     //sort
     [loop]
-    for (uint i = 1; i < numFrags; i++)
+    for (int i = 1; i < numFrags; i++)
     {
+       // int m = i;
+       // for( int j = i + 1; j < numFrags; j++)
+       // {
+       //     if(frags[j].testdepth > frags[m].testdepth) m = j;
+       // }
+       //     Fragment t = frags[i];
+       //     frags[i] = frags[m];
+       //     frags[m] = t;
+        
         Fragment insertFrag = frags[i];
-        float depth = insertFrag.testdepth;//GetDepth(insertFrag.transmissionAndDepth);
-
         uint j = i;
-        float pDepth = frags[j-1].testdepth;//GetDepth(frags[j - 1].transmissionAndDepth);
-
-        while (j > 0 && depth > pDepth)
+        while (j > 0 && insertFrag.testdepth > frags[j-1].testdepth)
         {
             frags[j] = frags[j - 1];
             j--;
@@ -70,15 +75,15 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     float t;
     //combine
-    for (uint i = 0; i < numFrags; i++)
+    for (int k = 0; k < numFrags; k++)
     {
-        Fragment frag = frags[i];
-        float transmission = frag.testtransmission;//GetTransmission(frag.transmissionAndDepth);
-        float3 rgb = frag.testColor;//FromRGBE(UnpackRGBA(frag.colour)).rgb;
-        col = lerp(rgb, col, transmission);
+        Fragment frag = frags[k];
+        float transmission = frag.testColor.a;//GetTransmission(frag.transmissionAndDepth);
+        float3 rgb = frag.testColor.rgb;//FromRGBE(UnpackRGBA(frag.colour)).rgb;
+        col = (col.rgb * transmission) + rgb;;//lerp(rgb, col, transmission);;//rgb * transmission + col * (1 - transmission);// //
         
     }
    
-    _LightAccumTexture[pos] = float4(col, 1.0f);
+    _LightAccumTexture[pos] = float4(col, 1.0);
    
 }

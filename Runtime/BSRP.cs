@@ -131,10 +131,7 @@ public class BSRP : RenderPipeline
 
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
-            //WIP
-            _createPerPixelLinkedList.ExecutePass(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
-          _renderTransparency.DrawTransparencyGeometry(RenderGraph, _container);
-            //
+            
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
 
@@ -145,6 +142,11 @@ public class BSRP : RenderPipeline
 
             _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
                 _defferedLightingMaterial);
+           
+            //WIP
+                        _createPerPixelLinkedList.ExecutePass(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
+                      _renderTransparency.DrawTransparencyGeometry(RenderGraph, _container);
+                        //
             _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
 
 

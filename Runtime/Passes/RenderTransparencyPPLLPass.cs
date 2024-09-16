@@ -19,8 +19,7 @@ namespace Barkar.BSRP.Passes
     public class RenderTransparencyPPLLPass
     {
         private readonly ProfilingSampler _profilingSampler = new("Draw Transparent Objects");
-
-        private readonly int nodesPerPixel = 5;
+        
 
         private RendererListDesc _rendererListDesc;
         private readonly BaseRenderFunc<RenderTransparencyPPLLPassData, ComputeGraphContext> _renderFunc;
@@ -73,9 +72,9 @@ namespace Barkar.BSRP.Passes
         {
             
             //todo reset into compute
-            uint[] reset = new uint[_temCount];
-            var b = (GraphicsBuffer)data.StartOffsetBuffer;
-            b.SetData(reset);
+           // uint[] reset = new uint[_temCount];
+          //  var b = (GraphicsBuffer)data.StartOffsetBuffer;
+          //  b.SetData(reset);
             //
             var cmd = context.cmd;
             cmd.SetBufferCounterValue(data.FragmentLinksBuffer, 0);
@@ -83,12 +82,18 @@ namespace Barkar.BSRP.Passes
                 data.FragmentLinksBuffer);
             cmd.SetComputeBufferParam(_renderTransparencyCompute, _renderTransparencyKernel, "_StartOffsetBuffer",
                 data.StartOffsetBuffer);
+            
             cmd.SetComputeTextureParam(_renderTransparencyCompute, _renderTransparencyKernel, "_LightAccumTexture",
                 data.Destination);
             int groupsX = Mathf.CeilToInt(_textureSize.x / 8f);
             int groupsY = Mathf.CeilToInt(_textureSize.y / 8f);
             cmd.DispatchCompute(_renderTransparencyCompute, _renderTransparencyKernel,groupsX, groupsY, 1);
-         //   cmd.DispatchCompute(_renderTransparencyCompute, _clearBufferKernel, _temCount/8, 1,1 );
+           
+             groupsX = Mathf.CeilToInt(_textureSize.x / 32f);
+              groupsY = Mathf.CeilToInt(_textureSize.y / 32f);
+            cmd.SetComputeBufferParam(_renderTransparencyCompute, _clearBufferKernel, "_StartOffsetBuffer",
+                data.StartOffsetBuffer);
+            cmd.DispatchCompute(_renderTransparencyCompute, _clearBufferKernel, groupsX, groupsY,1 );
          
         }
     }

@@ -35,7 +35,7 @@ namespace Barkar.BSRP.Passes
     {
         private readonly ProfilingSampler _profilingSampler = new("Draw Transparent Objects");
 
-        private readonly int nodesPerPixel = 5;
+        private readonly int nodesPerPixel = 8;
 
         private RendererListDesc _rendererListDesc;
         private readonly BaseRenderFunc<CreatePerPixelLinkedListPassData, RenderGraphContext> _renderFunc;
@@ -86,7 +86,7 @@ namespace Barkar.BSRP.Passes
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
             var bufferDesc = new BufferDesc();
             bufferDesc.name = "Fragment links buffer";
-            bufferDesc.count = info.width * info.height * nodesPerPixel;
+            bufferDesc.count = (info.width * info.height) * nodesPerPixel;
             bufferDesc.stride = sizeof(uint) + sizeof(float) * 6;//sizeof(uint) * 4; //col, transmission, depth, next
             bufferDesc.target = GraphicsBuffer.Target.Counter;
             data.FragmentLinksBuffer = builder.WriteBuffer(renderGraph.CreateBuffer(bufferDesc));
@@ -117,7 +117,7 @@ namespace Barkar.BSRP.Passes
         {
             var cmd = context.cmd;
             
-            cmd.SetRandomWriteTarget(1, data.FragmentLinksBuffer);
+            cmd.SetRandomWriteTarget(1, data.FragmentLinksBuffer, false);
             cmd.SetRandomWriteTarget(2, data.StartOffsetBuffer);
           //cmd.SetRandomWriteTarget(0, data.Destination);
             cmd.DrawRendererList(data.RendererList);

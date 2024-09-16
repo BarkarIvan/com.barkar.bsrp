@@ -1,7 +1,6 @@
 using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Data;
 using Barkar.BSRP.Passes.Bloom;
-using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;

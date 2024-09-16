@@ -26,6 +26,7 @@ Shader "BSRP/StylizedLit_Transparent"
         [Toggle(_USEALPHACLIP)] _UseAlphaClip ("Use Alpha Clip", Float) = 0
         _AlphaClip ("ClipAlha", Range(0,1)) = 0
 
+        [Toggle(_ADDITIONALMAP)] _TempAdd("TempAdditionalToggle", Float) = 0
         [Space(40)]
         _MediumThreshold ("Medium Threshold", Range(0,1)) = 0.5
         _MediumSmooth ("Medium Smooth", Range(0,0.5)) = 0.25
@@ -64,7 +65,7 @@ Shader "BSRP/StylizedLit_Transparent"
             ZTest LEqual
             ZWrite Off
             ColorMask 0
-            Cull Off
+           Cull Off
 
             HLSLPROGRAM
             #pragma vertex StylizedTransparentVertex
@@ -162,6 +163,7 @@ Shader "BSRP/StylizedLit_Transparent"
                 #endif
                 half3 SH : TEXCOORD6;
                 half4 color : COLOR;
+                float4 screenPos : TEXCOORD7;
             };
 
             Varyings StylizedTransparentVertex(Attributes IN)
@@ -188,12 +190,14 @@ Shader "BSRP/StylizedLit_Transparent"
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.addUv = TRANSFORM_TEX(IN.uv, _AdditionalMap);
                 OUT.color = IN.color;
-
+                 float4 ndc = OUT.positionCS * 0.5f;
+    OUT.screenPos.xy  = float2(ndc.x, ndc.y * _ProjectionParams.x) + ndc.w;
+OUT.screenPos.zw = OUT.positionCS.zw;
                 return OUT;
             }
 
             [earlydepthstencil]
-            half4 StylizedTransparentFragment(Varyings IN) : SV_Target
+            half4 StylizedTransparentFragment(Varyings IN)  : SV_Target
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -304,11 +308,8 @@ Shader "BSRP/StylizedLit_Transparent"
                 // return result;
 
                 //to vertex
-                float3 ndcPos = IN.positionCS.xyz / IN.positionCS.w;
-                float3 pos;
-                pos.x = (uint)((ndcPos.x * 0.5 + 0.5) * _RenderSizeParams.x);
-                pos.y = (uint)((ndcPos.y * 0.5 + 0.5) * _RenderSizeParams.y);
-                pos = IN.positionCS;
+                uint2 pos = uint2(IN.positionCS.xy);
+              //  pos = IN.screenPos.xy / IN.screenPos.w * _RenderSizeParams.xy;
                 float depth = Linear01Depth(IN.positionCS.z, _ZBufferParams);
                 float transmission = 1.0 - result.a;
                 uint transmissionInt = (uint)(transmission * 255.0); //  0 - 255
@@ -319,10 +320,12 @@ Shader "BSRP/StylizedLit_Transparent"
                 //oit
                 uint fragCount = _FragmentLinksBuffer.IncrementCounter();
                 //buffer adress
-                uint startOffsetAddress = 4 * ((_RenderSizeParams.x * (pos.y-0.5)) + (pos.x-0.5));
+                uint startOffsetAddress = 4 * ((_RenderSizeParams.x * (pos.y)) + (pos.x));
 
                 uint startOffsetOld;
                 _StartOffsetBuffer.InterlockedExchange(startOffsetAddress, fragCount, startOffsetOld);
+
+
                 Fragment fragment;
               //  fragment.colour = PackRGBA(ToRGBE(result));
                 fragment.testColor = result;
@@ -331,7 +334,7 @@ Shader "BSRP/StylizedLit_Transparent"
               //  fragment.transmissionAndDepth = (depthInt << 8) | transmissionInt;
                 fragment.next = startOffsetOld;
                 _FragmentLinksBuffer[fragCount] = fragment;
-                return result;
+                return 0;
             }
             ENDHLSL
         }
@@ -408,5 +411,5 @@ Shader "BSRP/StylizedLit_Transparent"
         }
     }
 
-    // CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
+     //CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
 }
