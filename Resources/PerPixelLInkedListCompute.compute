@@ -9,15 +9,11 @@ RWTexture2D<float4> _LightAccumTexture : register(u3);
 
 float GetDepth(uint encoded)
 {
-    uint depthInt = encoded >> 8;
-    return float(depthInt) / 16777215.0;
+    uint depthInt = encoded >> 8UL;
+    return float(depthInt) / (pow(2, 24) - 1);
 }
 
-float GetTransmission(uint encoded)
-{
-    uint transmissionInt = encoded & 255;
-    return float(transmissionInt) / 255.0;
-}
+
 
 [numthreads(32, 32, 1)]
 void ResetStartOffsetBuffer(uint3 dispatchThreadId : SV_DispatchThreadID)
@@ -51,18 +47,9 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
     [loop]
     for (int i = 1; i < numFrags; i++)
     {
-       // int m = i;
-       // for( int j = i + 1; j < numFrags; j++)
-       // {
-       //     if(frags[j].testdepth > frags[m].testdepth) m = j;
-       // }
-       //     Fragment t = frags[i];
-       //     frags[i] = frags[m];
-       //     frags[m] = t;
-        
         Fragment insertFrag = frags[i];
         uint j = i;
-        while (j > 0 && insertFrag.testdepth > frags[j-1].testdepth)
+        while (j > 0 && insertFrag.depth > frags[j-1].depth)
         {
             frags[j] = frags[j - 1];
             j--;
@@ -72,15 +59,15 @@ void RenderTransparent(uint3 dispatchThreadId : SV_DispatchThreadID)
 
     //color
     float3 col = _LightAccumTexture[pos].rgb;
-
-    float t;
+    
     //combine
     for (int k = 0; k < numFrags; k++)
     {
         Fragment frag = frags[k];
-        float transmission = frag.testColor.a;//GetTransmission(frag.transmissionAndDepth);
-        float3 rgb = frag.testColor.rgb;//FromRGBE(UnpackRGBA(frag.colour)).rgb;
-        col = (col.rgb * transmission) + rgb;;//lerp(rgb, col, transmission);;//rgb * transmission + col * (1 - transmission);// //
+        float4 rgba = UnpackRGBA(frag.color);
+        float transmission = rgba.a;
+        float3 rgb = rgba.rgb;
+        col = lerp(rgb, col, transmission);
         
     }
    

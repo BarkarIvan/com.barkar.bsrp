@@ -6,37 +6,26 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
-    public class RenderTransparencyPPLLPassData
-    
+    public class RenderPPLLPassData
     {
-       // public RendererListHandle RendererList;
-       // public TextureHandle DepthAttachment;
         public TextureHandle Destination;
         public BufferHandle FragmentLinksBuffer;
         public BufferHandle StartOffsetBuffer;
     }
 
-    public class RenderTransparencyPPLLPass
+    public class RenderPPLLPass
     {
-        private readonly ProfilingSampler _profilingSampler = new("Draw Transparent Objects");
+        private readonly ProfilingSampler _profilingSampler = new("Render OIT PPLL Compute");
         
-
         private RendererListDesc _rendererListDesc;
-        private readonly BaseRenderFunc<RenderTransparencyPPLLPassData, ComputeGraphContext> _renderFunc;
+        private readonly BaseRenderFunc<RenderPPLLPassData, ComputeGraphContext> _renderFunc;
 
-
-        //move to another compute pass
         private ComputeShader _renderTransparencyCompute;
         private int _renderTransparencyKernel;
         private int _clearBufferKernel;
-
         private Vector2 _textureSize;
-
-        private int _temCount;
-        //
-
-
-        public RenderTransparencyPPLLPass()
+        
+        public RenderPPLLPass()
         {
             _renderFunc = RenderFunction;
         }
@@ -44,9 +33,8 @@ namespace Barkar.BSRP.Passes
         public void DrawTransparencyGeometry(RenderGraph renderGraph, in ContextContainer input)
         {
             using var builder =
-                renderGraph.AddComputePass<RenderTransparencyPPLLPassData>(_profilingSampler.name, out var data,
+                renderGraph.AddComputePass<RenderPPLLPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
-
             
             var destinationTextures = input.Get<RenderDestinationTextures>();
             var inputData = input.Get<PerPixelLinkedListData>();
@@ -62,20 +50,13 @@ namespace Barkar.BSRP.Passes
             _renderTransparencyKernel = _renderTransparencyCompute.FindKernel("RenderTransparent");
             _clearBufferKernel = _renderTransparencyCompute.FindKernel("ResetStartOffsetBuffer");
             _textureSize = new Vector2(info.width, info.height);
-           _temCount = info.width * info.height;
            
-            builder.AllowPassCulling(false); //del
+            
             builder.SetRenderFunc(_renderFunc);
         }
 
-        private void RenderFunction(RenderTransparencyPPLLPassData data, ComputeGraphContext context)
+        private void RenderFunction(RenderPPLLPassData data, ComputeGraphContext context)
         {
-            
-            //todo reset into compute
-           // uint[] reset = new uint[_temCount];
-          //  var b = (GraphicsBuffer)data.StartOffsetBuffer;
-          //  b.SetData(reset);
-            //
             var cmd = context.cmd;
             cmd.SetBufferCounterValue(data.FragmentLinksBuffer, 0);
             cmd.SetComputeBufferParam(_renderTransparencyCompute, _renderTransparencyKernel, "_FragmentLinksBuffer",

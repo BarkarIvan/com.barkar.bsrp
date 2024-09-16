@@ -50,20 +50,19 @@ float4 FromRGBE(float4 inColor)
 
 uint PackRGBA(float4 unpackedInput)
 {
-	uint4 u = (uint4)(unpackedInput * float4(255, 255, 255, 1.0f));
+	uint4 u = (uint4)(saturate(unpackedInput) * 255 + 0.5);
 	uint packedOutput = (u.w << 24UL) | (u.z << 16UL) | (u.y << 8UL) | u.x;
 	return packedOutput;
 }
 
 float4 UnpackRGBA(uint packedInput)
 {
-	float4 unpackedOutput;
 	uint4 p = uint4((packedInput & 0xFFUL),
-		(packedInput >> 8UL) & 0xFFUL,
-		(packedInput >> 16UL) & 0xFFUL,
-		(packedInput >> 24UL));
+	                (packedInput >> 8UL) & 0xFFUL,
+	                (packedInput >> 16UL) & 0xFFUL,
+	                (packedInput >> 24UL));
 
-	unpackedOutput = ((float4)p) / float4(255, 255, 255, 1.0f);
+	float4 unpackedOutput = (float4)p / 255.0;
 	return unpackedOutput;
 }
 ///

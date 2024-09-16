@@ -1,4 +1,4 @@
-Shader "BSRP/StylizedLit_Transparent"
+Shader "BSRP/StylizedLit_PPLL"
 {
     Properties
     {
@@ -26,7 +26,7 @@ Shader "BSRP/StylizedLit_Transparent"
         [Toggle(_USEALPHACLIP)] _UseAlphaClip ("Use Alpha Clip", Float) = 0
         _AlphaClip ("ClipAlha", Range(0,1)) = 0
 
-        [Toggle(_ADDITIONALMAP)] _TempAdd("TempAdditionalToggle", Float) = 0
+        // [Toggle(_ADDITIONALMAP)] _TempAdd("TempAdditionalToggle", Float) = 0
         [Space(40)]
         _MediumThreshold ("Medium Threshold", Range(0,1)) = 0.5
         _MediumSmooth ("Medium Smooth", Range(0,0.5)) = 0.25
@@ -45,6 +45,11 @@ Shader "BSRP/StylizedLit_Transparent"
         _MedBrushStrength("Brush strength on Medium", Range(0,1)) = 0
         _ShadowBrushStrength("Brush strength on Shadows", Range(0,1)) = 0
         _ReflectBrushStrength("Brush strength on Reflection", Range(0,1)) = 0
+
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Int) = 2
+        [Enum(UnityEngine.Rendering.BlendMode)] _Blend1 ("Blend mode", Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)] _Blend2 ("Blend mode", Float) = 0
+        [Enum(Off,0,On,1)] _ZWrite ("ZWrite", Float) = 1
     }
 
     SubShader
@@ -58,14 +63,15 @@ Shader "BSRP/StylizedLit_Transparent"
         {
             Tags
             {
-                "LightMode" = "BSRPTransparent"
+                "LightMode" = "BSRPPPLL"
             }
             Name "Create Linked List"
 
             ZTest LEqual
-            ZWrite Off
             ColorMask 0
-           Cull Off
+            Cull [_Cull]
+            Blend [_Blend1] [_Blend2]
+            ZWrite [_ZWrite]
 
             HLSLPROGRAM
             #pragma vertex StylizedTransparentVertex
@@ -190,14 +196,14 @@ Shader "BSRP/StylizedLit_Transparent"
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.addUv = TRANSFORM_TEX(IN.uv, _AdditionalMap);
                 OUT.color = IN.color;
-                 float4 ndc = OUT.positionCS * 0.5f;
-    OUT.screenPos.xy  = float2(ndc.x, ndc.y * _ProjectionParams.x) + ndc.w;
-OUT.screenPos.zw = OUT.positionCS.zw;
+                float4 ndc = OUT.positionCS * 0.5f;
+                OUT.screenPos.xy = float2(ndc.x, ndc.y * _ProjectionParams.x) + ndc.w;
+                OUT.screenPos.zw = OUT.positionCS.zw;
                 return OUT;
             }
 
             [earlydepthstencil]
-            half4 StylizedTransparentFragment(Varyings IN)  : SV_Target
+            half4 StylizedTransparentFragment(Varyings IN) : SV_Target
             {
                 half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
@@ -309,12 +315,9 @@ OUT.screenPos.zw = OUT.positionCS.zw;
 
                 //to vertex
                 uint2 pos = uint2(IN.positionCS.xy);
-              //  pos = IN.screenPos.xy / IN.screenPos.w * _RenderSizeParams.xy;
-                float depth = Linear01Depth(IN.positionCS.z, _ZBufferParams);
-                float transmission = 1.0 - result.a;
-                uint transmissionInt = (uint)(transmission * 255.0); //  0 - 255
-                uint depthInt = (uint)(depth * 16777215.0); //  0 - 2^24-1
-
+                uint depth = (uint)(Linear01Depth(IN.positionCS.z, _ZBufferParams) * (pow(2, 24) - 1));
+                depth = depth << 8UL;
+             
 
                 //TODO to oit utils
                 //oit
@@ -327,11 +330,8 @@ OUT.screenPos.zw = OUT.positionCS.zw;
 
 
                 Fragment fragment;
-              //  fragment.colour = PackRGBA(ToRGBE(result));
-                fragment.testColor = result;
-                fragment.testdepth = depth;
-                fragment.testtransmission = transmission;
-              //  fragment.transmissionAndDepth = (depthInt << 8) | transmissionInt;
+                fragment.color = PackRGBA(float4(result.rgb, 1 - result.a));
+                fragment.depth = depth;
                 fragment.next = startOffsetOld;
                 _FragmentLinksBuffer[fragCount] = fragment;
                 return 0;
@@ -411,5 +411,5 @@ OUT.screenPos.zw = OUT.positionCS.zw;
         }
     }
 
-     //CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
+    CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStylizedLitShaderEditor"
 }

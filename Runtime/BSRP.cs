@@ -18,7 +18,7 @@ public class BSRP : RenderPipeline
     private readonly ShaderTagId[] _commonShaderTags =
         { new ShaderTagId("BSRPGBuffer"), new ShaderTagId("SRPDefaultUnlit") };
 
-    private readonly ShaderTagId[] _transpatentShaaderTag = { new ShaderTagId("BSRPTransparent") };
+    private readonly ShaderTagId[] _ppllShaderTagId = { new ShaderTagId("BSRPPPLL") };
     private ContextContainer _container;
 
     private Vector2Int _textureSize = default;
@@ -39,7 +39,7 @@ public class BSRP : RenderPipeline
     private SetupPass _setupPass = new SetupPass();
     private DrawOpaquePass _drawOpaquePass = new DrawOpaquePass();
     private CreatePerPixelLinkedListPass _createPerPixelLinkedList = new CreatePerPixelLinkedListPass();
-    private RenderTransparencyPPLLPass _renderTransparency = new RenderTransparencyPPLLPass();
+    private RenderPPLLPass _render = new RenderPPLLPass();
     private DirectionalLightPass _directionalLight = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
@@ -122,39 +122,49 @@ public class BSRP : RenderPipeline
             LightingResources lightingResources =
                 _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
 
+            //Setup
             _setupPass.SetupDestinationTextures(RenderGraph, _textureSize, camera, _container);
 
+            //Opaque
             _drawOpaquePass.DrawOpaqueGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
-
+           
+            //Depth copy
             _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
 
+            //Skybox
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
-            
+           
+            //Shadow
             _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
                 _shadowSettings, _screenSpaceShadowMaterial);
-
+            
+            //Directional
             _directionalLight.DrawDirectinalLight(RenderGraph, _container, _defferedLightingMaterial);
 
+            //Point lights
             PointLightsCullingData pointLightCullingData =
                 _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, _container);
 
             _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
                 _defferedLightingMaterial);
-           
-            //WIP
-                        _createPerPixelLinkedList.ExecutePass(RenderGraph, _transpatentShaaderTag, camera, cullingResults, _container, camera.cullingMask);
-                      _renderTransparency.DrawTransparencyGeometry(RenderGraph, _container);
-                        //
+
+            //PPLL
+            _createPerPixelLinkedList.ExecutePass(RenderGraph, _ppllShaderTagId, camera, cullingResults, _container,
+                camera.cullingMask);
+            _render.DrawTransparencyGeometry(RenderGraph, _container);
+          
+            //Copy colors
             _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
 
-
+            //Bloom
             if (_bloomSettings.BloomEnable)
             {
                 _bloomPass.ExecuteBloomPass(RenderGraph, _bloomSettings, _container, _postFXMaterial);
             }
 
+            //Final compose
             _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, _container, _deferredFinalPassMaterial);
 
             RenderGraph.EndRecordingAndExecute();
