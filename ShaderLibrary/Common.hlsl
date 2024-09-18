@@ -67,6 +67,11 @@ float4 UnpackRGBA(uint packedInput)
 }
 ///
 
+half SimpleSin(half x)
+{
+	return (-x * abs(x) + x);
+}
+
 bool IsOrthographicCamera()
 {
 	return unity_OrthoParams.w;

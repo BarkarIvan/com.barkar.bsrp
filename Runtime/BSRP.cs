@@ -38,9 +38,9 @@ public class BSRP : RenderPipeline
     private LightingSetupPass _lightingSetupPass = new LightingSetupPass();
     private SetupPass _setupPass = new SetupPass();
     private DrawOpaquePass _drawOpaquePass = new DrawOpaquePass();
-    private CreatePerPixelLinkedListPass _createPerPixelLinkedList = new CreatePerPixelLinkedListPass();
-    private RenderPPLLPass _render = new RenderPPLLPass();
-    private DirectionalLightPass _directionalLight = new DirectionalLightPass();
+    private CreatePerPixelLinkedListPass _createPerPixelLinkedListPass = new CreatePerPixelLinkedListPass();
+    private RenderPerPixelLinkedListPass _renderPerPixelLinkedListPass = new RenderPerPixelLinkedListPass();
+    private DirectionalLightPass _directionalLightPass = new DirectionalLightPass();
     private DeferredFinalPass _deferredFinalPass = new DeferredFinalPass();
     private ScreenSpaceShadowPass _screenSpaceShadowPass = new ScreenSpaceShadowPass();
     private PointLightsPass _pointLightsPass = new PointLightsPass();
@@ -119,53 +119,52 @@ public class BSRP : RenderPipeline
 
             Shader.SetGlobalMatrix(BSRPShaderIDs.UnityMatrixIvpID, _matrixVPI);
 
-            LightingResources lightingResources =
-                _lightingSetupPass.ExecuteLightngPass(RenderGraph, cullingResults, _shadowSettings);
-
             //Setup
-            _setupPass.SetupDestinationTextures(RenderGraph, _textureSize, camera, _container);
+            _lightingSetupPass.ExecutePass(RenderGraph, cullingResults, _shadowSettings, _container);
+            _setupPass.ExecutePass(RenderGraph, _textureSize, camera, _container);
 
             //Opaque
-            _drawOpaquePass.DrawOpaqueGeometry(RenderGraph, _commonShaderTags, camera, cullingResults,
+            _drawOpaquePass.ExecutePass(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
            
             //Depth copy
-            _copyDepthPass.ExecuteCopyDepthPass(RenderGraph, _container);
+            _copyDepthPass.ExecutePass(RenderGraph, _container);
 
             //Skybox
             if (camera.clearFlags == CameraClearFlags.Skybox)
-                _drawSkyboxPass.DrawSkybox(RenderGraph, _container, camera);
+                _drawSkyboxPass.ExecutePass(RenderGraph, _container, camera);
            
             //Shadow
-            _screenSpaceShadowPass.DrawScreenSpaceShadow(RenderGraph, _container, lightingResources,
+            _screenSpaceShadowPass.ExecutePass(RenderGraph, _container,
                 _shadowSettings, _screenSpaceShadowMaterial);
             
             //Directional
-            _directionalLight.DrawDirectinalLight(RenderGraph, _container, _defferedLightingMaterial);
+            _directionalLightPass.ExecutePass(RenderGraph, _container, _defferedLightingMaterial);
 
             //Point lights
+            //TODO Context item
             PointLightsCullingData pointLightCullingData =
-                _pointLightTileCullingPass.ExecuteTileCullingPass(RenderGraph, _container);
+                _pointLightTileCullingPass.ExecutePass(RenderGraph, _container);
 
-            _pointLightsPass.ExecutePointLightPass(RenderGraph, _container, pointLightCullingData,
+            _pointLightsPass.ExecutePass(RenderGraph, _container, pointLightCullingData,
                 _defferedLightingMaterial);
 
             //PPLL
-            _createPerPixelLinkedList.ExecutePass(RenderGraph, _ppllShaderTagId, camera, cullingResults, _container,
+            _createPerPixelLinkedListPass.ExecutePass(RenderGraph, _ppllShaderTagId, camera, cullingResults, _container,
                 camera.cullingMask);
-            _render.DrawTransparencyGeometry(RenderGraph, _container);
+            _renderPerPixelLinkedListPass.ExecutePass(RenderGraph, _container);
           
             //Copy colors
-            _copyLightTexturePass.ExecuteCopyLightTexturePass(RenderGraph, _container);
+            _copyLightTexturePass.ExecutePass(RenderGraph, _container);
 
             //Bloom
             if (_bloomSettings.BloomEnable)
             {
-                _bloomPass.ExecuteBloomPass(RenderGraph, _bloomSettings, _container, _postFXMaterial);
+                _bloomPass.ExecutePass(RenderGraph, _bloomSettings, _container, _postFXMaterial);
             }
 
             //Final compose
-            _deferredFinalPass.DrawDeferredFinalPass(RenderGraph, _container, _deferredFinalPassMaterial);
+            _deferredFinalPass.ExecutePass(RenderGraph, _container, _deferredFinalPassMaterial);
 
             RenderGraph.EndRecordingAndExecute();
         }

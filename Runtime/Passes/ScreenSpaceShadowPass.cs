@@ -32,15 +32,16 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void DrawScreenSpaceShadow(RenderGraph renderGraph, in ContextContainer input,
-            in LightingResources lightingResources, ShadowSettings settings, Material screenSpaceShadowMapMaterial)
+        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input,
+            ShadowSettings settings, Material screenSpaceShadowMapMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<ScreenSpaceShadowPassData>(_profilingSampler.name, out var data,
                     _profilingSampler);
 
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
-
+            LightingResources lightingResources = input.Get<LightingResources>();
+            
             data.ScreenSpaceShadowPassMaterial = screenSpaceShadowMapMaterial;
             data.TargetGBuffer = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             data.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);

@@ -19,7 +19,7 @@ namespace Barkar.BSRP.Passes.Setup
         private BaseRenderFunc<SetupPassData, RenderGraphContext> _renderFunc;
 
 
-        public void SetupDestinationTextures(RenderGraph renderGraph,
+        public void ExecutePass(RenderGraph renderGraph,
             Vector2 attachmetSize,
             Camera camera, ContextContainer container)
         {

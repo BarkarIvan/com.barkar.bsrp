@@ -15,7 +15,7 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void ExecuteCopyLightTexturePass(RenderGraph renderGraph, in ContextContainer input)
+        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input)
         {
             using var builder =
                 renderGraph.AddRenderPass<CopyLightTexturePassData>(_profilingSampler.name, out var data, _profilingSampler);

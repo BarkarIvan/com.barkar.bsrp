@@ -18,7 +18,7 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void DrawSkybox(RenderGraph renderGraph, in ContextContainer input, Camera camera)
+        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input, Camera camera)
         {
             using var builder = renderGraph.AddRenderPass<DrawSkyboxPassData>(SkyboxProfilingSampler.name,
                     out var drawSkyboxPassData,

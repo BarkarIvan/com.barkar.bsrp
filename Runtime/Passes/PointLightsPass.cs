@@ -15,7 +15,7 @@ namespace Barkar.BSRP.Passes
         public TextureHandle AlbedoSmoothnessTexture;
         public TextureHandle RadianceMetallicTexture;
         public TextureHandle LightAccumTexture;
-        public Material _testPLMaterial;
+        public Material _deferredLightsMaterial;
     }
 
     public class PointLightsPass
@@ -34,8 +34,8 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void ExecutePointLightPass(RenderGraph renderGraph, in ContextContainer input,
-            in PointLightsCullingData cullingData, Material testLightMaterial)
+        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input,
+            in PointLightsCullingData cullingData, Material deferredLightsMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<PointLightsPassData>(_profilingSampler.name, out var data, _profilingSampler);
@@ -57,12 +57,11 @@ namespace Barkar.BSRP.Passes
             data.LightAccumTexture = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
 
             builder.AllowPassCulling(false);
-            data._testPLMaterial = testLightMaterial;
+            data._deferredLightsMaterial = deferredLightsMaterial;
 
             builder.SetRenderFunc(_renderFunc);
         }
-
-
+        
         private void RenderFunction(PointLightsPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
@@ -75,7 +74,7 @@ namespace Barkar.BSRP.Passes
             mpb.SetVector(TextureParams, _textureParams);
             mpb.SetBuffer(TileLightCountBuffer, data.TileLightCountBuffer);
             mpb.SetBuffer(TileLightIndicesBuffer, data.TileLightIndicesBuffer);
-            cmd.DrawProcedural(Matrix4x4.identity, data._testPLMaterial, 1, MeshTopology.Triangles, 3, 1, mpb);
+            cmd.DrawProcedural(Matrix4x4.identity, data._deferredLightsMaterial, 1, MeshTopology.Triangles, 3, 1, mpb);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

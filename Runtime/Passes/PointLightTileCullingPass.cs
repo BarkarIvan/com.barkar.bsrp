@@ -5,13 +5,6 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
-    public class PointLightTileCullingPassData
-    {
-        public BufferHandle TileLightCountBuffer;
-        public BufferHandle TileLightIndicesBuffer;
-        public TextureHandle CameraDepthTexture;
-    }
-
     public readonly ref struct PointLightsCullingData
     {
         public readonly BufferHandle TileLightCountBuffer;
@@ -36,15 +29,15 @@ namespace Barkar.BSRP.Passes
         private int _tilesGenerateKernelIndex;
         private uint _tileSizeX;
         private uint _tileSizeY;
-        private int _keernelIndex;
-        private int _perTileLightMaxCount = 32;
+        private int _kernelIndex;
+        private readonly int _perTileLightMaxCount = 32;
         
         public PointLightTileCullingPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        public PointLightsCullingData ExecuteTileCullingPass(RenderGraph renderGraph, ContextContainer input)
+        public PointLightsCullingData ExecutePass(RenderGraph renderGraph, ContextContainer input)
         {
             using var builder =
                 renderGraph.AddComputePass<PointLightTileCullingPassData>(_profilingSampler.name, out var data, _profilingSampler);
@@ -69,58 +62,20 @@ namespace Barkar.BSRP.Passes
             data.CameraDepthTexture = (destinationTextures.DepthAttachmentCopy);
             builder.UseTexture(data.CameraDepthTexture); 
             data.TileLightIndicesBuffer = builder.UseBuffer(renderGraph.CreateBuffer(bufferDescriptor), AccessFlags.Write);
-        
-            /*
-            var p = _cameraProjection;
-        _invProjParam= new Vector4(
-                    p.m20 / (p.m00 * p.m23),
-                    p.m21 / (p.m11 * p.m23),
-                    -1f / p.m23,
-                    (-p.m22 + p.m20 * p.m02 / p.m00 + p.m21 * p.m12 / p.m11) / p.m23
-                );
-            */
-
             builder.AllowPassCulling(false);
-            builder.EnableAsyncCompute(true); // ??
-
             builder.SetRenderFunc(_renderFunc);
             return new PointLightsCullingData(data.TileLightCountBuffer, data.TileLightIndicesBuffer);
         }
 
-
         private void RenderFunction(PointLightTileCullingPassData data, ComputeGraphContext context)
         {
             var cmd = context.cmd;
-            cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_TileLightCountBuffer",
+            cmd.SetComputeBufferParam(_tileGenerateShader, _kernelIndex, "_TileLightCountBuffer",
                 data.TileLightCountBuffer);
-            cmd.SetComputeBufferParam(_tileGenerateShader, _keernelIndex, "_TileLightIndicesBuffer",
+            cmd.SetComputeBufferParam(_tileGenerateShader, _kernelIndex, "_TileLightIndicesBuffer",
                 data.TileLightIndicesBuffer);
-
-            cmd.SetComputeTextureParam(_tileGenerateShader, _keernelIndex, "_DepthTexture", data.CameraDepthTexture);
-        
-            //used when it was render pass
-            // cmd.SetRandomWriteTarget(0, data.TileLightCountBuffer);
-            // cmd.SetRandomWriteTarget(1, data.TileLightIndicesBuffer);
-            cmd.DispatchCompute(_tileGenerateShader, _keernelIndex, _tileCount.x, _tileCount.y, 1);
-            
-           // cmd.ClearRandomWriteTargets();
-           //  context.cmd.ExecuteCommandBuffer(cmd);
-           //  cmd.Clear();
-            
-            ////DEBUG
-            /*
-           uint[] lightCountData = new uint[(uint)(_tileCount.x * _tileCount.y)];
-            var b = (GraphicsBuffer)data.TileLightCountBuffer;
-            b.GetData(lightCountData);
-
-
-            for (int i = 0; i < (_tileCount.x * _tileCount.y); i++)
-            {
-                Debug.Log($"Tile {i}: Light Count = {lightCountData[i]}");
-                
-            }
-            ////
-        */
+            cmd.SetComputeTextureParam(_tileGenerateShader, _kernelIndex, "_DepthTexture", data.CameraDepthTexture);
+            cmd.DispatchCompute(_tileGenerateShader, _kernelIndex, _tileCount.x, _tileCount.y, 1);
         }
     }
 }

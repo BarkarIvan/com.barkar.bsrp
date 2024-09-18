@@ -67,8 +67,8 @@ namespace Barkar.BSRP.Passes
         }
 
 
-        public LightingResources ExecuteLightngPass(RenderGraph renderGraph, CullingResults cullingResults,
-             ShadowSettings shadowSettings)
+        public void ExecutePass(RenderGraph renderGraph, CullingResults cullingResults,
+             ShadowSettings shadowSettings, ContextContainer container)
         {
             _cullingResults = cullingResults;
             _shadowSettings = shadowSettings;
@@ -142,8 +142,9 @@ namespace Barkar.BSRP.Passes
 
                 builder.SetRenderFunc(_renderFunc);
 
-
-                return new LightingResources(data.DirectionalLightDataBuffer, data.ShadowMap);
+                LightingResources resources = container.GetOrCreate<LightingResources>();
+                resources.DirectionalLightBuffer = data.DirectionalLightDataBuffer;
+                resources.DirectionalShadowMap = data.ShadowMap;
             }
         }
 

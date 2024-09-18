@@ -20,7 +20,7 @@ public class DrawOpaquePass
         _renderFunction = RenderFunction;
     }
 
-    public void DrawOpaqueGeometry(RenderGraph renderGraph,
+    public void ExecutePass(RenderGraph renderGraph,
         ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in ContextContainer input,
         int renderingLayerMask)
     {

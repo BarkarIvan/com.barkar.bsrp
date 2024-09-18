@@ -10,14 +10,13 @@ namespace Barkar.BSRP.Passes
         private readonly ProfilingSampler _profilingSampler = new("Directional lighting");
         private BaseRenderFunc<DirectionalLightPassData, RenderGraphContext> _renderFunc;
 
-
         public DirectionalLightPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        public void DrawDirectinalLight(RenderGraph renderGraph,
-            in ContextContainer input, Material testfinalPassMaterial)
+        public void ExecutePass(RenderGraph renderGraph,
+            in ContextContainer input, Material deferredLightsMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<DirectionalLightPassData>(_profilingSampler.name, out var passData,
@@ -32,9 +31,8 @@ namespace Barkar.BSRP.Passes
             passData.Gbuffer3 = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             passData.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             passData.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
-         
 
-            passData.TestFinalMaterial = testfinalPassMaterial;
+            passData.deferredLightsMaterial = deferredLightsMaterial;
 
             builder.SetRenderFunc(_renderFunc);
         }
@@ -48,7 +46,7 @@ namespace Barkar.BSRP.Passes
             mpb.SetTexture(BSRPShaderIDs.GBuffer2ID, data.Gbuffer2);
             mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
 
-            cmd.DrawProcedural(Matrix4x4.identity, data.TestFinalMaterial, 0, MeshTopology.Triangles,
+            cmd.DrawProcedural(Matrix4x4.identity, data.deferredLightsMaterial, 0, MeshTopology.Triangles,
                 3, 1, mpb);
 
             context.renderContext.ExecuteCommandBuffer(cmd);

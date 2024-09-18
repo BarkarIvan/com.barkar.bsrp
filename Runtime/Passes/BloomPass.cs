@@ -23,7 +23,7 @@ namespace Barkar.BSRP.Passes
            
         }
         
-        public  void ExecuteBloomPass( RenderGraph renderGraph, BloomSettings settings,
+        public  void ExecutePass( RenderGraph renderGraph, BloomSettings settings,
             ContextContainer container, Material bloomMaterial)
         {
             using var builder =

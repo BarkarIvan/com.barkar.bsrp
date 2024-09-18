@@ -4,9 +4,7 @@ Shader "Hidden/ScreenSpaceShadow"
     {
         Blend DstColor Zero
         ZTest Always ZWrite Off Cull Off
-
         
-
         Pass
         {
             Name "Screen space shadow"
@@ -15,16 +13,14 @@ Shader "Hidden/ScreenSpaceShadow"
             #pragma fragment ScreenSpaceShadowFragment
 
             #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
-
-
+            
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
             
             TEXTURE2D_HALF(_CameraDepth);
-            
-            TEXTURE2D_HALF(_GBuffer3); 
+         
             half4 ScreenSpaceShadowFragment(Varyings IN) : SV_Target
             {
                 float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_PointClamp, IN.uv).r;

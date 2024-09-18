@@ -13,7 +13,7 @@ namespace Barkar.BSRP.Passes
         public BufferHandle StartOffsetBuffer;
     }
 
-    public class RenderPPLLPass
+    public class RenderPerPixelLinkedListPass
     {
         private readonly ProfilingSampler _profilingSampler = new("Render OIT PPLL Compute");
         
@@ -25,12 +25,12 @@ namespace Barkar.BSRP.Passes
         private int _clearBufferKernel;
         private Vector2 _textureSize;
         
-        public RenderPPLLPass()
+        public RenderPerPixelLinkedListPass()
         {
             _renderFunc = RenderFunction;
         }
 
-        public void DrawTransparencyGeometry(RenderGraph renderGraph, in ContextContainer input)
+        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input)
         {
             using var builder =
                 renderGraph.AddComputePass<RenderPPLLPassData>(_profilingSampler.name, out var data,
@@ -45,7 +45,6 @@ namespace Barkar.BSRP.Passes
             data.StartOffsetBuffer = builder.UseBuffer(inputData.StartOffsetBuffer);
 
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
-            //to compute pass
             _renderTransparencyCompute = BSRPResourcesLoader.RenderTransparencyCompute;
             _renderTransparencyKernel = _renderTransparencyCompute.FindKernel("RenderTransparent");
             _clearBufferKernel = _renderTransparencyCompute.FindKernel("ResetStartOffsetBuffer");
