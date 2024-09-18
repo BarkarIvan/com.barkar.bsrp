@@ -5,15 +5,15 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
-    public readonly ref struct PointLightsCullingData
+    public class PointLightsData : ContextItem
     {
-        public readonly BufferHandle TileLightCountBuffer;
-        public readonly BufferHandle TileLightIndicesBuffer;
+        public  BufferHandle TileLightCountBuffer;
+        public  BufferHandle TileLightIndicesBuffer;
 
-        public PointLightsCullingData(BufferHandle tileLightCountBuffer, BufferHandle tileLightIndicesBuffer)
+        public override void Reset()
         {
-            TileLightCountBuffer = tileLightCountBuffer;
-            TileLightIndicesBuffer = tileLightIndicesBuffer;
+            TileLightCountBuffer = default;
+            TileLightIndicesBuffer = default;
         }
     }
     
@@ -37,12 +37,12 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public PointLightsCullingData ExecutePass(RenderGraph renderGraph, ContextContainer input)
+        public void ExecutePass(RenderGraph renderGraph, ContextContainer input)
         {
             using var builder =
                 renderGraph.AddComputePass<PointLightTileCullingPassData>(_profilingSampler.name, out var data, _profilingSampler);
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
-
+            PointLightsData pointLightsData = input.GetOrCreate<PointLightsData>();
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.DepthAttachment);
             _tileGenerateShader = BSRPResourcesLoader.PointLightsTileCullingComputeShader;
             _tilesGenerateKernelIndex = _tileGenerateShader.FindKernel("PointLightTileCulling");
@@ -64,7 +64,8 @@ namespace Barkar.BSRP.Passes
             data.TileLightIndicesBuffer = builder.UseBuffer(renderGraph.CreateBuffer(bufferDescriptor), AccessFlags.Write);
             builder.AllowPassCulling(false);
             builder.SetRenderFunc(_renderFunc);
-            return new PointLightsCullingData(data.TileLightCountBuffer, data.TileLightIndicesBuffer);
+            pointLightsData.TileLightCountBuffer = data.TileLightCountBuffer;
+            pointLightsData.TileLightIndicesBuffer = data.TileLightIndicesBuffer;
         }
 
         private void RenderFunction(PointLightTileCullingPassData data, ComputeGraphContext context)

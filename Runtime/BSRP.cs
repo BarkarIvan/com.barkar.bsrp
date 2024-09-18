@@ -142,12 +142,10 @@ public class BSRP : RenderPipeline
             _directionalLightPass.ExecutePass(RenderGraph, _container, _defferedLightingMaterial);
 
             //Point lights
-            //TODO Context item
-            PointLightsCullingData pointLightCullingData =
-                _pointLightTileCullingPass.ExecutePass(RenderGraph, _container);
+            
+            _pointLightTileCullingPass.ExecutePass(RenderGraph, _container);
 
-            _pointLightsPass.ExecutePass(RenderGraph, _container, pointLightCullingData,
-                _defferedLightingMaterial);
+            _pointLightsPass.ExecutePass(RenderGraph, _container,_defferedLightingMaterial);
 
             //PPLL
             _createPerPixelLinkedListPass.ExecutePass(RenderGraph, _ppllShaderTagId, camera, cullingResults, _container,

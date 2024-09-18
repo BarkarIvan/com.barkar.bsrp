@@ -112,7 +112,7 @@ float3 DecodeNormal(float4 sample, float scale)
 half2 SpheremapEncodeNormal(float3 n)
 {
 	half p = sqrt(n.z * 8 + 8);
-	return half4(n.xy / p + 0.5, 0, 0);
+	return half2(n.xy / p + 0.5);
 }
 
 float3 NormalTangentToWorld(float3 normalTS, float3 normalWS, float4 tangentWS)

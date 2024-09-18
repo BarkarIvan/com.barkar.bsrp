@@ -90,7 +90,7 @@ void PointLightTileCulling(uint3 threadID : SV_GroupThreadID, uint3 groupID : SV
         _TileLightCountBuffer[tileIndex] = tileVisibleLightCount;
     }
 
-    for (int i = groupIdx; i < tileVisibleLightCount && i < PER_TILE_LIGHT_COUNT; i += TILE_GROUP_SIZE)
+    for (uint i = groupIdx; i < tileVisibleLightCount && i < PER_TILE_LIGHT_COUNT; i += TILE_GROUP_SIZE)
     {
         _TileLightIndicesBuffer[tileIndex * PER_TILE_LIGHT_COUNT + i] = tileVisibleLightIndices[i];
     }

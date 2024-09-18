@@ -34,8 +34,7 @@ namespace Barkar.BSRP.Passes
             _renderFunc = RenderFunction;
         }
 
-        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input,
-            in PointLightsCullingData cullingData, Material deferredLightsMaterial)
+        public void ExecutePass(RenderGraph renderGraph, in ContextContainer input, Material deferredLightsMaterial)
         {
             using var builder =
                 renderGraph.AddRenderPass<PointLightsPassData>(_profilingSampler.name, out var data, _profilingSampler);
@@ -44,9 +43,9 @@ namespace Barkar.BSRP.Passes
             var info = renderGraph.GetRenderTargetInfo(destinationTextures.DepthAttachment);
 
             _textureParams = new Vector4(info.width, info.height, 0, 0);
-
-            data.TileLightCountBuffer = builder.ReadBuffer(cullingData.TileLightCountBuffer);
-            data.TileLightIndicesBuffer = builder.ReadBuffer(cullingData.TileLightIndicesBuffer);
+            PointLightsData pointLightsData = input.Get<PointLightsData>();
+            data.TileLightCountBuffer = builder.ReadBuffer(pointLightsData.TileLightCountBuffer);
+            data.TileLightIndicesBuffer = builder.ReadBuffer(pointLightsData.TileLightIndicesBuffer);
 
             data.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             data.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);

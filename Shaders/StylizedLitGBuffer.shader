@@ -70,8 +70,6 @@ Shader "BSRP/StylizedLitGBUFFER"
                 "LightMode" = "BSRPGBuffer"
             }
 
-
-
             HLSLPROGRAM
             #pragma vertex BSRPStylizedVertex
             #pragma fragment BSRPStylizedFragment
@@ -281,7 +279,7 @@ Shader "BSRP/StylizedLitGBUFFER"
 
                 //brdf
                 BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light) * radiance;
+                lightColor *= DirectBRDF(surface, brdf, light);
 
                 half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
 
@@ -305,7 +303,6 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
-
 
                 GBuffer gbo;
                 gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);
