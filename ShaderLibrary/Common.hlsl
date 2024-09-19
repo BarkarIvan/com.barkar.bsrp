@@ -31,7 +31,7 @@ SAMPLER(sampler_point_clamp);
 
 
 //pack
-// ToRGBE - takes a float RGB value and converts it to a float RGB value with a shared exponent
+
 float4 ToRGBE(float4 inColor)
 {
 	float base = max(inColor.r, max(inColor.g, inColor.b));
@@ -40,8 +40,6 @@ float4 ToRGBE(float4 inColor)
 	return float4(saturate(inColor.rgb / exp2(e)), e + 127);
 }
 
-// FromRGBE takes a float RGB value with a sahred exponent and converts it to a 
-//	float RGB value
 float4 FromRGBE(float4 inColor)
 {
 	return float4(inColor.rgb*exp2(inColor.a - 127), inColor.a);

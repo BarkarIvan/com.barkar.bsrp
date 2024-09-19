@@ -1,3 +1,5 @@
+//based on https://interplayoflight.wordpress.com/2022/06/25/order-independent-transparency-part-1/
+
 #pragma kernel ResetStartOffsetBuffer
 #pragma kernel RenderTransparent
 
