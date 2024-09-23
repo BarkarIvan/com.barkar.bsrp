@@ -8,10 +8,8 @@ namespace Barkar.BSRP.Passes
 {
     public class DrawSkyboxPass
     {
-        private static readonly ProfilingSampler SkyboxProfilingSampler = new ProfilingSampler("Draw Skybox Pass");
-
-        private BaseRenderFunc<DrawSkyboxPassData, RenderGraphContext> _renderFunc;
-        private Camera _camera;
+        private static readonly ProfilingSampler SkyboxProfilingSampler = new("Draw Skybox Pass");
+        private readonly BaseRenderFunc<DrawSkyboxPassData, RasterGraphContext> _renderFunc;
 
         public DrawSkyboxPass()
         {
@@ -20,26 +18,21 @@ namespace Barkar.BSRP.Passes
 
         public void ExecutePass(RenderGraph renderGraph, in ContextContainer input, Camera camera)
         {
-            using var builder = renderGraph.AddRenderPass<DrawSkyboxPassData>(SkyboxProfilingSampler.name,
-                    out var drawSkyboxPassData,
-                    SkyboxProfilingSampler);
+            using var builder = renderGraph.AddRasterRenderPass<DrawSkyboxPassData>(SkyboxProfilingSampler.name,
+                out var data,
+                SkyboxProfilingSampler);
 
-            RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
-
-            drawSkyboxPassData.ColorAttacment = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
-            drawSkyboxPassData.DepthAttachment =
-                builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.ReadWrite);
-
-            _camera = camera;
+            var destinationTextures = input.Get<RenderDestinationTextures>();
+            data.SkyboxRendererList = renderGraph.CreateSkyboxRendererList(camera);
+            builder.UseRendererList(data.SkyboxRendererList);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 0);
+            builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment);
             builder.SetRenderFunc(_renderFunc);
         }
 
-        private void RenderFunction(DrawSkyboxPassData data, RenderGraphContext context)
+        private void RenderFunction(DrawSkyboxPassData data, RasterGraphContext context)
         {
-            context.renderContext.ExecuteCommandBuffer(context.cmd);
-            context.cmd.Clear();
-            var rl = context.renderContext.CreateSkyboxRendererList(_camera);
-            context.cmd.DrawRendererList(rl);
+            context.cmd.DrawRendererList(data.SkyboxRendererList);
         }
     }
 }
