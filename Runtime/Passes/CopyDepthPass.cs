@@ -35,6 +35,7 @@ namespace Barkar.BSRP.Passes
         {
             var cmd = context.cmd;
             cmd.CopyTexture(data.OriginalDepth, data.DepthTextureCopy);
+            cmd.SetGlobalTexture(BSRPShaderIDs.CameraDepthID, data.DepthTextureCopy);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

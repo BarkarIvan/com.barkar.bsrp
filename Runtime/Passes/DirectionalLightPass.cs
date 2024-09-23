@@ -24,26 +24,18 @@ namespace Barkar.BSRP.Passes
 
             builder.AllowPassCulling(false);
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
-
             
-            passData.Gbuffer3 = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
-            passData.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
-            passData.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
-
+            builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
+            builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             passData.deferredLightsMaterial = deferredLightsMaterial;
-
             builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(DirectionalLightPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-            
-       //     mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
-
             cmd.DrawProcedural(Matrix4x4.identity, data.deferredLightsMaterial, 0, MeshTopology.Triangles,
                 3, 1);
-
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

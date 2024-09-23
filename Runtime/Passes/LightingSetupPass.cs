@@ -60,12 +60,26 @@ namespace Barkar.BSRP.Passes
 
         private BaseRenderFunc<LightingSetupPassData, RenderGraphContext> _renderFunc;
 
+        static readonly GlobalKeyword[] directionalFilterKeywords =
+        {
+            GlobalKeyword.Create("_SOFT_SHADOWS_LOW"),
+            GlobalKeyword.Create("_SOFT_SHADOWS_MEDIUM"),
+            GlobalKeyword.Create("_SOFT_SHADOWS_HIGH"),
+        };
+
 
         public LightingSetupPass()
         {
             _renderFunc = RenderFunction;
         }
 
+        private void SetKeywords(GlobalKeyword[] keywords, int enabledIndex, CommandBuffer cmd)
+        {
+            for (int i = 0; i < keywords.Length; i++)
+            {
+                cmd.SetKeyword(keywords[i], i == enabledIndex);
+            }
+        }
 
         public void ExecutePass(RenderGraph renderGraph, CullingResults cullingResults,
              ShadowSettings shadowSettings, ContextContainer container)
@@ -185,12 +199,13 @@ namespace Barkar.BSRP.Passes
 
                 cmd.DrawRendererList(directionalLightRendererListHandle);
             }
+            cmd.EndSample("Main Light Directional Shadow");
 
             //Buffers data
             cmd.SetBufferData(data.DirectionalLightDataBuffer, _directionalLightData);
             cmd.SetGlobalConstantBuffer(data.DirectionalLightDataBuffer, "MainLightDataBuffer",
                 0, DirectionalLightData.stride);
-            cmd.SetGlobalTexture("_MainLightShadowMap", data.ShadowMap);
+            cmd.SetGlobalTexture(BSRPShaderIDs.MainLightShadowMapID, data.ShadowMap);
 
             //globalPointData
             cmd.SetGlobalVectorArray("PointLightColors", _PointLightColor);
@@ -209,8 +224,9 @@ namespace Barkar.BSRP.Passes
                     1f / _shadowSettings.ShadowDistanceFade)); //z - cascades fade
 
             //keyWords
+            SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
 
-            cmd.EndSample("Main Light Directional Shadow");
+            
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
 

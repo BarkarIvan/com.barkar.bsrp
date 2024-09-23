@@ -75,7 +75,6 @@ namespace Barkar.BSRP.Passes.Setup
 
         private void RenderFunction(SetupPassData setupPassData, RenderGraphContext context)
         {
-            context.renderContext.SetupCameraProperties(_camera);
 
             CommandBuffer cmd = context.cmd;
             cmd.SetRenderTarget(setupPassData.ColorAttachment0, RenderBufferLoadAction.DontCare,

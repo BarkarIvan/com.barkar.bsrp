@@ -162,7 +162,7 @@ public class BSRP : RenderPipeline
             }
 
             //Final compose
-            _deferredFinalPass.ExecutePass(RenderGraph, _container, _deferredFinalPassMaterial);
+            _deferredFinalPass.ExecutePass(RenderGraph, _deferredFinalPassMaterial);
 
             RenderGraph.EndRecordingAndExecute();
         }
