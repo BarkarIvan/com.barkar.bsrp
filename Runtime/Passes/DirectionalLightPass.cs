@@ -25,9 +25,7 @@ namespace Barkar.BSRP.Passes
             builder.AllowPassCulling(false);
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
 
-            passData.Gbuffer0 = builder.ReadTexture(destinationTextures.ColorAttachment0);
-            passData.Gbuffer1 = builder.ReadTexture(destinationTextures.ColorAttachment1);
-            passData.Gbuffer2 = builder.ReadTexture(destinationTextures.ColorAttachment2);
+            
             passData.Gbuffer3 = builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             passData.DepthAttachment = builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             passData.CameraDepth = builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
@@ -40,14 +38,11 @@ namespace Barkar.BSRP.Passes
         private void RenderFunction(DirectionalLightPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
-            mpb.SetTexture(BSRPShaderIDs.GBuffer0ID, data.Gbuffer0);
-            mpb.SetTexture(BSRPShaderIDs.GBuffer1ID, data.Gbuffer1);
-            mpb.SetTexture(BSRPShaderIDs.GBuffer2ID, data.Gbuffer2);
-            mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
+            
+       //     mpb.SetTexture(BSRPShaderIDs.CameraDepthID, data.CameraDepth);
 
             cmd.DrawProcedural(Matrix4x4.identity, data.deferredLightsMaterial, 0, MeshTopology.Triangles,
-                3, 1, mpb);
+                3, 1);
 
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();

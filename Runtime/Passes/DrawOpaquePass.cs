@@ -7,81 +7,84 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
-  
-public class DrawOpaquePass
-{
-    private readonly ProfilingSampler _profilingSampler = new("Draw Opaque Pass");
-
-    private RendererListDesc _rendererListDesc;
-    private BaseRenderFunc<DrawOpaqueGeometryPassData, RenderGraphContext> _renderFunction;
-
-    public DrawOpaquePass()
+    public class DrawOpaquePass
     {
-        _renderFunction = RenderFunction;
+        private readonly ProfilingSampler _profilingSampler = new("Draw Opaque Pass");
+
+        private RendererListDesc _rendererListDesc;
+        private readonly BaseRenderFunc<DrawOpaqueGeometryPassData, RasterGraphContext> _renderFunction;
+        private Camera _camera;
+
+        public DrawOpaquePass()
+        {
+            _renderFunction = RenderFunction;
+        }
+
+        public void ExecutePass(RenderGraph renderGraph,
+            ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in ContextContainer input,
+            int renderingLayerMask)
+        {
+            using var builder = renderGraph.AddRasterRenderPass<DrawOpaqueGeometryPassData>(_profilingSampler.name,
+                out var data,
+                _profilingSampler);
+
+            _camera = camera;
+
+            //TODO refactor
+            var stencil = StencilState.defaultValue;
+            stencil.SetCompareFunction(CompareFunction.Always);
+            stencil.SetPassOperation(StencilOp.Replace);
+            stencil.SetFailOperation(StencilOp.Keep);
+            stencil.enabled = true;
+
+
+            var renderStateBlock = new RenderStateBlock(RenderStateMask.Stencil);
+            renderStateBlock.stencilState = stencil;
+            renderStateBlock.stencilReference = 8; //?
+
+            _rendererListDesc =
+                new RendererListDesc(shaderTags, cullingResults, camera)
+                {
+                    renderQueueRange = RenderQueueRange.opaque,
+                    sortingCriteria = SortingCriteria.CommonOpaque,
+                    renderingLayerMask = (uint)renderingLayerMask,
+                    rendererConfiguration = PerObjectData.ReflectionProbes |
+                                            PerObjectData.Lightmaps |
+                                            PerObjectData.ShadowMask |
+                                            PerObjectData.LightProbe |
+                                            PerObjectData.OcclusionProbe |
+                                            PerObjectData.LightProbeProxyVolume |
+                                            PerObjectData.OcclusionProbeProxyVolume,
+
+                    stateBlock = renderStateBlock
+                };
+
+            data.RendererList = renderGraph.CreateRendererList(_rendererListDesc);
+            builder.UseRendererList(data.RendererList);
+
+            //TODO to array
+            var destinationTextures = input.Get<RenderDestinationTextures>();
+
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment0, 0);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment2, 2);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 3);
+            builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment);
+
+
+            builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment0, BSRPShaderIDs.GBuffer0ID);
+            builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment1, BSRPShaderIDs.GBuffer1ID);
+            builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment2, BSRPShaderIDs.GBuffer2ID);
+            builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment3, BSRPShaderIDs.GBuffer3ID);
+            builder.AllowPassCulling(false);
+
+            builder.SetRenderFunc(_renderFunction);
+        }
+
+        private void RenderFunction(DrawOpaqueGeometryPassData data, RasterGraphContext context)
+        {
+            context.cmd.SetViewProjectionMatrices(_camera.worldToCameraMatrix, _camera.projectionMatrix);
+            context.cmd.DrawRendererList(data.RendererList);
+        }
     }
-
-    public void ExecutePass(RenderGraph renderGraph,
-        ShaderTagId[] shaderTags, Camera camera, CullingResults cullingResults, in ContextContainer input,
-        int renderingLayerMask)
-    {
-        using var builder = renderGraph.AddRenderPass<DrawOpaqueGeometryPassData>(_profilingSampler.name,
-            out var data,
-            _profilingSampler);
-
-        //TODO refactor
-        StencilState stencil = StencilState.defaultValue;
-        stencil.SetCompareFunction(CompareFunction.Always);
-        stencil.SetPassOperation(StencilOp.Replace);
-        stencil.SetFailOperation(StencilOp.Keep);
-        stencil.enabled = true;
-
-
-        RenderStateBlock renderStateBlock = new RenderStateBlock(RenderStateMask.Stencil);
-        renderStateBlock.stencilState = stencil;
-        renderStateBlock.stencilReference = 8; //?
-
-        _rendererListDesc =
-            new RendererListDesc(shaderTags, cullingResults, camera)
-            {
-                renderQueueRange = RenderQueueRange.opaque,
-                sortingCriteria = SortingCriteria.CommonOpaque,
-                renderingLayerMask = (uint)renderingLayerMask,
-                rendererConfiguration = PerObjectData.ReflectionProbes |
-                                        PerObjectData.Lightmaps |
-                                        PerObjectData.ShadowMask |
-                                        PerObjectData.LightProbe |
-                                        PerObjectData.OcclusionProbe |
-                                        PerObjectData.LightProbeProxyVolume |
-                                        PerObjectData.OcclusionProbeProxyVolume,
-
-                stateBlock = renderStateBlock
-            };
-
-        data.RendererList =
-            builder.UseRendererList(renderGraph.CreateRendererList(_rendererListDesc));
-
-        RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
-        data.ColorAttachment0 =
-            builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment0), 0);
-        data.ColorAttachment1 =
-            builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment1), 1);
-        data.ColorAttachment2 =
-            builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment2), 2);
-        data.ColorAttachment3 =
-            builder.UseColorBuffer(builder.WriteTexture(destinationTextures.ColorAttachment3), 3);
-        data.DepthAttachment =
-            builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.ReadWrite);
-
-        builder.AllowPassCulling(false);
-
-        builder.SetRenderFunc(_renderFunction);
-    }
-
-    private void RenderFunction(DrawOpaqueGeometryPassData drawOpaqueGeometryPassData, RenderGraphContext context)
-    {
-        context.cmd.DrawRendererList(drawOpaqueGeometryPassData.RendererList);
-        context.renderContext.ExecuteCommandBuffer(context.cmd);
-        context.cmd.Clear();
-    }
-}
 }

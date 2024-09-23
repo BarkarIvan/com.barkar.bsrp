@@ -169,10 +169,10 @@ Shader "BSRP/StylizedLitGBUFFER"
             //TODO to gbuffer hlsl
             struct GBuffer
             {
-                half4 GBUFFER0 : SV_TARGET0;
-                half4 GBUFFER1 : SV_TARGET1;
-                half4 GBUFFER2 : SV_TARGET3;
-                half4 GBUFFER3 : SV_TARGET4;
+                half4 GBUFFER0 : SV_Target0;
+                half4 GBUFFER1 : SV_Target1;
+                half4 GBUFFER2 : SV_Target2;
+                half4 GBUFFER3 : SV_Target3;
             };
 
             
