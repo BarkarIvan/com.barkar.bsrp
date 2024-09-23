@@ -120,7 +120,7 @@ public class BSRP : RenderPipeline
             Shader.SetGlobalMatrix(BSRPShaderIDs.UnityMatrixIvpID, _matrixVPI);
 
             //Setup
-            _lightingSetupPass.ExecutePass(RenderGraph, cullingResults, _shadowSettings, _container);
+            _lightingSetupPass.ExecutePass(RenderGraph, cullingResults, _shadowSettings, _container, camera);
             _setupPass.ExecutePass(RenderGraph, _textureSize, camera, _container);
 
             //Opaque

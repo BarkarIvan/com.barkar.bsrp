@@ -46,6 +46,7 @@ namespace Barkar.BSRP.Passes
 
         private int _directionalLightsCount;
         private DirectionalLightShadowData _directionalLightShadowData;
+        private Camera _camera;
 
         private DirectionalLightData[] _directionalLightData =
             new DirectionalLightData[maxDirectionalLightsCount];
@@ -82,11 +83,12 @@ namespace Barkar.BSRP.Passes
         }
 
         public void ExecutePass(RenderGraph renderGraph, CullingResults cullingResults,
-             ShadowSettings shadowSettings, ContextContainer container)
+             ShadowSettings shadowSettings, ContextContainer container, Camera camera)
         {
             _cullingResults = cullingResults;
             _shadowSettings = shadowSettings;
 
+            _camera = camera;
             using (var builder = renderGraph.AddRenderPass<LightingSetupPassData>(_profilingSampler.name,
                        out var data, _profilingSampler))
             {
@@ -230,7 +232,9 @@ namespace Barkar.BSRP.Passes
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
 
+            //reset
             cmd.SetGlobalDepthBias(0f, 0f);
+            cmd.SetupCameraProperties(_camera);
             context.renderContext.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }

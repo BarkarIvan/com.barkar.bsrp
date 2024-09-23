@@ -29,7 +29,7 @@ namespace Barkar.BSRP.Passes
                 _profilingSampler);
 
             _camera = camera;
-
+            
             //TODO refactor
             var stencil = StencilState.defaultValue;
             stencil.SetCompareFunction(CompareFunction.Always);
@@ -83,7 +83,6 @@ namespace Barkar.BSRP.Passes
 
         private void RenderFunction(DrawOpaqueGeometryPassData data, RasterGraphContext context)
         {
-            context.cmd.SetViewProjectionMatrices(_camera.worldToCameraMatrix, _camera.projectionMatrix);
             context.cmd.DrawRendererList(data.RendererList);
         }
     }
