@@ -10,7 +10,7 @@ namespace Barkar.BSRP.Passes
     {
         private static readonly ProfilingSampler SkyboxProfilingSampler = new("Draw Skybox Pass");
         private readonly BaseRenderFunc<DrawSkyboxPassData, RasterGraphContext> _renderFunc;
-
+        private Camera _camera;
         public DrawSkyboxPass()
         {
             _renderFunc = RenderFunction;
@@ -22,12 +22,15 @@ namespace Barkar.BSRP.Passes
                 out var data,
                 SkyboxProfilingSampler);
 
+            _camera = camera;
             var destinationTextures = input.Get<RenderDestinationTextures>();
+            
             data.SkyboxRendererList = renderGraph.CreateSkyboxRendererList(camera);
             builder.UseRendererList(data.SkyboxRendererList);
             builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 0);
             builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment);
             builder.SetRenderFunc(_renderFunc);
+            builder.AllowPassCulling(false);
         }
 
         private void RenderFunction(DrawSkyboxPassData data, RasterGraphContext context)
