@@ -150,7 +150,6 @@ Shader "Hidden/DeferredLights"
             ENDHLSL
         }
 
-
         Pass
         {
             Name "Point Light Pass"

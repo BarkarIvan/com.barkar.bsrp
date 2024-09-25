@@ -4,6 +4,12 @@ Shader "Hidden/ScreenSpaceShadow"
     {
         Blend DstColor Zero
         ZTest Always ZWrite Off Cull Off
+     
+        Stencil
+        {
+            Ref 8
+            Comp Equal
+        }
         
         Pass
         {

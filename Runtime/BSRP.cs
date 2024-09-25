@@ -180,6 +180,7 @@ public class BSRP : RenderPipeline
         CoreUtils.Destroy(_screenSpaceShadowMaterial);
         CoreUtils.Destroy(_defferedLightingMaterial);
         CoreUtils.Destroy(_deferredFinalPassMaterial);
+        CoreUtils.Destroy(_postFXMaterial);
         _container.Dispose();
         RenderGraph.Cleanup();
     }

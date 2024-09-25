@@ -36,8 +36,6 @@ namespace Barkar.BSRP.Passes
             var cmd = context.cmd;
             cmd.DrawProcedural(Matrix4x4.identity, data.deferredLightsMaterial, 0, MeshTopology.Triangles,
                 3, 1);
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
         }
     }
 }

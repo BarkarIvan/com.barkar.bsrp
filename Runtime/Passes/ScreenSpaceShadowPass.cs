@@ -31,14 +31,14 @@ namespace Barkar.BSRP.Passes
             //builder.UseGlobalTexture(BSRPShaderIDs.CameraDepthID, AccessFlags.Read);
            builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment, AccessFlags.Read);
             builder.UseBuffer(lightingResources.DirectionalLightBuffer);
+            //builder.UseTexture(lightingResources.DirectionalShadowMap);
             //builder.UseGlobalTexture(BSRPShaderIDs.MainLightShadowMapID, AccessFlags.Read);
             builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(ScreenSpaceShadowPassData data, RasterGraphContext context)
         {
-            var cmd = context.cmd;
-            cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3 );
+            context.cmd.DrawProcedural(Matrix4x4.identity, data.ScreenSpaceShadowPassMaterial, 0, MeshTopology.Triangles, 3 );
         }
     }
 }

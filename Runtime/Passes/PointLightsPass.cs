@@ -74,9 +74,6 @@ namespace Barkar.BSRP.Passes
             mpb.SetBuffer(TileLightCountBuffer, data.TileLightCountBuffer);
             mpb.SetBuffer(TileLightIndicesBuffer, data.TileLightIndicesBuffer);
             cmd.DrawProcedural(Matrix4x4.identity, data._deferredLightsMaterial, 1, MeshTopology.Triangles, 3, 1, mpb);
-
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
         }
     }
 }

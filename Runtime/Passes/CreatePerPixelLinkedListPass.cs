@@ -82,8 +82,6 @@ namespace Barkar.BSRP.Passes
             cmd.SetRandomWriteTarget(1, data.FragmentLinksBuffer, false);
             cmd.SetRandomWriteTarget(2, data.StartOffsetBuffer);
             cmd.DrawRendererList(data.RendererList);
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
             cmd.ClearRandomWriteTargets();
         }
     }
