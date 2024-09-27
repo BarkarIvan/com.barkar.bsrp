@@ -17,18 +17,7 @@ Shader "Hidden/DeferredLights"
     StructuredBuffer<int> _TileLightIndicesBuffer;
     int2 _TextureParams;
 
-    
-    half3 SpheremapDecodeNormal(half2 enc)
-    {
-        half2 fenc = enc*4-2;
-    half f = dot(fenc,fenc);
-    half g = sqrt(1-f/4);
-    half3 n;
-    n.xy = fenc*g;
-    n.z = 1-f/2;
-    return n;
-    }
-
+ 
     half4 DirLightPassFragment(Varyings IN): SV_Target
     {
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);

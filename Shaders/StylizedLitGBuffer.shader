@@ -235,8 +235,8 @@ Shader "BSRP/StylizedLitGBUFFER"
                 #if defined (_NORMALMAP)
                 half3 normalTS;
                 normalTS.xy = additionalMaps.rg * 2.0 - 1.0;
+                 normalTS.xy *= _NormalMapScale;
                 normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
-                normalTS.xy *= _NormalMapScale;
                 half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
                 surface.normal = SafeNormalize(mul(normalTS, tangentToWorld));
                 indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
@@ -254,7 +254,7 @@ Shader "BSRP/StylizedLitGBUFFER"
 
                 Light light = GetMainLight(shadowCoord, IN.positionWS);
                 half NoL = dot(surface.normal, light.direction);
-
+               
                 Ramp ramp;
                 ramp.MediumThreshold = _MediumThreshold;
                 ramp.MediumSmooth = _MediumSmooth;
@@ -273,7 +273,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                                    IN.uv * _BrushTexture_ST.xy + _BrushTexture_ST.zw).rgb;
                 half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp,
                                    NoL, brush,half3(_MedBrushStrength, _ShadowBrushStrength, _ReflectBrushStrength));
-                #else
+               #else
                 half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp, NoL, 0, 0);
                 #endif
 
@@ -351,7 +351,7 @@ Shader "BSRP/StylizedLitGBUFFER"
             float4 GetShadowPositionHClip(Attributes input)
             {
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
-                half3 normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
+                half3 normalWS = TransformObjectToWorldNormal(input.normalOS);
 
                 //apply bias
                 half invNdotL = 1.0 - saturate(dot(MainLightDirectionaAndMask.xyz, normalWS.xyz));

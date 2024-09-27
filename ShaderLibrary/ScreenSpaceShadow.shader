@@ -26,6 +26,7 @@ Shader "Hidden/ScreenSpaceShadow"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/UnityInput.hlsl"
             
             TEXTURE2D_HALF(_CameraDepth);
+            TEXTURE2D_HALF(_GBuffer2);
          
             half4 ScreenSpaceShadowFragment(Varyings IN) : SV_Target
             {
@@ -34,8 +35,13 @@ Shader "Hidden/ScreenSpaceShadow"
                 float4 positionWS = mul(unity_MatrixIVP, positionNDC);
                 positionWS *= rcp(positionWS.w);
 
+                half2 encodeNormal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_point_clamp, IN.uv).xy;
+                half3 decodeNormal =SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(encodeNormal))));
+                half NoL = saturate(dot(MainLightDirectionaAndMask.xyz, decodeNormal));
+                
+
                 float4 shadowCoord = TransformWorldToShadowCoord(positionWS.xyz);
-                return SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
+                return lerp( SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData),1,NoL);
             }
             ENDHLSL
         }

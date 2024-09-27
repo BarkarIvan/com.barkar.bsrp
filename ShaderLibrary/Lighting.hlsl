@@ -99,7 +99,7 @@ half3 CalculateStylizedRadiance(half attenuation, Ramp ramp, half NoL, half3 bru
 
     half smoothMed = LinearStep(ramp.MediumThreshold - ramp.MediumSmooth, ramp.MediumThreshold + ramp.MediumSmooth, halfLambertMed);
     half3 colorMed = lerp(ramp.MediumColor, 1, smoothMed);
-    half smoothShadow = LinearStep(ramp.ShadowThreshold - ramp.ShadowSmooth, ramp.ShadowThreshold + ramp.ShadowSmooth, halfLambertShadow ); 
+    half smoothShadow = LinearStep(ramp.ShadowThreshold - ramp.ShadowSmooth, ramp.ShadowThreshold + ramp.ShadowSmooth, halfLambertShadow); 
     half3 colorShadow = lerp(ramp.ShadowColor, colorMed, smoothShadow);
     half smoothRefl = LinearStep(ramp.ReflectThreshold - ramp.ReflectSmooth, ramp.ReflectThreshold + ramp.ReflectSmooth, halfLambertRefl);
     half3 colorRefl = lerp(ramp.ReflectColor, colorShadow, smoothRefl);
