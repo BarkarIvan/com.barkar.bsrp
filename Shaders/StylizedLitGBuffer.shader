@@ -351,14 +351,14 @@ Shader "BSRP/StylizedLitGBUFFER"
             float4 GetShadowPositionHClip(Attributes input)
             {
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
-                half3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+                half3 normalWS = TransformObjectToWorldNormal(input.normalOS, true);
 
                 //apply bias
                 half invNdotL = 1.0 - saturate(dot(MainLightDirectionaAndMask.xyz, normalWS.xyz));
                 half scale = invNdotL * MainLightShadowsData.y;
 
                 positionWS = MainLightDirectionaAndMask.xyz * MainLightShadowsData.yyy + positionWS.xyz;
-                positionWS = normalWS * scale.xxx + positionWS;
+                positionWS =  + positionWS + normalWS * scale.xxx;
                 //
                 float4 positionCS = TransformWorldToHClip(positionWS);
 

@@ -35,13 +35,13 @@ Shader "Hidden/ScreenSpaceShadow"
                 float4 positionWS = mul(unity_MatrixIVP, positionNDC);
                 positionWS *= rcp(positionWS.w);
 
-                half2 encodeNormal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_point_clamp, IN.uv).xy;
-                half3 decodeNormal =SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(encodeNormal))));
-                half NoL = saturate(dot(MainLightDirectionaAndMask.xyz, decodeNormal));
+           //     half2 encodeNormal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_point_clamp, IN.uv).xy;
+              //  half3 decodeNormal =SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(encodeNormal))));
+               // half NoL = saturate(dot(MainLightDirectionaAndMask.xyz, decodeNormal));
                 
 
                 float4 shadowCoord = TransformWorldToShadowCoord(positionWS.xyz);
-                return lerp( SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData),1,NoL);
+                return  SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
             }
             ENDHLSL
         }
