@@ -134,9 +134,9 @@ public class BSRP : RenderPipeline
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.ExecutePass(RenderGraph, _container, camera);
            
-            //Shadow
-            _screenSpaceShadowPass.ExecutePass(RenderGraph, _container,
-                _shadowSettings, _screenSpaceShadowMaterial);
+            //Shadow MOVED TO DIRECTIONAL LIGHT PASS
+          //  _screenSpaceShadowPass.ExecutePass(RenderGraph, _container,
+             //   _shadowSettings, _screenSpaceShadowMaterial);
             
             //Directional
             _directionalLightPass.ExecutePass(RenderGraph, _container, _defferedLightingMaterial);
