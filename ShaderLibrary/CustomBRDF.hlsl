@@ -112,14 +112,14 @@ half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 specularTerm )
 half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 indirectDiffuse, half3 specularTerm, half3 radiance )
 {
     half g = 1.0h - surface.smoothness;
-    half4 t = half4(1.042h, 0.475h, 0.0182h, 0.25h);
+    half4 t = half4(1.042h, 0.475h, (0.0275 - 0.25 * 0.04)/0.96, 0.25h);
     t *= half4(g, g, g, g);
-    t += half4(0, 0, -0.0156h, 0.75h);
+    t += half4(0, 0, (0.015 - 0.75 * 0.04), 0.75h);
     half NoV = saturate(dot(surface.normal, surface.viewDir));
     half a0 = t.x * min(t.y, exp2(-9.28h * NoV)) + t.z;
     half a1 = t.w;
-    half3 tempC =  saturate(lerp(a0, a1, brdf.specular ));
-    return (specularTerm  + (indirectDiffuse * brdf.diffuse  + tempC * (specularTerm * brdf.specular) ))* radiance;
+    half3 tempC =  saturate(a0 + specularTerm * (a1 - a0));
+    return (specularTerm  * (indirectDiffuse * brdf.diffuse + tempC * (specularTerm * brdf.specular) ))* radiance;
 }
 /// delete
 half3 EnvironmentBRDF(Surface surface, BRDF brdf, half3 specularTerm, half3 radiance )

@@ -185,7 +185,8 @@ Shader "BSRP/StylizedLitGBUFFER"
                 OUT.positionWS.xyz = positionInputs.positionWS;
                 OUT.positionCS = positionInputs.positionCS;
                 OUT.normalWS = normalInputs.normalWS;
-
+  OUT.SH = SampleSH(OUT.normalWS);
+                
                 #if defined(_NORMALMAP)
                 half sign = IN.tangentOS.w;
                 half3 tangentWS = TransformObjectToWorldDir(IN.tangentOS.xyz);
@@ -193,8 +194,6 @@ Shader "BSRP/StylizedLitGBUFFER"
                 OUT.tangentWS = half3(tangentWS);
                 OUT.bitangentWS = half3(bitangentWS);
                 OUT.SH = SHEvalLinearL2(OUT.normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
-                #else
-                OUT.SH = SampleSH(OUT.normalWS);
                 #endif
 
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
@@ -207,7 +206,6 @@ Shader "BSRP/StylizedLitGBUFFER"
 
             GBuffer BSRPStylizedFragment(Varyings IN): SV_Target
             {
-                half4 result;
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
                 albedo *= _BaseColor;
                 albedo *= IN.color;
@@ -265,7 +263,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                 ramp.ReflectThreshold = _ReflectThreshold;
                 ramp.ReflectSmooth = _ReflectSmooth;
                 ramp.ReflectColor = _ReflectColor;
-                half3 lightColor = light.color;
+             
 
                 //radiance
                 #if defined (_BRUSHTEX)
@@ -279,7 +277,7 @@ Shader "BSRP/StylizedLitGBUFFER"
 
                 //brdf
                 BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light);
+                half3 lightColor = DirectBRDF(surface, brdf, light);
 
                 half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
 
