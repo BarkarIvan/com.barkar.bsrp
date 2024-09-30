@@ -17,17 +17,6 @@ Shader "Hidden/DeferredLights"
     StructuredBuffer<int> _TileLightIndicesBuffer;
     int2 _TextureParams;
 
-    
-    half3 SpheremapDecodeNormal(half2 enc)
-    {
-        half2 fenc = enc*4-2;
-    half f = dot(fenc,fenc);
-    half g = sqrt(1-f/4);
-    half3 n;
-    n.xy = fenc*g;
-    n.z = 1-f/2;
-    return n;
-    }
 
     half4 DirLightPassFragment(Varyings IN): SV_Target
     {
@@ -39,8 +28,8 @@ Shader "Hidden/DeferredLights"
         half smoothness = g0.a;
         half3 radiance = g1.rgb;
         half metallic = g1.a;
-        half3 normal = g2.rgb;
-        normal = SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(normal))));
+        half3 normalWS = g2.rgb;
+        normalWS = SafeNormalize(mul(UNITY_MATRIX_I_V, (SpheremapDecodeNormal(normalWS))));
 
 
         float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepth, sampler_linear_clamp, IN.uv);
@@ -48,21 +37,26 @@ Shader "Hidden/DeferredLights"
         float4 positionWS = mul(unity_MatrixIVP, positionNDC);
         positionWS *= rcp(positionWS.w);
 
+
+        float4 shadowCoord = TransformWorldToShadowCoord(positionWS.xyz);
+        shadowCoord.xy /= max(0.00001, shadowCoord.w);
+        half shadowAttenuation = SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
+        shadowAttenuation *= max(0, dot(MainLightDirectionaAndMask.xyz, normalWS));
+
         half3 lightColor = MainLightColor;
 
         Surface surface;
         surface.albedo = albedo;
-        surface.normal = normal;
+        surface.normal = normalWS;
         surface.metallic = metallic;
         surface.smoothness = smoothness;
         surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - positionWS.xyz);
 
-        Light light = GetMainLight(positionWS);
+        Light light = GetMainLight(positionWS, shadowCoord);
         BRDF brdf = GetBRDFGBuffer(surface);
-        lightColor *= DirectBRDF(surface, brdf, light) * radiance;
-        
+        lightColor *= DirectBRDF(surface, brdf, light);
         half4 result;
-        result.rgb = lightColor;
+        result.rgb = lightColor * shadowAttenuation * radiance;
 
         return half4(result.rgb, 1);
     }
@@ -70,13 +64,13 @@ Shader "Hidden/DeferredLights"
     half4 PointLightsPassFRagment(Varyings IN): SV_Target
     {
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
-        half metallic  = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv).a;
+        half metallic = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv).a;
         half2 normal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv).rg;
-        half3 normalWS = SafeNormalize(mul(UNITY_MATRIX_I_V,(SpheremapDecodeNormal(normal))));
-        
+        half3 normalWS = SafeNormalize(mul(UNITY_MATRIX_I_V, (SpheremapDecodeNormal(normal))));
+
         half3 albedo = g0.rgb;
         half smoothness = g0.a;
-        
+
         //float3 normal = SafeNormalize(normalWS.rgb * 2 - 1);
 
 
@@ -84,7 +78,7 @@ Shader "Hidden/DeferredLights"
         float4 positionNDC = float4(IN.uv * 2 - 1, depth, 1);
         float4 positionWS = mul(unity_MatrixIVP, positionNDC);
         positionWS *= rcp(positionWS.w);
-        
+
         Surface surface;
         surface.albedo = albedo;
         surface.normal = normalWS;
@@ -94,7 +88,7 @@ Shader "Hidden/DeferredLights"
         surface.alpha = 1.0;
         BRDF brdf = GetBRDFGBuffer(surface);
         //normalWS = SafeNormalize(normalWS) * 2.0 - 1.0;
-        
+
         float2 pixelCoord = IN.uv * _TextureParams;
         int2 tileCoord = (pixelCoord) / (TILESIZE);
         int tileIndex = tileCoord.y * (_TextureParams.x / TILESIZE) + tileCoord.x;
@@ -112,14 +106,14 @@ Shader "Hidden/DeferredLights"
             half3 dir = SafeNormalize(lightPos.xyz - positionWS.xyz);
             half distanceToLight = distance(positionWS.xyz, lightPos.xyz);
             half NoL = max(0, dot(dir, normalWS));
-            half  p = distanceToLight * rcp(lighRange);
-            half attenuation =  rcp(constantOffset + distanceToLight * distanceToLight) * saturate(1.0 - p * p * p * p);
+            half p = distanceToLight * rcp(lighRange);
+            half attenuation = rcp(constantOffset + distanceToLight * distanceToLight) * saturate(1.0 - p * p * p * p);
 
-            light.color = PointLightColors[lightIndex] ;
+            light.color = PointLightColors[lightIndex];
             light.direction = dir;
             light.shadowAttenuation = 0;
-            half3 resultColor = (attenuation) *( light.color * DirectBRDF(surface, brdf, light));
-            
+            half3 resultColor = (attenuation) * (light.color * DirectBRDF(surface, brdf, light));
+
             result += NoL * resultColor;
             //result = lightCount;
         }
@@ -129,11 +123,6 @@ Shader "Hidden/DeferredLights"
 
     SubShader
     {
-        Cull Off
-        Blend One One
-        BlendOp Add, Add
-        ZWrite Off
-        ZTest Always
 
         Stencil
         {
@@ -143,15 +132,30 @@ Shader "Hidden/DeferredLights"
 
         Pass
         {
+
+            Cull Off
+            Blend One SrcAlpha, Zero One
+            BlendOp Add, Add
+            ZWrite Off
+            ZTest Always
+
             Name "Directional Light Pass"
             HLSLPROGRAM
             #pragma vertex DefaultPassVertex
             #pragma fragment DirLightPassFragment
+            #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
             ENDHLSL
         }
 
         Pass
         {
+
+            Cull Off
+            Blend One One
+            BlendOp Add, Add
+            ZWrite Off
+            ZTest Always
+
             Name "Point Light Pass"
             HLSLPROGRAM
             #pragma vertex DefaultPassVertex
