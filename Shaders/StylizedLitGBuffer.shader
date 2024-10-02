@@ -81,18 +81,16 @@ Shader "BSRP/StylizedLitGBUFFER"
             #pragma shader_feature_local _BRUSHTEX
             #pragma shader_feature_local _USEALPHACLIP
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+                        #pragma multi_compile _ _SOFT_SHADOWS_LOW _SOFT_SHADOWS_MEDIUM _SOFT_SHADOWS_HIGH
+
 
             #pragma multi_compile_fog
 
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
-
+            
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
-            #include "Packages/com.barkar.bsrp/ShaderLibrary/Surface.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Lighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
-            #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomBRDF.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
 
             //to inputs include
 
@@ -157,10 +155,9 @@ Shader "BSRP/StylizedLitGBUFFER"
                 float2 addUv : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
                 half3 normalWS : NORMAL;
-                #if defined(_NORMALMAP)
-                half3 tangentWS : TEXCOORD3;
-                half3 bitangentWS : TEXCOORD4;
-                #endif
+                 half3 tangentWS : TEXCOORD3;
+                 half3 bitangentWS : TEXCOORD4;
+
                 float4 shadowCoord : TEXCOORD5;
                 half3 SH : TEXCOORD6;
                 half4 color : COLOR;
@@ -175,7 +172,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half4 GBUFFER3 : SV_Target3;
             };
 
-            
+
             Varyings BSRPStylizedVertex(Attributes IN)
             {
                 Varyings OUT;
@@ -186,12 +183,13 @@ Shader "BSRP/StylizedLitGBUFFER"
                 OUT.positionCS = positionInputs.positionCS;
                 OUT.normalWS = normalInputs.normalWS;
 
-                #if defined(_NORMALMAP)
+               
                 half sign = IN.tangentOS.w;
                 half3 tangentWS = TransformObjectToWorldDir(IN.tangentOS.xyz);
                 half3 bitangentWS = cross(normalInputs.normalWS.xyz, normalInputs.tangentWS.xyz) * sign;
                 OUT.tangentWS = half3(tangentWS);
                 OUT.bitangentWS = half3(bitangentWS);
+                 #if defined(_NORMALMAP)
                 OUT.SH = SHEvalLinearL2(OUT.normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
                 #else
                 OUT.SH = SampleSH(OUT.normalWS);
@@ -213,23 +211,30 @@ Shader "BSRP/StylizedLitGBUFFER"
                 albedo *= IN.color;
                 albedo *= _Brightness;
 
-                Surface surface;
-                surface.metallic = _Metallic;
-                surface.smoothness = _Smoothness;
-                surface.normal = SafeNormalize(IN.normalWS.xyz);
-                surface.albedo = albedo.rgb;
-                surface.alpha = albedo.a;
-                surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
-
                 half3 indirectDiffuse = IN.SH;
+                CustomSurfaceData surfaceData;
+                surfaceData.metallic = _Metallic;
+                surfaceData.roughness = _Smoothness;
 
+                surfaceData.albedo = albedo.rgb;
+                surfaceData.alpha = albedo.a;
+                surfaceData.occlusion = 1.0;
+                surfaceData.normalTS = SafeNormalize(IN.normalWS);
+               
+
+                CustomLitData litData;
+                litData.N = SafeNormalize(IN.normalWS.xyz);
+                litData.T  = IN.tangentWS;
+                litData.V = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
+
+        
                 //additional map
                 #if defined (_ADDITIONALMAP)
                 half4 additionalMaps = SAMPLE_TEXTURE2D(_AdditionalMap, sampler_AdditionalMap, IN.addUv);
                 half smoothnessMask = additionalMaps.b;
                 half metallicMask = additionalMaps.a;
-                surface.metallic = metallicMask;
-                surface.smoothness = smoothnessMask;
+                surfaceData.metallic = metallicMask;
+                surfaceData.roughness = smoothnessMask;
 
                 //normals
                 #if defined (_NORMALMAP)
@@ -238,12 +243,14 @@ Shader "BSRP/StylizedLitGBUFFER"
                  normalTS.xy *= _NormalMapScale;
                 normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
                 half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
-                surface.normal = SafeNormalize(mul(normalTS, tangentToWorld));
+                 litData.N = SafeNormalize(mul(normalTS, tangentToWorld));
                 indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
                 #endif
 
                 #endif
-
+                surfaceData.albedo =  lerp(surfaceData.albedo,float3(0.0,0.0,0.0),surfaceData.metallic);
+                surfaceData.specular =  lerp(float3(0.04,0.04,0.04),surfaceData.albedo,surfaceData.metallic);
+                
                 //alpha
                 #if defined (_USEALPHACLIP)
                 surface.alpha = step(_AlphaClip, surface.alpha);
@@ -253,46 +260,15 @@ Shader "BSRP/StylizedLitGBUFFER"
 
 
                 Light light = GetMainLight(shadowCoord, IN.positionWS);
-                half NoL = dot(surface.normal, light.direction);
-               
-                Ramp ramp;
-                ramp.MediumThreshold = _MediumThreshold;
-                ramp.MediumSmooth = _MediumSmooth;
-                ramp.MediumColor = _MediumColor;
-                ramp.ShadowThreshold = _ShadowThreshold;
-                ramp.ShadowSmooth = _ShadowSmooth;
-                ramp.ShadowColor = _ShadowColor;
-                ramp.ReflectThreshold = _ReflectThreshold;
-                ramp.ReflectSmooth = _ReflectSmooth;
-                ramp.ReflectColor = _ReflectColor;
-                half3 lightColor = light.color;
+                half NoL = SafeNormalize(dot(litData.N, light.direction));
+                
+                half3 res = StandardBRDF(litData, surfaceData, light.direction, light.color, light.shadowAttenuation);
 
-                //radiance
-                #if defined (_BRUSHTEX)
-                half3 brush = SAMPLE_TEXTURE2D(_BrushTexture, sampler_BrushTexture,
-                                   IN.uv * _BrushTexture_ST.xy + _BrushTexture_ST.zw).rgb;
-                half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp,
-                                   NoL, brush,half3(_MedBrushStrength, _ShadowBrushStrength, _ReflectBrushStrength));
-               #else
-                half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp, NoL, 0, 0);
-                #endif
-
-                //brdf
-                BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light);
-
-                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
-
-                //reflectionProbe
-                half3 envirReflection = GetReflectionProbe(surface);
-                envirReflection *= surface.metallic + MIN_REFLECTIVITY;
-                envirReflection *= albedo.rgb;
-                go += envirReflection;
 
                 //rim
                 half3 rim = 0;
                 #if defined (_RIM)
-                half NoV = dot(surface.viewDir, surface.normal);
+                half NoV = dot(litData.V, surfaceData.normalTS);
                 rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
                 #endif
 
@@ -305,10 +281,10 @@ Shader "BSRP/StylizedLitGBUFFER"
                 #endif
 
                 GBuffer gbo;
-                gbo.GBUFFER0 = half4(surface.albedo, surface.smoothness);
-                gbo.GBUFFER1 = half4(radiance, surface.metallic); //radiance & dir shadow
-                gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, surface.normal.rgb))), 0.0, 0.0);
-                gbo.GBUFFER3 = float4(go + emissionColor + rim, 1.0);
+                gbo.GBUFFER0 = half4(surfaceData.albedo, surfaceData.roughness);
+                gbo.GBUFFER1 = half4(half3(1.0, 1.0, 1.0), surfaceData.metallic); //radiance & dir shadow
+                gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, surfaceData.normalTS.rgb))), 0.0, 0.0);
+                gbo.GBUFFER3 = float4(res, 1.0);
 
                 return gbo;
             }
@@ -358,7 +334,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                 half scale = invNdotL * MainLightShadowsData.y;
 
                 positionWS = MainLightDirectionaAndMask.xyz * MainLightShadowsData.yyy + positionWS.xyz;
-                positionWS =  + positionWS + normalWS * scale.xxx;
+                positionWS = +positionWS + normalWS * scale.xxx;
                 //
                 float4 positionCS = TransformWorldToHClip(positionWS);
 

@@ -133,6 +133,30 @@ float3 NormalTangentToWorld(float3 normalTS, float3 normalWS, float4 tangentWS)
 	return TransformTangentToWorld(normalTS, tangentToWorld);
 }
 
+ half Pow2 (half x)
+{
+	return x*x;
+}
+ half Pow4 (half x)
+{
+	return x*x * x*x;
+}
+ half Pow5 (half x)
+{
+	return x*x * x*x * x;
+}
+ half3 RotateDirection(half3 R, half degrees)
+{
+	float3 reflUVW = R;
+	half theta = degrees * PI / 180.0f;
+	half costha = cos(theta);
+	half sintha = sin(theta);
+	reflUVW = half3(reflUVW.x * costha - reflUVW.z * sintha, reflUVW.y, reflUVW.x * sintha + reflUVW.z * costha);
+	return reflUVW;
+}
+
+
+
 //CORE
 
 #if UNITY_REVERSED_Z
