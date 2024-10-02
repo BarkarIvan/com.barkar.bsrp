@@ -248,8 +248,9 @@ Shader "BSRP/StylizedLitGBUFFER"
                 #endif
 
                 #endif
+              
                 surfaceData.albedo =  lerp(surfaceData.albedo,float3(0.0,0.0,0.0),surfaceData.metallic);
-                surfaceData.specular =  lerp(float3(0.04,0.04,0.04),surfaceData.albedo,surfaceData.metallic);
+                surfaceData.specular =  lerp(float3(0.04,0.04,0.04),albedo,surfaceData.metallic);
                 
                 //alpha
                 #if defined (_USEALPHACLIP)
@@ -262,8 +263,10 @@ Shader "BSRP/StylizedLitGBUFFER"
                 Light light = GetMainLight(shadowCoord, IN.positionWS);
                 half NoL = SafeNormalize(dot(litData.N, light.direction));
                 
-                half3 res = StandardBRDF(litData, surfaceData, light.direction, light.color, light.shadowAttenuation);
+                half3 pbr = StandardBRDF(litData, surfaceData, light.direction, light.color, light.shadowAttenuation);
+                half3 envPbr = EnvBRDF(litData, surfaceData,0,IN.positionWS);
 
+                half3 res =pbr + envPbr;
 
                 //rim
                 half3 rim = 0;
@@ -284,7 +287,7 @@ Shader "BSRP/StylizedLitGBUFFER"
                 gbo.GBUFFER0 = half4(surfaceData.albedo, surfaceData.roughness);
                 gbo.GBUFFER1 = half4(half3(1.0, 1.0, 1.0), surfaceData.metallic); //radiance & dir shadow
                 gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, surfaceData.normalTS.rgb))), 0.0, 0.0);
-                gbo.GBUFFER3 = float4(res, 1.0);
+                gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
 
                 return gbo;
             }

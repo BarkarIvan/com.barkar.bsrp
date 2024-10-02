@@ -159,15 +159,15 @@ half3 EnvBRDF(CustomLitData customLitData,CustomSurfaceData customSurfaceData,fl
 {
     half NoV = saturate(abs(dot(customLitData.N,customLitData.V)) + 1e-5);//区分正反面
     half3 R = reflect(-customLitData.V,customLitData.N);
-    R = RotateDirection(R,envRotation);
+  //  R = RotateDirection(R,envRotation);
 
     //SH
     float3 diffuseAO = GTAOMultiBounce(customSurfaceData.occlusion,customSurfaceData.albedo);
     float3 radianceSH = SampleSH(customLitData.N);
     float3 indirectDiffuseTerm = radianceSH * customSurfaceData.albedo * diffuseAO;
-    #if defined(_SH_OFF)
-    indirectDiffuseTerm = half3(0,0,0);
-    #endif
+   // #if defined(_SH_OFF)
+ //   indirectDiffuseTerm = half3(0,0,0);
+  //  #endif
 
     //IBL
     //The Split Sum: 1nd Stage
@@ -179,9 +179,9 @@ half3 EnvBRDF(CustomLitData customLitData,CustomSurfaceData customSurfaceData,fl
     float3 specularAO = GTAOMultiBounce(specularOcclusion,customSurfaceData.specular);
 
     float3 indirectSpecularTerm = specularLD * specularDFG * specularAO;
-    #if defined(_IBL_OFF)
-    indirectSpecularTerm = half3(0,0,0);
-    #endif
+  //  #if defined(_IBL_OFF)
+  //  indirectSpecularTerm = half3(0,0,0);
+  //  #endif
     return indirectDiffuseTerm + indirectSpecularTerm;
 }
     
