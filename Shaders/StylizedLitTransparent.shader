@@ -163,10 +163,8 @@ Shader "BSRP/StylizedLit_PPLL"
                 float2 addUv : TEXCOORD1;
                 float3 positionWS : TEXCOORD2;
                 half3 normalWS : NORMAL;
-                #if defined(_NORMALMAP)
                 half3 tangentWS : TEXCOORD3;
                 half3 bitangentWS : TEXCOORD4;
-                #endif
                 half3 SH : TEXCOORD6;
                 half4 color : COLOR;
                 float4 screenPos : TEXCOORD7;
@@ -205,89 +203,74 @@ Shader "BSRP/StylizedLit_PPLL"
             [earlydepthstencil]
             half4 StylizedTransparentFragment(Varyings IN) : SV_Target
             {
-                half4 result;
+               
                 half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
                 albedo *= _BaseColor;
                 albedo *= IN.color;
                 albedo *= _Brightness;
 
-                Surface surface;
-                surface.metallic = _Metallic;
-                surface.smoothness = _Smoothness;
-                surface.normal = SafeNormalize(IN.normalWS.xyz);
-                surface.albedo = albedo.rgb;
-                surface.alpha = albedo.a;
-                surface.viewDir = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
-
                 half3 indirectDiffuse = IN.SH;
 
+                CustomSurfaceData surfaceData;
+                surfaceData.metallic = _Metallic;
+                surfaceData.roughness = _Smoothness;
+                surfaceData.albedo = albedo.rgb;
+                surfaceData.alpha = albedo.a;
+                surfaceData.occlusion = 1.0;
+                surfaceData.normalTS = SafeNormalize(IN.normalWS);
+               
+
+                CustomLitData litData;
+                litData.N = SafeNormalize(IN.normalWS.xyz);
+                litData.T  = IN.tangentWS;
+                litData.V = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
+                litData.positionWS = IN.positionWS;
+                litData.B = IN.bitangentWS;
+
+                
+        
                 //additional map
                 #if defined (_ADDITIONALMAP)
                 half4 additionalMaps = SAMPLE_TEXTURE2D(_AdditionalMap, sampler_AdditionalMap, IN.addUv);
                 half smoothnessMask = additionalMaps.b;
                 half metallicMask = additionalMaps.a;
-                surface.metallic = metallicMask;
-                surface.smoothness = smoothnessMask;
+                surfaceData.metallic = metallicMask;
+                surfaceData.roughness = smoothnessMask;
 
                 //normals
                 #if defined (_NORMALMAP)
                 half3 normalTS;
                 normalTS.xy = additionalMaps.rg * 2.0 - 1.0;
-                normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
                 normalTS.xy *= _NormalMapScale;
+                normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
                 half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
-                surface.normal = SafeNormalize(mul(normalTS, tangentToWorld));
+                litData.N = SafeNormalize(mul(normalTS, tangentToWorld));
                 indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
                 #endif
 
                 #endif
-
+              
+                surfaceData.albedo =  lerp(surfaceData.albedo, float3(0.0,0.0,0.0), surfaceData.metallic);
+                surfaceData.specular =  lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
+                
                 //alpha
-                #if defined (_USEALPHACLIP)
-                surface.alpha = step(_AlphaClip, surface.alpha);
-                #endif
+               /// #if defined (_USEALPHACLIP)
+               // surface.alpha = step(_AlphaClip, surface.alpha);
+               // #endif
+                float4 shadowCoord = TransformWorldToShadowCoord(IN.positionWS);
+                Light light = GetMainLight(shadowCoord, IN.positionWS);
+                half3 directpbr = StandardBRDF(litData, surfaceData, light.direction, light.color, light.shadowAttenuation );
+                half3 envPbr = EnvBRDF(litData, surfaceData,0, IN.positionWS, indirectDiffuse);
+                
 
-                Light light = GetMainLight(IN.positionWS);
-                half NoL = dot(surface.normal, light.direction);
-
-                Ramp ramp;
-                ramp.MediumThreshold = _MediumThreshold;
-                ramp.MediumSmooth = _MediumSmooth;
-                ramp.MediumColor = _MediumColor;
-                ramp.ShadowThreshold = _ShadowThreshold;
-                ramp.ShadowSmooth = _ShadowSmooth;
-                ramp.ShadowColor = _ShadowColor;
-                ramp.ReflectThreshold = _ReflectThreshold;
-                ramp.ReflectSmooth = _ReflectSmooth;
-                ramp.ReflectColor = _ReflectColor;
-                half3 lightColor = light.color;
-
-                //radiance
-                #if defined (_BRUSHTEX)
-                half3 brush = SAMPLE_TEXTURE2D(_BrushTexture, sampler_BrushTexture,
-                                   IN.uv * _BrushTexture_ST.xy + _BrushTexture_ST.zw).rgb;
-                half3 radiance = CalculateStylizedRadiance(light.shadowAttenuation, ramp,
-                                   NoL, brush,half3(_MedBrushStrength, _ShadowBrushStrength, _ReflectBrushStrength));
-                #else
-                half3 radiance = CalculateStylizedRadiance(ramp, NoL, 0, 0);
-                #endif
-
-                //brdf
-                BRDF brdf = GetBRDF(surface);
-                lightColor *= DirectBRDF(surface, brdf, light) * radiance;
-                half3 go = EnvironmentBRDF(surface, brdf, indirectDiffuse, lightColor, radiance);
-
-                //reflectionProbe
-                half3 envirReflection = GetReflectionProbe(surface);
-                envirReflection *= surface.metallic + MIN_REFLECTIVITY;
-                envirReflection *= albedo.rgb;
-                result.rgb = saturate(go + envirReflection);
-                result.a = surface.alpha;
+                half4 result = half4(directpbr + envPbr, albedo.a);
+          
 
                 //rim
+                    half3 rim = 0;
                 #if defined (_RIM)
-                half NoV = dot(surface.viewDir, surface.normal);
-                half3 rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
+                half NoV = dot(litData.V, surfaceData.normalTS);
+                rim = smoothstep(1 - _RimThreshold, 1 - _RimThreshold - _RimSmooth, saturate(NoV)) * _RimColor;
                 result.rgb += rim;
                 result.rgb = saturate(result.rgb);
                 #endif
@@ -313,7 +296,6 @@ Shader "BSRP/StylizedLit_PPLL"
 
                 // return result;
 
-                //to vertex
                 uint2 pos = uint2(IN.positionCS.xy);
                 uint depth = (uint)(Linear01Depth(IN.positionCS.z, _ZBufferParams) * (pow(2, 24) - 1));
                 depth = depth << 8UL;

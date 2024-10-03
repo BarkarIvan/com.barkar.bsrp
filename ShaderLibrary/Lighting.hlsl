@@ -7,6 +7,8 @@
 #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomLitData.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/RealTimeLight.hlsl"
 
+#define MIN_REFLECTIVITY 0.04
+#define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04)
 
 real3 DecodeHDREnvironment(real4 encodedIrradiance, real4 decodeInstructions)
 {
@@ -49,10 +51,6 @@ half3 GlossyEnvironmentReflection(half3 reflectVector, float3 positionWS, half p
    //return _GlossyEnvironmentColor.rgb * occlusion;
    ////#endif // _ENVIRONMENTREFLECTIONS_OFF
 }//
-
-
-
-
 
 
 //BRDF
@@ -133,7 +131,7 @@ float3 SpecularGGX(float a2,float3 specular,float NoH,float NoV,float NoL,float 
 
 half3 StandardBRDF(CustomLitData customLitData,CustomSurfaceData customSurfaceData,half3 L,half3 lightColor,float shadow)
 {
-    float a2 = Pow4(customSurfaceData.roughness);
+    float a2 = Pow4(customSurfaceData.roughness)+0.001;
 
     half3 H = normalize(customLitData.V + L);
     half NoH = saturate(dot(customLitData.N,H));
@@ -155,19 +153,18 @@ half3 StandardBRDF(CustomLitData customLitData,CustomSurfaceData customSurfaceDa
     return  (diffuseTerm + specularTerm) * radiance;
 }
 
-half3 EnvBRDF(CustomLitData customLitData,CustomSurfaceData customSurfaceData,float envRotation,float3 positionWS)
+half3 EnvBRDF(CustomLitData customLitData,CustomSurfaceData customSurfaceData,float envRotation,float3 positionWS, half3 indirectDiffuse)
 {
-    half NoV = saturate(abs(dot(customLitData.N,customLitData.V)) + 1e-5);//区分正反面
+    half NoV = saturate(abs(dot(customLitData.N,customLitData.V)) + 1e-5);
     half3 R = reflect(-customLitData.V,customLitData.N);
-  //  R = RotateDirection(R,envRotation);
+   // R = RotateDirection(R,envRotation);
 
     //SH
     float3 diffuseAO = GTAOMultiBounce(customSurfaceData.occlusion,customSurfaceData.albedo);
-    float3 radianceSH = SampleSH(customLitData.N);
-    float3 indirectDiffuseTerm = radianceSH * customSurfaceData.albedo * diffuseAO;
+    float3 indirectDiffuseTerm = indirectDiffuse * customSurfaceData.albedo * diffuseAO;
    // #if defined(_SH_OFF)
- //   indirectDiffuseTerm = half3(0,0,0);
-  //  #endif
+   // indirectDiffuseTerm = half3(0,0,0);
+   // #endif
 
     //IBL
     //The Split Sum: 1nd Stage
