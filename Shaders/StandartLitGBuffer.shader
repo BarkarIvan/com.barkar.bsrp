@@ -194,10 +194,11 @@ Shader "BSRP/StandartLitGBUFFER"
                 half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
                 normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
                 indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
+                indirectDiffuse = LinearToSRGB(indirectDiffuse);
                 #endif
                 #endif
 
-                indirectDiffuse = LinearToSRGB(indirectDiffuse);
+               
                 surfaceData.albedo =  lerp(surfaceData.albedo, float3(0.0,0.0,0.0), surfaceData.metallic);
                 surfaceData.specular =  lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
                 litData.N = normalWS;
