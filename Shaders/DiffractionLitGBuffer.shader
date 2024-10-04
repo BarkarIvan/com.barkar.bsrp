@@ -25,9 +25,9 @@ Shader "BSRP/DiffractionLitGBUFFER"
 
         // Clausen BRDF
         //temp
-        [Toggle(_DIRECT_LIGHT_BRDF_DIFFRACTION)] _DirectDiffraction("Direct diffraction", Float) = 1
-        [Toggle(_DIRECT_LIGHT_BRDF_DIFFRACTION_PATTERN)] _DiffractionPattern("Diffraction Pattern", Float) = 1
-        [Toggle(_DIFFRACTION_PATTERN_OPEN_SIMPLEX_2)] _OpenSimpex2 ("Open simplex2", Float) = 1
+        [Toggle(_DIRECT_LIGHT_BRDF_DIFFRACTION)] _DirectDiffractionToggle("Direct diffraction", Float) = 1
+        [Toggle(_DIRECT_LIGHT_BRDF_DIFFRACTION_PATTERN)] _DiffractionPatternToggle("Diffraction Pattern", Float) = 1
+        [Toggle(_DIFFRACTION_PATTERN_OPEN_SIMPLEX_2)] _OpenSimpex2Toggle ("Open simplex2", Float) = 1
 
         _DiffractionWidth("Diffraction Width", Range(0.0, 7.0)) = 2.3394
         _DiffractionHeight("Diffraction Height", Range(0.0, 0.0045)) = 0.0015
@@ -37,6 +37,18 @@ Shader "BSRP/DiffractionLitGBUFFER"
         _DiffractionZW_Scale("Spatio-Temporal Pattern-Shift factor", Range(0.0, 50.0)) = 7
         _DiffractionUV_ScaleX("Diffraction Scaling factor for UVs", Float) = 1.0
         _DiffractionUV_ScaleY("Diffraction Scaling factor for UVs", Float) = 1.0
+        
+        // Used only in ShaderGUI. Not sent to shader
+        _DiffractionVar_R("var_r", Float)       = 0.00429577
+        _DiffractionVar_G("var_g", Float)       = 0.00396111
+        _DiffractionVar_B("var_b", Float)       = 0.00326149
+        _DiffractionCovar_RG("covar_rg", Float) = 0.00377288
+        _DiffractionCovar_RB("covar_rb", Float) = 0.00305712
+        _DiffractionCovar_GB("covar_gb", Float) = 0.00316949
+        _DiffractionCovInit_Row_1("covar_init_r1" , Vector) = (1, 1, 1, 0)
+        _DiffractionCovInit_Row_2("covar_init_r2" , Vector) = (1, 1, 1, 0)
+        _DiffractionCovInit_Row_3("covar_init_r3" , Vector) = (1, 1, 1, 0)
+        // Clausen BRDF
 
         [Toggle(_USEALPHACLIP)] _UseAlphaClip ("Use Alpha Clip", Float) = 0
         _AlphaClip ("ClipAlha", Range(0,1)) = 0
@@ -243,7 +255,7 @@ half3 L = l.direction;
                 #endif
 
                 GBuffer gbo;
-                gbo.GBUFFER0 = half4(brdf, surfaceData.roughness);
+                gbo.GBUFFER0 = half4(saturate(albedo * brdf), surfaceData.roughness);
                 gbo.GBUFFER1 = half4(half3(1.0, 1.0, 1.0), surfaceData.metallic); //AO
                 gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, litData.N))), 0.0, 0.0);
                 gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
@@ -324,5 +336,5 @@ half3 L = l.direction;
         }
     }
 
-    //  CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPStandartLitShaderEditor"
+      CustomEditor "Barkar.BSRP.Editor.ShaderEditor.BSRPDiffractionLitShaderEditor"
 }

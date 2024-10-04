@@ -171,15 +171,6 @@ half3 EnvBRDF(CustomLitData customLitData, CustomSurfaceData customSurfaceData, 
     return indirectDiffuseTerm + indirectSpecularTerm;
 }
 
-#define _DiffractionVar_R  0
-#define _DiffractionVar_G 0   
-#define _DiffractionVar_B 0
-#define _DiffractionCovar_RG 0
-#define _DiffractionCovar_RB 0
-#define _DiffractionCovar_GB 0
-#define _DiffractionCovInit_Row_1 float4(1, 1, 1, 0)
-#define _DiffractionCovInit_Row_2 float4(1, 1, 1, 0)
-#define _DiffractionCovInit_Row_3 float4(1, 1, 1, 0)
 
 // Specular, Cook-Torrance BRDF used in Clausen et al. with Diffraction pattern
 // Based on [Clausen et al. 2022]
@@ -324,7 +315,7 @@ half3 StandardBRDFDiffraction(CustomLitData customLitData, CustomSurfaceData cus
     //////////////////////////////////////////////////////////////////////
 
 
-    return shift + rnd_number * (diffuseTerm + specularTerm) * radiance;
+    return (shift + rnd_number + diffuseTerm);// * radiance;
 }
 
 
