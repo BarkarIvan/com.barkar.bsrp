@@ -16,6 +16,7 @@ struct CustomSurfaceData
     half3 albedo;
     half3 specular;
     half3 normalTS;
+    float2 uvs;
     half  metallic;
     half  roughness;
     half  occlusion;
