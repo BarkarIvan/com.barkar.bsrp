@@ -14,6 +14,8 @@ public class BSRPStandartLitShaderEditor : ShaderGUI
     private MaterialProperty _UsingNormalMap;
     private MaterialProperty _NormalMapScale;
     private MaterialProperty _Metallic;
+    private MaterialProperty _DiffractionWidth;
+    private MaterialProperty _DiffractionHeight;
     private MaterialProperty _Roughness;
     private MaterialProperty _EmissionColor;
     private MaterialProperty _EmissionMap;
@@ -75,34 +77,40 @@ public class BSRPStandartLitShaderEditor : ShaderGUI
             EditorGUILayout.HelpBox("MAIN TEXTURE", MessageType.None);
 
             materialEditor.TextureProperty(_BaseMap, "Albedo");
-            materialEditor.ColorProperty(_BaseColor, "Object Color");
+            materialEditor.ShaderProperty(_BaseColor, "Object Color");
             EditorGUILayout.Space(30);
             EditorGUILayout.HelpBox("AdditionalMap (Normals, Smoothness, metallic)", MessageType.None);
             materialEditor.TextureProperty(_AdditionalMap, "Additional Map");
             if (_AdditionalMap.textureValue != null)
             {
                 materialEditor.ShaderProperty(_UsingNormalMap, "Use Normal Map");
-                materialEditor.RangeProperty(_NormalMapScale, "Normal Map Scale");
+                materialEditor.ShaderProperty(_NormalMapScale, "Normal Map Scale");
             }
             else
             {
-                materialEditor.RangeProperty(_Metallic, "Metallic");
-                materialEditor.RangeProperty(_Roughness, "Roughness");
-                EditorGUILayout.Space(30);
+                materialEditor.ShaderProperty(_Metallic, "Metallic");
+                materialEditor.ShaderProperty(_Roughness, "Roughness");
             }
             EditorGUILayout.Space(30);
             
-            EditorGUILayout.HelpBox("EMISSION", MessageType.None);
-            materialEditor.TextureProperty(_EmissionMap, "EmissionMap");
-            materialEditor.ColorProperty(_EmissionColor, "EmissionColor");
+            EditorGUILayout.HelpBox("Metall Diffraction (exprmtl)", MessageType.None);
+            materialEditor.ShaderProperty(_DiffractionWidth, "Diffraction Width");
+            materialEditor.ShaderProperty(_DiffractionHeight, "Diffraction Height" );
             EditorGUILayout.Space(30);
 
-            materialEditor.RangeProperty(_Brightness, "Brightness");
+            
+            
+            EditorGUILayout.HelpBox("EMISSION", MessageType.None);
+            materialEditor.ShaderProperty(_EmissionMap, "EmissionMap");
+            materialEditor.ShaderProperty(_EmissionColor, "EmissionColor");
+            EditorGUILayout.Space(30);
+
+            materialEditor.ShaderProperty(_Brightness, "Brightness");
             EditorGUILayout.Space(30);
             materialEditor.ShaderProperty(_UseAlphaClip, "Use Alpha Clip");
             if (_UseAlphaClip.floatValue == 1)
             {
-                materialEditor.RangeProperty(_AlphaClip, "Alpha Clip Threshold");
+                materialEditor.ShaderProperty(_AlphaClip, "Alpha Clip Threshold");
             }
             
             _Cull.floatValue = (float)(CullEnum)EditorGUILayout.EnumPopup("Cull", (CullEnum)_Cull.floatValue);
@@ -191,6 +199,8 @@ public class BSRPStandartLitShaderEditor : ShaderGUI
         _UseAlphaClip = FindProperty("_UseAlphaClip");
         _AlphaClip = FindProperty("_AlphaClip");
         _Metallic = FindProperty("_Metallic");
+        _DiffractionWidth = FindProperty("_DiffractionWidth");
+        _DiffractionHeight = FindProperty("_DiffractionHeight");
         _Roughness = FindProperty("_Roughness");
         _Brightness = FindProperty("_Brightness");
         _EmissionMap = FindProperty("_EmissionMap");

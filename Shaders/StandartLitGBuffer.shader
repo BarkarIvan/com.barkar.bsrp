@@ -11,12 +11,9 @@ Shader "BSRP/StandartLitGBUFFER"
 
         _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _Roughness( "Roughness", Range(0,1)) = 0.0
-
-        [Toggle(_RIM)] _UsingRim("Using RIM", Float) = 0
-        _RimThreshold("Rim Threshold", Range(0,1)) = 0
-        _RimSmooth("Rim Smooth", Range(0,1)) = 1
-        _RimColor("Rim Color", Color) = (1,1,1,1)
-
+        
+        _DiffractionWidth("Diffraction Width", Range(0,7)) = 0
+        _DiffractionHeight("Diffraction Height", Range(0,0.0045)) = 0
 
         [HDR] _EmissionColor ("Emission", Color) = (1,1,1,1)
         _EmissionMap ("EmissionMap", 2D) = "black"{}
@@ -87,6 +84,8 @@ Shader "BSRP/StandartLitGBUFFER"
                 half _Roughness;
                 half _AlphaClip;
                 half _NormalMapScale;
+                half _DiffractionWidth;
+                half _DiffractionHeight;
             CBUFFER_END
 
 
@@ -204,23 +203,28 @@ Shader "BSRP/StandartLitGBUFFER"
                 litData.N = normalWS;
                 
                 //alpha
-              //  #if defined (_USEALPHACLIP)
-               // surface.alpha = step(_AlphaClip, surface.alpha);
-              //  #endif
+                //  #if defined (_USEALPHACLIP)
+                // surface.alpha = step(_AlphaClip, surface.alpha);
+                //  #endif
                 
                 half3 envPbr = EnvBRDF(litData, surfaceData,0, IN.positionWS, indirectDiffuse);
+
+                //exp diffraction
+                half3 H = normalize(litData.V + MainLightDirectionaAndMask.xyz);
+                half NoH = saturate(dot(litData.N, H)); 
+                half3 diffractionShift = shift_function(NoH, _DiffractionWidth,_DiffractionHeight);
+                diffractionShift = lerp(1.0, diffractionShift, surfaceData.metallic);
                 
                 //Emission
                 half3 emissionColor = _EmissionColor.rgb;
-
                 #if defined(_EMISSION)
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
-
+                
                 GBuffer gbo;
-                gbo.GBUFFER0 = half4(albedo.rgb, surfaceData.roughness);
-                gbo.GBUFFER1 = half4(half3(1.0, 1.0, 1.0), surfaceData.metallic); //AO
+                gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
+                gbo.GBUFFER1 = half4(0.0, 0.0, 0.0, surfaceData.metallic); //AO
                 gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, litData.N))), 0.0, 0.0);
                 gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
 

@@ -268,7 +268,7 @@ float3 sampleDiffractionPattern(float2 uvs, float3 halfVecWs, float3 normalWs)
     return amplitude_modulation * filtered_noise;
 }
 
-
+//WIP not work
 half3 StandardBRDFDiffraction(CustomLitData customLitData, CustomSurfaceData customSurfaceData, half3 L,
                               half3 lightColor, float shadow, float diffWidth, float diffHeight)
 {
@@ -289,7 +289,7 @@ half3 StandardBRDFDiffraction(CustomLitData customLitData, CustomSurfaceData cus
 
     // #if defined _DIRECT_LIGHT_BRDF_DIFFRACTION_PATTERN
     ///////////////////////////////////
-    float cov_model_factor = cov_model(NoL, diffWidth);
+    float cov_model_factor = cov_model(NoH, diffWidth);
     // Cholesky-decomposed cov_init matrix
     float3x3 cov_init_decomp = {
         _DiffractionCovInit_Row_1.x, _DiffractionCovInit_Row_1.y, _DiffractionCovInit_Row_1.z,
@@ -315,7 +315,7 @@ half3 StandardBRDFDiffraction(CustomLitData customLitData, CustomSurfaceData cus
     //////////////////////////////////////////////////////////////////////
 
 
-    return (shift + rnd_number + diffuseTerm);// * radiance;
+    return (shift + rnd_number);// + specularTerm;
 }
 
 
