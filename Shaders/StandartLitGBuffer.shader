@@ -214,6 +214,8 @@ Shader "BSRP/StandartLitGBUFFER"
                 half NoH = saturate(dot(litData.N, H)); 
                 half3 diffractionShift = shift_function(NoH, _DiffractionWidth,_DiffractionHeight);
                 diffractionShift = lerp(1.0, diffractionShift, surfaceData.metallic);
+                diffractionShift = lerp(1.0, diffractionShift, surfaceData.metallic);
+
                 
                 //Emission
                 half3 emissionColor = _EmissionColor.rgb;

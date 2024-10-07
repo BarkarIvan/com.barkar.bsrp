@@ -175,22 +175,36 @@ half3 EnvBRDF(CustomLitData customLitData, CustomSurfaceData customSurfaceData, 
 // Specular, Cook-Torrance BRDF used in Clausen et al. with Diffraction pattern
 // Based on [Clausen et al. 2022]
 // https://github.com/MartinMisiak/Realtime-Diffraction-PBR
-float3 shift_function(float NdotH, float w, float h)
+half3 shift_function(half NdotH, half w, half h)
 {
-    float theta_m = acos(NdotH); //FastACos?
-    float m = h * cos(w * theta_m);
+    half theta_m = acos(NdotH); //FastACos?
+    half m = h * cos(w * theta_m);
     //  srgb values
-    float m_r = 42.45318742;
-    float m_g = -56.98651893;
-    float m_b = -159.23105974;
+    half m_r = 42.45318742;
+    half m_g = -56.98651893;
+    half m_b = -159.23105974;
     // adobe rgb
     //    float m_r = 14.12228819;
     //    float m_g = -56.99255935;
     //    float m_b = -155.01640388;
 
-    float3 shift_rgb = float3(m_r * m + 1.0, m_g * m + 1.0, m_b * m + 1.0);
+    half3 shift_rgb = half3(m_r * m + 1.0, m_g * m + 1.0, m_b * m + 1.0);
     return shift_rgb;
 }
+
+half3 RainbowShift(half thetaM, half roughness)
+{
+    half shift = cos(acos(thetaM) * 5.0 + roughness * 50.0);  
+    
+    half3 rainbow = half3(
+        sin(shift + 0.0) * 0.5 + 0.5,  
+        sin(shift + 2.0) * 0.5 + 0.5, 
+        sin(shift + 4.0) * 0.5 + 0.5   
+    );
+    
+    return rainbow;
+}
+
 
 float3 cartesian2Polar(float3 cartPos)
 {
@@ -198,124 +212,6 @@ float3 cartesian2Polar(float3 cartPos)
     float theta = atan2(cartPos.y, cartPos.x);
     float phi = acos(cartPos.z / radius);
     return float3(theta, phi, radius);
-}
-
-float cov_model(float NdotH, float w)
-{
-    float theta_m = acos(NdotH);
-    float slope = cos(w * theta_m);
-    slope = (slope + 1.0) * 0.5;
-
-    return slope;
-}
-
-// Also performs run-time filtering via multisampling(4x)
-// For stereoscopic rendering, halfVecWs should be computed using the cyclopean eye position
-float3 sampleDiffractionPattern(float2 uvs, float3 halfVecWs, float3 normalWs)
-{
-    const float UV_TO_SPECKLE_FACTOR = 0.5;
-    // How large is a speckle in the used noise function (speckle size = 1/2 period)
-    const float M = _DiffractionZW_Scale;
-
-    // If more than 1 speckle fits into the dimension of a screen pixel, the speckle intensity is reduced linearly to their density.
-    // This value describes how many additional speckles can be present in the dimension of a screen pixel, before reaching 0 intensity.
-    // We use a value of 1 here, as we can fit a total of 2 speckles per pixel dimension without introducing aliasing (due to 4x multisampling)
-    // however due to the low contrast of the speckle pattern, we could go up to a value of 2 without any noticeable aliasing
-    const float AMPLITUDE_REDUCTION_FALLOFF = 1.45; // MAX_SPECKLES_PER_PIXEL = (AMPLITUDE_REDUCTION_FACTOR + 1)^2
-
-    // Compute screen-space derivative of uvs -> How much do uvs change from one pixel to the next ?
-    float2 dx_vtc = ddx(uvs);
-    float2 dy_vtc = ddy(uvs);
-    float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
-    float delta_uv = sqrt(delta_max_sqr);
-    // How many speckles fit along one dimension of a screen pixel
-    float sqrt_speckles_per_pixel = delta_uv / UV_TO_SPECKLE_FACTOR;
-    // 0 to 1 speckles_per_pixel -> no modulation. 1 to (1 + AMP_RED_FALLOFF) -> linear reduction
-    float amplitude_modulation = 1.0 - min((max(sqrt_speckles_per_pixel - 1, 0) / AMPLITUDE_REDUCTION_FALLOFF), 1.0);
-
-
-    // Determine the last two dimensions of the 4D lookup via polar coordinate deltas
-    float3 h_polar = cartesian2Polar(halfVecWs);
-    float3 n_polar = cartesian2Polar(normalWs);
-    float h_a = h_polar.x - n_polar.x;
-    float h_p = h_polar.y - n_polar.y;
-    h_a *= M;
-    h_p *= M;
-
-    float3 filtered_noise = float3(0, 0, 0);
-    if (sqrt_speckles_per_pixel > 1.0 && (sqrt_speckles_per_pixel <= (1 + AMPLITUDE_REDUCTION_FALLOFF)))
-    // 4x multi-sampling
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            float2 sample_location = uvs + MASK_2X2_GRID[i] * delta_uv;
-            float3 sampled_noise = float3(snoise(float4(sample_location, float2(h_a, h_p))),
-                                          snoise(float4(sample_location + 43, float2(h_a, h_p))),
-                                          snoise(float4(sample_location - 17, float2(h_a, h_p))));
-
-            filtered_noise += sampled_noise;
-        }
-        filtered_noise /= 4.0;
-    }
-    else if (sqrt_speckles_per_pixel <= 1) // no multi-sampling
-    {
-        filtered_noise = float3(snoise(float4(uvs, float2(h_a, h_p))),
-                                snoise(float4(uvs + 43, float2(h_a, h_p))),
-                                snoise(float4(uvs - 17, float2(h_a, h_p))));
-    }
-
-    // Modulate noise amplitude towards 0, to converge against mean
-    return amplitude_modulation * filtered_noise;
-}
-
-//WIP not work
-half3 StandardBRDFDiffraction(CustomLitData customLitData, CustomSurfaceData customSurfaceData, half3 L,
-                              half3 lightColor, float shadow, float diffWidth, float diffHeight)
-{
-    float a2 = Pow4(customSurfaceData.roughness) + 0.001;
-
-    half3 H = normalize(customLitData.V + L);
-    half NoH = saturate(dot(customLitData.N, H));
-    half NoV = saturate(abs(dot(customLitData.N, customLitData.V)) + 1e-5);
-    half NoL = saturate(dot(customLitData.N, L));
-    half VoH = saturate(dot(customLitData.V, H)); //LoH
-    float3 radiance = NoL * lightColor * shadow * PI;
-    float3 diffuseTerm = Diffuse_Lambert(customSurfaceData.albedo);
-    float3 specularTerm = SpecularGGX(a2, customSurfaceData.specular, NoH, NoV, NoL, VoH);
-
-    float3 shift = shift_function(NoH, diffWidth, diffHeight);
-    //shift = float3(0.40367881, 0.3801785, 0.34816286);
-    float3 rnd_number = 0;
-
-    // #if defined _DIRECT_LIGHT_BRDF_DIFFRACTION_PATTERN
-    ///////////////////////////////////
-    float cov_model_factor = cov_model(NoH, diffWidth);
-    // Cholesky-decomposed cov_init matrix
-    float3x3 cov_init_decomp = {
-        _DiffractionCovInit_Row_1.x, _DiffractionCovInit_Row_1.y, _DiffractionCovInit_Row_1.z,
-        _DiffractionCovInit_Row_2.x, _DiffractionCovInit_Row_2.y, _DiffractionCovInit_Row_2.z,
-        _DiffractionCovInit_Row_3.x, _DiffractionCovInit_Row_3.y, _DiffractionCovInit_Row_3.z
-    };
-
-    cov_init_decomp *= sqrt(cov_model_factor);
-
-    float2 diffraction_uvs = customSurfaceData.uvs * float2(_DiffractionUV_ScaleX, _DiffractionUV_ScaleY);
-    rnd_number = sampleDiffractionPattern(diffraction_uvs, H, customLitData.N);
-
-    rnd_number /= 0.15;
-    // In case of OpenSimplex(version 1) implementation, this is the normalization factor. TODO: Is it also the normalization for OpenSimplex2 or Gustavsons simplex ?
-    rnd_number = mul(cov_init_decomp, rnd_number);
-
-
-    // EXPERIMENTAL: Heavy, physically-not-based speckle-approximation
-    //const float speckle_cutoff = 0.32;
-    //const float speckle_mult   = 10;
-    //if (rnd_number.x >= speckle_cutoff)
-    //    rnd_number += speckle_mult * (rnd_number.x - speckle_cutoff);
-    //////////////////////////////////////////////////////////////////////
-
-
-    return (shift + rnd_number);// + specularTerm;
 }
 
 
