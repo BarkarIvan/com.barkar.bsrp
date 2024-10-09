@@ -118,21 +118,6 @@ half3 SpheremapDecodeNormal(half2 enc)
 	return n;
 }
 
-
-
-
-half3 SpheremapDecodeNormal(half2 enc)
-{
-	half2 fenc = enc * 4 - 2;
-	half f = dot(fenc, fenc);
-	half g = sqrt(1 - f / 4);
-	half3 n;
-	n.xy = fenc * g;
-	n.z = 1 - f / 2;
-	return n;
-}
-
-
 half2 SpheremapEncodeNormal(float3 n)
 {
 	half p = sqrt(n.z * 8 + 8);
