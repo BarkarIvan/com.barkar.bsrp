@@ -3,7 +3,7 @@ using UnityEditor;
 
 namespace Barkar.BSRP.Editor.ShaderEditor
 {
-public class BSRPStylizedLitShaderEditor : ShaderGUI
+public class BSRPStandartLitShaderEditor : ShaderGUI
 {
     private MaterialEditor materialEditor;
     private MaterialProperty[] properties;
@@ -14,27 +14,11 @@ public class BSRPStylizedLitShaderEditor : ShaderGUI
     private MaterialProperty _UsingNormalMap;
     private MaterialProperty _NormalMapScale;
     private MaterialProperty _Metallic;
-    private MaterialProperty _Smoothness;
+    private MaterialProperty _DiffractionWidth;
+    private MaterialProperty _DiffractionHeight;
+    private MaterialProperty _Roughness;
     private MaterialProperty _EmissionColor;
     private MaterialProperty _EmissionMap;
-    private MaterialProperty _UseRim;
-    private MaterialProperty _RimThreshold;
-    private MaterialProperty _RimSmooth;
-    private MaterialProperty _RimColor;
-    private MaterialProperty _MediumThreshold;
-    private MaterialProperty  _MediumSmooth;
-    private MaterialProperty _MediumColor;
-    private MaterialProperty _ShadowThreshold;
-    private MaterialProperty _ShadowSmooth;
-    private MaterialProperty  _ShadowColor;
-    private MaterialProperty _ReflectThreshold;
-    private MaterialProperty _ReflectSmooth;
-    private MaterialProperty _ReflectColor;
-    private MaterialProperty _UseBrush;
-    private MaterialProperty _BrushTexture;
-    private MaterialProperty _MedBrushStrength;
-    private MaterialProperty _ShadowBrushStrength;
-    private MaterialProperty _ReflectBrushStrength;
     private MaterialProperty _Brightness;
     private MaterialProperty _UseAlphaClip;
     private MaterialProperty _AlphaClip;
@@ -93,70 +77,40 @@ public class BSRPStylizedLitShaderEditor : ShaderGUI
             EditorGUILayout.HelpBox("MAIN TEXTURE", MessageType.None);
 
             materialEditor.TextureProperty(_BaseMap, "Albedo");
+            materialEditor.ShaderProperty(_BaseColor, "Object Color");
             EditorGUILayout.Space(30);
-
             EditorGUILayout.HelpBox("AdditionalMap (Normals, Smoothness, metallic)", MessageType.None);
             materialEditor.TextureProperty(_AdditionalMap, "Additional Map");
             if (_AdditionalMap.textureValue != null)
             {
                 materialEditor.ShaderProperty(_UsingNormalMap, "Use Normal Map");
-                materialEditor.RangeProperty(_NormalMapScale, "Normal Map Scale");
+                materialEditor.ShaderProperty(_NormalMapScale, "Normal Map Scale");
             }
+            else
+            {
+                materialEditor.ShaderProperty(_Metallic, "Metallic");
+                materialEditor.ShaderProperty(_Roughness, "Roughness");
+            }
+            EditorGUILayout.Space(30);
+            
+            EditorGUILayout.HelpBox("Metall Diffraction (exprmtl)", MessageType.None);
+            materialEditor.ShaderProperty(_DiffractionWidth, "Diffraction Width");
+            materialEditor.ShaderProperty(_DiffractionHeight, "Diffraction Height" );
             EditorGUILayout.Space(30);
 
-            EditorGUILayout.HelpBox("BRDF", MessageType.None);
-            materialEditor.RangeProperty(_Metallic, "Metallic");
-            materialEditor.RangeProperty(_Smoothness, "Smoothness");
-            EditorGUILayout.Space(30);
-           
-            EditorGUILayout.HelpBox("DIFFUSE BRUSH TEXTURE", MessageType.None);
-            materialEditor.ShaderProperty(_UseBrush, "Use Diffuse Brush texture");
             
-            if (_UseBrush.floatValue == 1)
-            {
-                materialEditor.TextureProperty(_BrushTexture, "Brush Texture");
-                materialEditor.RangeProperty(_MedBrushStrength, "Medium brush strength");
-                materialEditor.RangeProperty(_ShadowBrushStrength, "Shadow brush strength");
-                materialEditor.RangeProperty(_ReflectBrushStrength, "Reflection brush strength");
-            }
-            EditorGUILayout.Space(30);
-           
-            EditorGUILayout.HelpBox("STYLIZED DIFFUSE", MessageType.None);
-            EditorGUILayout.Space();
-            materialEditor.ColorProperty(_BaseColor, "Object Color");
-            materialEditor.ColorProperty(_MediumColor, "Medium Color");
-            materialEditor.RangeProperty(_MediumThreshold, "Medium Threshold");
-            materialEditor.RangeProperty(_MediumSmooth, "Medium Smoothness");
-            materialEditor.ColorProperty(_ShadowColor, "Shadow Color");
-            materialEditor.RangeProperty(_ShadowThreshold, "Shadow Threshold");
-            materialEditor.RangeProperty(_ShadowSmooth, "Shadow Smoothness");
-            materialEditor.ColorProperty(_ReflectColor, "Reflect Color");
-            materialEditor.RangeProperty(_ReflectThreshold, "Reflect Threshold");
-            materialEditor.RangeProperty(_ReflectSmooth, "Reflect Smoothness");
-            EditorGUILayout.Space(30);
-            
-            EditorGUILayout.HelpBox("RIM LIGHT", MessageType.None);
-            materialEditor.ShaderProperty(_UseRim, "Use Rim");
-            if (_UseRim.floatValue == 1)
-            {
-                materialEditor.RangeProperty(_RimThreshold, "Rim Power");
-                materialEditor.RangeProperty(_RimSmooth, "Rim Smooth");
-                materialEditor.ColorProperty(_RimColor, "Rim Color");
-            }
-            EditorGUILayout.Separator();
-            EditorGUILayout.Space(30);
             
             EditorGUILayout.HelpBox("EMISSION", MessageType.None);
-            materialEditor.TextureProperty(_EmissionMap, "EmissionMap");
-            materialEditor.ColorProperty(_EmissionColor, "EmissionColor");
+            materialEditor.ShaderProperty(_EmissionMap, "EmissionMap");
+            materialEditor.ShaderProperty(_EmissionColor, "EmissionColor");
             EditorGUILayout.Space(30);
 
-            materialEditor.RangeProperty(_Brightness, "Brightness");
+            materialEditor.ShaderProperty(_Brightness, "Brightness");
             EditorGUILayout.Space(30);
             materialEditor.ShaderProperty(_UseAlphaClip, "Use Alpha Clip");
             if (_UseAlphaClip.floatValue == 1)
             {
-                materialEditor.RangeProperty(_AlphaClip, "Alpha Clip Threshold");
+                materialEditor.ShaderProperty(_AlphaClip, "Alpha Clip Threshold");
             }
             
             _Cull.floatValue = (float)(CullEnum)EditorGUILayout.EnumPopup("Cull", (CullEnum)_Cull.floatValue);
@@ -212,7 +166,7 @@ public class BSRPStylizedLitShaderEditor : ShaderGUI
             return BlendModes.Transparent;
         }
         return BlendModes.Opaque;
-    }
+    } 
     
     /// <summary>
     /// Sets the keyword of a material.
@@ -245,29 +199,13 @@ public class BSRPStylizedLitShaderEditor : ShaderGUI
         _UseAlphaClip = FindProperty("_UseAlphaClip");
         _AlphaClip = FindProperty("_AlphaClip");
         _Metallic = FindProperty("_Metallic");
-        _Smoothness = FindProperty("_Smoothness");
+        _DiffractionWidth = FindProperty("_DiffractionWidth");
+        _DiffractionHeight = FindProperty("_DiffractionHeight");
+        _Roughness = FindProperty("_Roughness");
         _Brightness = FindProperty("_Brightness");
         _EmissionMap = FindProperty("_EmissionMap");
         _EmissionColor = FindProperty("_EmissionColor");
-        _UseRim = FindProperty("_UsingRim");
-        _RimThreshold = FindProperty("_RimThreshold");
-        _RimSmooth = FindProperty("_RimSmooth");
-        _RimColor = FindProperty("_RimColor");
-        _UseBrush = FindProperty("_UseBrush");
-        _BrushTexture = FindProperty("_BrushTexture");
-        _MedBrushStrength = FindProperty("_MedBrushStrength");
-        _ShadowBrushStrength = FindProperty("_ShadowBrushStrength");
-        _ReflectBrushStrength = FindProperty("_ReflectBrushStrength");
         
-        _MediumThreshold = FindProperty("_MediumThreshold");
-        _MediumSmooth = FindProperty("_MediumSmooth");
-        _MediumColor = FindProperty("_MediumColor");
-        _ShadowThreshold = FindProperty("_ShadowThreshold");
-        _ShadowSmooth = FindProperty("_ShadowSmooth");
-        _ShadowColor = FindProperty("_ShadowColor");
-        _ReflectThreshold = FindProperty("_ReflectThreshold");
-        _ReflectSmooth = FindProperty("_ReflectSmooth");
-        _ReflectColor = FindProperty("_ReflectColor");
         
         _Cull = FindProperty("_Cull");
         _Blend1 = FindProperty("_Blend1");

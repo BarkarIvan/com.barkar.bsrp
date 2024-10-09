@@ -106,6 +106,19 @@ float3 DecodeNormal(float4 sample, float scale)
 	    return normalize(UnpackNormalmapRGorAG(sample, scale));
 	#endif
 }
+   
+half3 SpheremapDecodeNormal(half2 enc)
+{
+	half2 fenc = enc*4-2;
+	half f = dot(fenc,fenc);
+	half g = sqrt(1-f/4);
+	half3 n;
+	n.xy = fenc*g;
+	n.z = 1-f/2;
+	return n;
+}
+
+
 
 
 half3 SpheremapDecodeNormal(half2 enc)
@@ -132,6 +145,30 @@ float3 NormalTangentToWorld(float3 normalTS, float3 normalWS, float4 tangentWS)
 		CreateTangentToWorld(normalWS, tangentWS.xyz, tangentWS.w);
 	return TransformTangentToWorld(normalTS, tangentToWorld);
 }
+
+ half Pow2 (half x)
+{
+	return x*x;
+}
+ half Pow4 (half x)
+{
+	return x*x * x*x;
+}
+ half Pow5 (half x)
+{
+	return x*x * x*x * x;
+}
+ half3 RotateDirection(half3 R, half degrees)
+{
+	float3 reflUVW = R;
+	half theta = degrees * PI / 180.0f;
+	half costha = cos(theta);
+	half sintha = sin(theta);
+	reflUVW = half3(reflUVW.x * costha - reflUVW.z * sintha, reflUVW.y, reflUVW.x * sintha + reflUVW.z * costha);
+	return reflUVW;
+}
+
+
 
 //CORE
 
