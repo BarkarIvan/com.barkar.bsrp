@@ -7,7 +7,7 @@ Shader "Hidden/PostEffectPasses"
     half4 _Filter;
     half4 _DualFilterOffset;
 
-    
+
     half3 Prefilter(half3 c)
     {
         half brightness = Max3(c.r, c.g, c.b);
@@ -28,38 +28,57 @@ Shader "Hidden/PostEffectPasses"
         return half4(result, 1.0);
     }
 
-    
 
     half4 FragBlurDownSample(Varyings IN): SV_Target
     {
         half3 sum = SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv).rgb * 4.0;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv - _DualFilterOffset.xy).rgb;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + _DualFilterOffset.xy).rgb;
-        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
-        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv - half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+                       IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+                                              IN.uv - half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb;
         sum *= 0.125;
-        
-        return (half4(sum , 1));
-        
+
+        return (half4(sum, 1));
     }
 
     half4 FragBlurUpsample(Varyings IN): SV_Target
-{
-    half3 sum = 0.0;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(-_DualFilterOffset.x * 2.0, 0.0)).rgb;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(-_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(0.0, _DualFilterOffset.y * 2.0)).rgb;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
+    {
+        half3 sum = 0.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+            IN.uv + half2(-_DualFilterOffset.x * 2.0, 0.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+            IN.uv + half2(-_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+            IN.uv + half2(0.0, _DualFilterOffset.y * 2.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+            IN.uv + half2(_DualFilterOffset.x, _DualFilterOffset.y)).rgb * 2.0;
 
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x * 2.0, 0.0)).rgb;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(0.0, -_DualFilterOffset.y * 2.0)).rgb ;
-    sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp, IN.uv + half2(-_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+                            IN.uv + half2(_DualFilterOffset.x * 2.0, 0.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+                                           IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+            IN.uv + half2(0.0, -_DualFilterOffset.y * 2.0)).rgb;
+        sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
+   IN.uv + half2(-_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
+
+        sum = sum * 0.0833;
+
+        return half4(sum, 1);
+    }
+
+
+    half4 _GTAOParams; //intens, radius, sampleCount;
+
+    half4 FragGTAO(Varyings IN):SV_Target
+    {
+        float depth;
+        float vpos;
     
-    sum = sum * 0.0833;
-
-    return half4(sum, 1);
-}
+        
+    }
     ENDHLSL
 
     SubShader
@@ -71,8 +90,8 @@ Shader "Hidden/PostEffectPasses"
         {
             Name "Bloom Prefilter"
             HLSLPROGRAM
-                #pragma vertex DefaultPassVertex
-                 #pragma fragment FragPrefilter
+            #pragma vertex DefaultPassVertex
+            #pragma fragment FragPrefilter
             ENDHLSL
         }
 
@@ -80,8 +99,8 @@ Shader "Hidden/PostEffectPasses"
         {
             Name "Dual Filter Downsample"
             HLSLPROGRAM
-                 #pragma vertex DefaultPassVertex
-                 #pragma fragment FragBlurDownSample
+            #pragma vertex DefaultPassVertex
+            #pragma fragment FragBlurDownSample
             ENDHLSL
         }
 
@@ -90,8 +109,18 @@ Shader "Hidden/PostEffectPasses"
             Name "Dual Filter Upsample"
             Blend One One
             HLSLPROGRAM
-                 #pragma vertex DefaultPassVertex
-                 #pragma fragment FragBlurUpsample
+            #pragma vertex DefaultPassVertex
+            #pragma fragment FragBlurUpsample
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "GTAO"
+            Blend One One
+            HLSLPROGRAM
+            #pragma vertex DefaultPassVertex
+            #pragma fragment FragGTAO
             ENDHLSL
         }
     }

@@ -196,7 +196,7 @@ Shader "BSRP/StandartLitGBUFFER"
                 #endif
                 #endif
 
-
+                indirectDiffuse = LinearToSRGB(indirectDiffuse);
                 surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
                 surfaceData.specular = lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
                 litData.N = normalWS;
