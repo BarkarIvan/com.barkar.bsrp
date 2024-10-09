@@ -11,7 +11,7 @@ Shader "BSRP/StandartLitGBUFFER"
 
         _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _Roughness( "Roughness", Range(0,1)) = 0.0
-        
+
         _DiffractionWidth("Diffraction Width", Range(0,7)) = 0
         _DiffractionHeight("Diffraction Height", Range(0,0.0045)) = 0
 
@@ -61,7 +61,7 @@ Shader "BSRP/StandartLitGBUFFER"
 
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
-            
+
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/Lighting.hlsl"
 
@@ -138,11 +138,11 @@ Shader "BSRP/StandartLitGBUFFER"
                 half3 bitangentWS = cross(normalInputs.normalWS.xyz, normalInputs.tangentWS.xyz) * sign;
                 OUT.tangentWS = half3(tangentWS);
                 OUT.bitangentWS = half3(bitangentWS);
-       
+
                 #if defined(_NORMALMAP)
                 OUT.SH = SHEvalLinearL2(OUT.normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
                 #endif
-                
+
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.addUv = TRANSFORM_TEX(IN.uv, _AdditionalMap);
                 OUT.color = IN.color;
@@ -167,15 +167,15 @@ Shader "BSRP/StandartLitGBUFFER"
                 surfaceData.alpha = albedo.a;
                 surfaceData.occlusion = 1.0;
                 surfaceData.normalTS = SafeNormalize(IN.normalWS);
-               
+
                 half3 normalWS = IN.normalWS;
                 CustomLitData litData;
-               
-                litData.T  = IN.tangentWS;
+
+                litData.T = IN.tangentWS;
                 litData.V = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
                 litData.positionWS = IN.positionWS;
                 litData.B = IN.bitangentWS;
-                
+
                 //additional map
                 #if defined (_ADDITIONALMAP)
                 half4 additionalMaps = SAMPLE_TEXTURE2D(_AdditionalMap, sampler_AdditionalMap, IN.addUv);
@@ -193,37 +193,37 @@ Shader "BSRP/StandartLitGBUFFER"
                 half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
                 normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
                 indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
-                indirectDiffuse = LinearToSRGB(indirectDiffuse);
                 #endif
                 #endif
 
-               
-                surfaceData.albedo =  lerp(surfaceData.albedo, float3(0.0,0.0,0.0), surfaceData.metallic);
-                surfaceData.specular =  lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
+
+                surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
+                surfaceData.specular = lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
                 litData.N = normalWS;
-                
+
                 //alpha
                 //  #if defined (_USEALPHACLIP)
                 // surface.alpha = step(_AlphaClip, surface.alpha);
                 //  #endif
-                
-                half3 envPbr = EnvBRDF(litData, surfaceData,0, IN.positionWS, indirectDiffuse);
 
-                //exp diffraction
+                half3 envPbr = EnvBRDF(litData, surfaceData, 0, IN.positionWS, indirectDiffuse);
+
+
+                //experimental diffraction
                 half3 H = normalize(litData.V + MainLightDirectionaAndMask.xyz);
-                half NoH = saturate(dot(litData.N, H)); 
-                half3 diffractionShift = shift_function(NoH, _DiffractionWidth,_DiffractionHeight);
+                half NoH = saturate(dot(litData.N, H));
+                half3 diffractionShift = shift_function(NoH, _DiffractionWidth, _DiffractionHeight);
                 diffractionShift = lerp(1.0, diffractionShift, surfaceData.metallic);
                 diffractionShift = lerp(1.0, diffractionShift, surfaceData.metallic);
 
-                
+
                 //Emission
                 half3 emissionColor = _EmissionColor.rgb;
                 #if defined(_EMISSION)
                 half3 emissionMap = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, IN.uv).rgb;
                 emissionColor *= emissionMap;
                 #endif
-                
+
                 GBuffer gbo;
                 gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
                 gbo.GBUFFER1 = half4(0.0, 0.0, 0.0, surfaceData.metallic); //AO

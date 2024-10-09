@@ -166,7 +166,7 @@ public class BSRPStandartLitShaderEditor : ShaderGUI
             return BlendModes.Transparent;
         }
         return BlendModes.Opaque;
-    }
+    } 
     
     /// <summary>
     /// Sets the keyword of a material.
