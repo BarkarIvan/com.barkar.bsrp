@@ -135,10 +135,7 @@ float3 NormalTangentToWorld(float3 normalTS, float3 normalWS, float4 tangentWS)
 {
 	return x*x;
 }
- half Pow4 (half x)
-{
-	return x*x * x*x;
-}
+ 
  half Pow5 (half x)
 {
 	return x*x * x*x * x;
