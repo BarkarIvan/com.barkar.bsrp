@@ -47,24 +47,27 @@ Shader "Hidden/PostEffectPasses"
     {
         half3 sum = 0.0;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-                       IN.uv + half2(-_DualFilterOffset.x * 2.0, 0.0)).rgb;
+                                IN.uv + half2(-_DualFilterOffset.x * 2.0, 0.0)).rgb;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-          IN.uv + half2(-_DualFilterOffset.x, _DualFilterOffset.y)).
-rgb * 2.0;
+                                IN.uv + half2(-_DualFilterOffset.x, _DualFilterOffset.y)).
+            rgb * 2.0;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-            IN.uv + half2(0.0, _DualFilterOffset.y * 2.0)).rgb;
+                                IN.uv + half2(0.0, _DualFilterOffset.y * 2.0)).rgb;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-                        IN.uv + half2(_DualFilterOffset.x, _DualFilterOffset.y
-                        )).rgb * 2.0;
+                             IN.uv + half2(_DualFilterOffset.x, _DualFilterOffset
+                                 .y
+                             )).rgb * 2.0;
 
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-                                                   IN.uv + half2(_DualFilterOffset.x * 2.0, 0.0)).rgb;
+                                                                      IN.uv + half2(_DualFilterOffset.x * 2.0, 0.0)).
+rgb;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-                      IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
+                                   IN.uv + half2(_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-                        IN.uv + half2(0.0, -_DualFilterOffset.y * 2.0)).rgb;
+                                                                           IN.uv + half2(0.0, -_DualFilterOffset.y * 2.0
+                                                                           )).rgb;
         sum += SAMPLE_TEXTURE2D(_SourceTexture, sampler_linear_clamp,
-                  IN.uv + half2(-_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
+                                             IN.uv + half2(-_DualFilterOffset.x, -_DualFilterOffset.y)).rgb * 2.0;
 
         sum = sum * 0.0833;
 
@@ -75,7 +78,7 @@ rgb * 2.0;
 
     half4 _GTAOParams; //intens, radius, sampleCount;
     half4 _AOUVToViewCoef;
-    
+
     TEXTURE2D_HALF(_CameraDepth);
     TEXTURE2D_HALF(_GBuffer2);
     static half GTAORandomUV[40] =
@@ -126,7 +129,8 @@ rgb * 2.0;
     // SSAO Settings
     #define INTENSITY _GTAOParams.x
     #define RADIUS _GTAOParams.y
-    #define SAMPLES _GTAOParams.z
+    #define SAMPLE_COUNT _GTAOParams.z
+    #define SLICE 8
 
     // Constants
     // kContrast determines the contrast of occlusion. This allows users to control over/under
@@ -146,61 +150,117 @@ rgb * 2.0;
     static const half kEpsilon = half(0.0001);
 
     // Trigonometric function utility
-half2 CosSin(half theta)
-{
-    half sn, cs;
-    sincos(theta, sn, cs);
-    return half2(cs, sn);
-}
+    half2 CosSin(half theta)
+    {
+        half sn, cs;
+        sincos(theta, sn, cs);
+        return half2(cs, sn);
+    }
 
-// Pseudo random number generator with 2D coordinates
-half GetRandomUVForSSAO(float u, int sampleIndex)
-{
-    return GTAORandomUV[u * 20 + sampleIndex];
-}
+    // Pseudo random number generator with 2D coordinates
+    half GetRandomUVForSSAO(float u, int sampleIndex)
+    {
+        return GTAORandomUV[u * 20 + sampleIndex];
+    }
 
     float2 GetScreenSpacePosition(float2 uv)
-{
-    return float2(uv * _RenderSizeParams.xy);
-}
+    {
+        return float2(uv * _RenderSizeParams.xy);
+    }
 
     inline half3 GetPosition2(half2 uv)
 {
-   
-    return half3((uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth);
+     half rawDwpth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, uv);
+     half linearDepth = LinearEyeDepth(rawDwpth, _ZBufferParams);
+     return half3((uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth);;
 }
+
     
+half IntegrateArc_CosWeight(half2 h, half n)
+{
+    half2 Arc = -cos(2 * h - n) + cos(n) + 2 * h * sin(n);
+    return 0.25 * (Arc.x + Arc.y);
+}
+
     half4 FragGTAO(Varyings IN):SV_Target
     {
-       
-
-         half rawDwpth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, IN.uv);
-    half linearDepth = LinearEyeDepth(rawDwpth, _ZBufferParams);
-
-
+        half rawDwpth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, IN.uv);
+        half linearDepth = LinearEyeDepth(rawDwpth, _ZBufferParams);
+        
         //viewp
-        float zScale = linearDepth * (1/_ProjectionParams.y); // near
-float3 viewPos = float3(IN.uv.x, IN.uv.y, zScale); // x и y из uv
-viewPos = mul(unity_MatrixIVP, float4(viewPos, 1)).xyz; // Обратная проекционная матрица
+        float zScale = linearDepth * (1 / _ProjectionParams.y); // near
+        float3 viewPos = float3(IN.uv.x, IN.uv.y, zScale); // x и y из uv
+        viewPos = mul(unity_MatrixIVP, float4(viewPos, 1)).xyz;
 
         //pos
-        half3 vp = half3((IN.uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth)
+        half3 vp = GetPosition2(IN.uv);/// half3((IN.uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth);
         half3 viewDir = normalize(0 - vp);
 
         //N
-        half3 normal;// sample and encode normal
+        half2 normal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv).rg;
+        half3 normalVS = SafeNormalize(SpheremapDecodeNormal(normal));
 
         //radius
-        half fade =  saturate(max(0, vp.z - 0.5) * 0);
+        half fade = saturate(max(0, vp.z - 0.5) * 0);
         half2 radius_thickness = lerp(half2(RADIUS, 1), half2(0, 0), fade.xx);
-    half radius = radius_thickness.x;
-    half thickness = radius_thickness.y;
+        half radius = radius_thickness.x;
+        half thickness = radius_thickness.y;
 
         //noise
         half2 pos = IN.uv * _RenderSizeParams.xy;
         half noiseDir = frac(52.9829189 * frac(dot(pos, half2(0.06711056, 0.00583715))));
-        half offset = frac(0.25 * (half) ((int2)(pos.y - pos.x) & 3));
-    }   
+        half noiseOffset = frac(0.25 * (half)((int2)(pos.y - pos.x) & 3));
+
+        half stepRadius = (max(min((radius * 31) / vp.b, 512), (half)SLICE)) / ((half)SLICE + 1);
+
+        half angle, sliceLength, n, cos_n;//, BentAngle, wallDarkeningCorrection
+        half2 h, H, falloff, uvOffset, h1h2, h1h2Length;//slideDir_TexelSize,
+        half3 sliceDir, h1, h2, planeNormal, planeTangent, sliceNormal;//BentNormal;
+        half4 uvSlice;
+        half ao = 0.0;
+        
+        //Main loop
+        for (int i = 0; i < SAMPLE_COUNT; i++)
+        {
+            angle = ( i + 30 * noiseDir) * (PI / (half)SAMPLE_COUNT);
+            sliceDir = half3(half2(cos(angle), sin(angle)),0);
+
+            planeNormal = SafeNormalize(cross(sliceDir, viewDir));
+            planeTangent = cross(viewDir, planeNormal);
+
+            sliceNormal = normalVS - planeNormal * dot(normalVS, planeNormal);
+            sliceLength = length(sliceNormal);
+
+            cos_n = clamp(dot(SafeNormalize(sliceNormal), viewDir), -1, 1);
+            n = -sign(dot(sliceNormal, planeTangent)) * acos(cos_n);
+            h= -1;
+
+            for(int j = 0; j < SLICE; j++)
+            {
+                uvOffset = (sliceDir.xy * (1 / _RenderSizeParams.xy)) * max(stepRadius * (j + noiseOffset), j + 1);
+                uvSlice = uvOffset.xyxy + float4(uvOffset.xy, -uvOffset);
+                h1 = GetPosition2(uvSlice.xy) - viewPos;
+                h2 = GetPosition2(uvSlice.zw) - viewPos;
+
+                //enghts and falloff
+                h1h2 = half2(dot(h1,h1), dot(h2,h2)); //sqrt lenght?
+                h1h2Length = rsqrt(h1h2);
+                falloff = saturate(h1h2 * (2 / pow(radius,2)));
+
+                H = half2(dot(h1, viewDir), dot(h2, viewDir)) * h1h2Length;
+                h.xy = (H.xy > h.xy) ? lerp(H, h, falloff) : lerp(H.xy, h.xy, thickness);
+            }
+            
+                h = acos(clamp(h, -1, 1));
+                h.x = n + max(-h.x - n, -PI * 0.5);
+                h.y = n + min( h.y - n,  PI * 0.5);
+                ao += sliceLength * IntegrateArc_CosWeight(h, n) * half(rcp(SAMPLE_COUNT));
+        }
+        ao = 1.0 - ao;
+        ao = PositivePow(ao * INTENSITY, 2.5);
+
+        return ao;
+    }
     ENDHLSL
 
     SubShader
