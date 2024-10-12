@@ -4,6 +4,7 @@ using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes;
 using Barkar.BSRP.Passes.Bloom;
 using Barkar.BSRP.Passes.Setup;
+using Barkar.BSRP.Settings.GTAO;
 using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -50,12 +51,17 @@ public class BSRP : RenderPipeline
     private DrawSkyboxPass _drawSkyboxPass = new DrawSkyboxPass();
     private BloomPass _bloomPass = new BloomPass();
 
+    //WIP GTAO
+    private GTAOPass _gtaoPass = new GTAOPass();
+    private GTAOSettings _GTAOsettings;
+    //
+
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;
     Matrix4x4 _matrixVPIprev;
 
-    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
+    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, GTAOSettings gtaoSettings)
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
@@ -69,6 +75,8 @@ public class BSRP : RenderPipeline
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
         _bloomSettings = bloomSettings;
         _container = new ContextContainer();
+
+        _GTAOsettings = gtaoSettings;
 
         _useLensDirtKeyword = GlobalKeyword.Create("_USE_LENSDIRT");
         _useBloomKeyWord = GlobalKeyword.Create("_USE_BLOOM");
@@ -127,8 +135,10 @@ public class BSRP : RenderPipeline
             _drawOpaquePass.ExecutePass(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
            
-            //Depth copy
+            //Depth copy TODO: depthPrepass
             _copyDepthPass.ExecutePass(RenderGraph, _container);
+            
+            _gtaoPass.ExecutePass(RenderGraph, _container, _GTAOsettings, camera, _postFXMaterial);
 
             //Skybox
             if (camera.clearFlags == CameraClearFlags.Skybox)
