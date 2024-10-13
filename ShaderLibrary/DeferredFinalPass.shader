@@ -9,6 +9,9 @@ Shader "Hidden/DeferredFinalPass"
             HLSLPROGRAM
             #pragma multi_compile _ _USE_LENSDIRT
             #pragma multi_compile _ _USE_BLOOM
+            #pragma multi_compile _ACESTONEMAP _GTTONEMAP
+            
+            
             #pragma vertex DefaultPassVertex
             #pragma fragment FinalPassFragment
 
@@ -40,6 +43,50 @@ Shader "Hidden/DeferredFinalPass"
                 return saturate((col * (a * col + b)) / (col * (c * col + d) + e));
             }
 
+            //GT TONEMAP
+
+            static const float e = 2.71828;
+
+            float W_f(float x, float e0, float e1)
+            {
+                if (x <= e0)
+                    return 0;
+                if (x >= e1)
+                    return 1;
+                float a = (x - e0) / (e1 - e0);
+                return a * a * (3 - 2 * a);
+            }
+
+            float H_f(float x, float e0, float e1)
+            {
+                if (x <= e0)
+                    return 0;
+                if (x >= e1)
+                    return 1;
+                return (x - e0) / (e1 - e0);
+            }
+
+            float GTTonemap(float x)
+            {
+                float m = 0.22; // linear section start
+                float a = 1.0; // contrast
+                float c = 1.33; // black brightness
+                float P = 1.0; // maximum brightness
+                float l = 0.4; // linear section length
+                float l0 = ((P - m) * l) / a; // 0.312
+                float S0 = m + l0; // 0.532
+                float S1 = m + a * l0; // 0.532
+                float C2 = (a * P) / (P - S1); // 2.13675213675
+                float L = m + a * (x - m);
+                float T = m * pow(x / m, c);
+                float S = P - (P - S1) * exp(-C2 * (x - S0) / P);
+                float w0 = 1 - smoothstep(0.0, m, x);
+                float w2 = (x < m + l) ? 0 : 1;
+                float w1 = 1 - w0 - w2;
+                return float(T * w0 + L * w1 + S * w2);
+            }
+
+
             half4 FinalPassFragment(Varyings IN): SV_Target
             {
                 half3 g3 = SAMPLE_TEXTURE2D(_GBuffer3, sampler_linear_clamp, IN.uv);
@@ -62,8 +109,16 @@ Shader "Hidden/DeferredFinalPass"
                 result.rgb += bloom.rgb;
                 #endif
 
-                result.rgb = ACESFilmTonemapping(result.rgb);
+                #if defined (_GTTONEMAP)
+                result.r = GTTonemap(result.r);
+                result.g = GTTonemap(result.g);
+                result.b = GTTonemap(result.b);
+                #endif
 
+                #if defined (_ACESTONEMAP)
+                result.rgb = ACESFilmTonemapping(result.rgb);
+                #endif
+                
                 return half4(result.rgb, 1);
             }
             ENDHLSL
