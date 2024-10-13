@@ -4,6 +4,7 @@ using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes;
 using Barkar.BSRP.Passes.Bloom;
 using Barkar.BSRP.Passes.Setup;
+using Barkar.BSRP.Settings;
 using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -26,6 +27,7 @@ public class BSRP : RenderPipeline
 
     private ShadowSettings _shadowSettings;
     private BloomSettings _bloomSettings;
+    private TonemappingSettings _tonemapSettings;
 
     private Material _defferedLightingMaterial;
     private Material _deferredFinalPassMaterial;
@@ -55,10 +57,11 @@ public class BSRP : RenderPipeline
     Matrix4x4 _matrixVPprev;
     Matrix4x4 _matrixVPIprev;
 
-    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings)
+    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, TonemappingSettings tonemapSettings)
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
+        _tonemapSettings = tonemapSettings;
 
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
@@ -70,8 +73,6 @@ public class BSRP : RenderPipeline
         _bloomSettings = bloomSettings;
         _container = new ContextContainer();
 
-        _useLensDirtKeyword = GlobalKeyword.Create("_USE_LENSDIRT");
-        _useBloomKeyWord = GlobalKeyword.Create("_USE_BLOOM");
     }
 
 
@@ -163,7 +164,7 @@ public class BSRP : RenderPipeline
             }
 
             //Final compose
-            _deferredFinalPass.ExecutePass(RenderGraph, _deferredFinalPassMaterial);
+            _deferredFinalPass.ExecutePass(RenderGraph,_tonemapSettings, _deferredFinalPassMaterial);
 
             RenderGraph.EndRecordingAndExecute();
         }

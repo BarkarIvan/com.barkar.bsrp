@@ -12,6 +12,9 @@ namespace Barkar.BSRP
         public static readonly int GBuffer2ID = Shader.PropertyToID("_GBuffer2");
         public static readonly int GBuffer3ID = Shader.PropertyToID("_GBuffer3");
         
+        public static readonly int DualFilterOffsetID = Shader.PropertyToID("_DualFilterOffset");
+        public static readonly int FilterID = Shader.PropertyToID("_Filter");
+        
         public static readonly int MainLightShadowMapID = Shader.PropertyToID("_MainLightShadowMap");
 
        

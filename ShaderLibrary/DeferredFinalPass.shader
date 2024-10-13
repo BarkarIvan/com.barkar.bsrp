@@ -9,6 +9,9 @@ Shader "Hidden/DeferredFinalPass"
             HLSLPROGRAM
             #pragma multi_compile _ _USE_LENSDIRT
             #pragma multi_compile _ _USE_BLOOM
+            #pragma multi_compile _ACESTONEMAP _GTTONEMAP
+            
+            
             #pragma vertex DefaultPassVertex
             #pragma fragment FinalPassFragment
 
@@ -106,12 +109,16 @@ Shader "Hidden/DeferredFinalPass"
                 result.rgb += bloom.rgb;
                 #endif
 
-
+                #if defined (_GTTONEMAP)
                 result.r = GTTonemap(result.r);
                 result.g = GTTonemap(result.g);
                 result.b = GTTonemap(result.b);
+                #endif
 
-                //  result.rgb = ACESFilmTonemapping(result.rgb);
+                #if defined (_ACESTONEMAP)
+                result.rgb = ACESFilmTonemapping(result.rgb);
+                #endif
+                
                 return half4(result.rgb, 1);
             }
             ENDHLSL
