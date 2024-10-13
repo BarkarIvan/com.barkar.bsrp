@@ -76,8 +76,9 @@ rgb;
 
     //GTAo///////////
 
-    half4 _GTAOParams; //intens, radius, sampleCount;
+    half4 _GTAOParams; //intens, radius, sampleCount, thicness;
     half4 _AOUVToViewCoef;
+    half _AO_HalfProjScale;
 
     TEXTURE2D_HALF(_CameraDepth);
     TEXTURE2D_HALF(_GBuffer2);
@@ -86,7 +87,8 @@ rgb;
     #define INTENSITY _GTAOParams.x
     #define RADIUS _GTAOParams.y
     #define SAMPLE_COUNT _GTAOParams.z
-    #define SLICE 8
+    #define THICKNESS _GTAOParams.w
+    #define SLICE 3
 
     
 
@@ -98,7 +100,7 @@ rgb;
 
     inline half3 GetPosition2(half2 uv)
 {
-     half rawDwpth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, uv);
+     half rawDwpth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, uv).r;
      half linearDepth = LinearEyeDepth(rawDwpth, _ZBufferParams);
      return half3((uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth);;
 }
@@ -123,38 +125,26 @@ half IntegrateArc_CosWeight(half2 h, half n)
 
     half4 FragGTAO(Varyings IN):SV_Target
     {
-        half rawDwpth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, IN.uv);
-       // half linearDepth = LinearEyeDepth(rawDwpth, _ZBufferParams);
-        
-        //viewp
-        //float zScale = linearDepth * (1 / _ProjectionParams.y); // near
-        //float3 viewPos = float3(IN.uv.x, IN.uv.y, zScale); // x и y из uv
-       // viewPos = mul(unity_MatrixIVP, float4(viewPos, 1)).xyz;
+      //  half rawDepth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_point_clamp, IN.uv);
+      
 
         //pos
-        half3 vp = GetPosition2(IN.uv);/// half3((IN.uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth);
-        half3 viewDir = normalize(0 - vp);
+        half3 viewPos = GetPosition2(IN.uv);/// half3((IN.uv * _AOUVToViewCoef.xy + _AOUVToViewCoef.zw) * linearDepth, linearDepth);
+        half3 viewDir = normalize(0 - viewPos);
 
         //N
         half2 normal = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv).rg;
         half3 normalVS = normalize((SpheremapDecodeNormal(normal)));
-        //normalVS = normalVS * 2 - 1;
         normalVS.z = -normalVS.z;
-       // normalVS = mul((half3x3)UNITY_MATRIX_V, normalVS);
 
-        ////radius
-       // half fade = saturate(max(0, vp.z - 0.5));
-       // half2 radius_thickness = lerp(half2(RADIUS, 1), half2(0, 0), fade.xx);
-        ////half radius = radius_thickness.x;
-      //  half thickness = radius_thickness.y;
 
         //noise
         
         half noiseDir = GTAO_Noise(IN.uv * _RenderSizeParams.xy);//frac(52.9829189 * frac(dot(IN.uv *_RenderSizeParams.xy, half2(0.06711056, 0.00583715))));
         half noiseOffset = GTAO_Offsets(IN.uv);
 
-        half stepRadius = (max(min((RADIUS) / vp.b, 512), (half) SLICE));
-stepRadius /= ((half)SLICE + 1);
+        half stepRadius = max(min((RADIUS * _AO_HalfProjScale) / viewPos.b, 512), (half) SLICE);
+        stepRadius /= ((half)SLICE + 1);
 
         
         half angle, sliceLength, n, cos_n;//, BentAngle, wallDarkeningCorrection
@@ -162,30 +152,29 @@ stepRadius /= ((half)SLICE + 1);
         half3 sliceDir, h1, h2, planeNormal, planeTangent, sliceNormal;//BentNormal;
         half4 uvSlice;
         half ao = 0.0;
+        h= -1;
+            
 
-        if (rawDwpth <= 1e-7)
-        {
-            return 1;
-        }
+      //  if (rawDepth <= 1e-7)
+      //  {
+       //     return 1;
+      //  }
         
         UNITY_LOOP
         for (int i = 0; i < SAMPLE_COUNT; i++)
         {
             //temporal rotations
-            angle = ( i + noiseDir + 60) * (PI / (half)SLICE);
+            angle = ( i + noiseDir + 0) * (PI / (half)SAMPLE_COUNT);
             sliceDir = half3(half2(cos(angle), sin(angle)),0);
 
-            
-            cos_n = clamp(dot(SafeNormalize(sliceNormal), viewDir), -1, 1);
-            n = -sign(dot(sliceNormal, planeTangent)) * acos(cos_n);
-            h= -1;
+             
 
             for(int j = 0; j < SLICE; j++)
             {
-                uvOffset = (sliceDir.xy * (_RenderSizeParams.zw)) * max(stepRadius * (j + frac(noiseOffset)), 1+j);
+                uvOffset = (sliceDir.xy * _RenderSizeParams.zw) * max(stepRadius * (j + frac(noiseOffset)), 1+j);
                 uvSlice = IN.uv.xyxy + float4(uvOffset.xy, -uvOffset);
-                h1 = GetPosition2(uvSlice.xy) - vp;
-                h2 = GetPosition2(uvSlice.zw) - vp;
+                h1 = GetPosition2(uvSlice.xy) - viewPos;
+                h2 = GetPosition2(uvSlice.zw) - viewPos;
 
                 //enghts and falloff
                 h1h2 = half2(dot(h1,h1), dot(h2,h2)); //sqrt lenght?
@@ -193,21 +182,24 @@ stepRadius /= ((half)SLICE + 1);
                 falloff = saturate(h1h2.xy / (RADIUS * RADIUS));
 
                 H = half2(dot(h1, viewDir), dot(h2, viewDir)) * h1h2Length;
-                h.xy = (H.xy > h.xy) ? lerp(H, h, falloff) : lerp(H.xy, h.xy, 0.5); //0.1 - thickness
+                h.xy = (H.xy > h.xy) ? lerp(H, h, falloff) : lerp(H.xy, h.xy, 0.6); //0.1 - thickness
             }
 
             planeNormal = normalize(cross(sliceDir, viewDir));
             planeTangent = cross(viewDir, planeNormal);
-
             sliceNormal = normalVS - planeNormal * dot(normalVS, planeNormal);
             sliceLength = length(sliceNormal);
+
+            cos_n = clamp(dot(SafeNormalize(sliceNormal), viewDir), -1, 1);
+            n = -sign(dot(sliceNormal, planeTangent)) * acos(cos_n);
+         
 
                 h = acos(clamp(h, -1, 1));
                 h.x = n + max(-h.x - n, -PI);
                 h.y = n + min( h.y - n,  PI);
                 ao += sliceLength * IntegrateArc_CosWeight(h, n);
         }
-        //ao = 1.0 - ao;
+       
         ao = saturate(pow(ao / ((half)SLICE), 2));//PositivePow(ao * INTENSITY, 2.5);
 
         return half4(ao,ao,ao,1);

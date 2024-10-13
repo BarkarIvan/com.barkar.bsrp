@@ -7,7 +7,8 @@ namespace Barkar.BSRP.Settings.GTAO
     public struct GTAOSettings
     {
         [Range(1f,10f)] public float Intensity;
-        [Range(0f, 10f)] public float Radius;
+        [Range(1f, 5f)] public float Radius;
         [Range(0, 6)] public int SampleCount;
+        [Range(0, 1)] public float Thickness;
     }
 }

@@ -67,6 +67,8 @@ namespace Barkar.BSRP.Passes
             Vector2 focalLen = new Vector2(invHalfTanFov * ((float)_attachmentSize.y / (float)_attachmentSize.x), invHalfTanFov);
             Vector2 invFocalLen = new Vector2(1 / focalLen.x, 1 / focalLen.y);
             mpb.SetVector("_AOUVToViewCoef", new Vector4(2 * invFocalLen.x, 2 * invFocalLen.y, -1 * invFocalLen.x, -1 * invFocalLen.y));
+            float projScale = (float)_attachmentSize.y / (Mathf.Tan(fovRad * 0.5f) * 2) * 0.5f;
+            mpb.SetFloat("_AO_HalfProjScale", projScale);
             cmd.ClearRenderTarget(RTClearFlags.All, Color.clear);
             cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 3, MeshTopology.Triangles, 3,1, mpb);
         }
