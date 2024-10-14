@@ -32,6 +32,7 @@ public class BSRP : RenderPipeline
     private Material _deferredFinalPassMaterial;
     private Material _screenSpaceShadowMaterial;
     private Material _postFXMaterial;
+    private Material _gtaoMaterial;
 
     private GlobalKeyword _useLensDirtKeyword;
     private GlobalKeyword _useBloomKeyWord;
@@ -70,6 +71,7 @@ public class BSRP : RenderPipeline
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
         _screenSpaceShadowMaterial = CoreUtils.CreateEngineMaterial("Hidden/ScreenSpaceShadow");
         _postFXMaterial = CoreUtils.CreateEngineMaterial("Hidden/PostEffectPasses");
+        _gtaoMaterial = CoreUtils.CreateEngineMaterial("Hidden/GTAO");
 
         QualitySettings.shadows = ShadowQuality.All;
         GraphicsSettings.useScriptableRenderPipelineBatching = true;
@@ -138,7 +140,7 @@ public class BSRP : RenderPipeline
             //Depth copy TODO: depthPrepass
             _copyDepthPass.ExecutePass(RenderGraph, _container);
             
-            _gtaoPass.ExecutePass(RenderGraph, _container, _GTAOsettings, camera, _postFXMaterial);
+            _gtaoPass.ExecutePass(RenderGraph, _container, _GTAOsettings, camera, _gtaoMaterial);
 
             //Skybox
             if (camera.clearFlags == CameraClearFlags.Skybox)
@@ -192,6 +194,7 @@ public class BSRP : RenderPipeline
         CoreUtils.Destroy(_defferedLightingMaterial);
         CoreUtils.Destroy(_deferredFinalPassMaterial);
         CoreUtils.Destroy(_postFXMaterial);
+        CoreUtils.Destroy(_gtaoMaterial);
         _container.Dispose();
         RenderGraph.Cleanup();
     }

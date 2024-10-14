@@ -37,9 +37,10 @@ namespace Barkar.BSRP.Passes
             TextureDesc textureDescriptor =
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
 
-            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
+            textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             textureDescriptor.name = "GTAO";
             builder.UseColorBuffer(builder.CreateTransientTexture(textureDescriptor), 0);
+            //builder.UseColorBuffer(builder.CreateTransientTexture(textureDescriptor), 1);
             builder.ReadTexture(destinationTextures.ColorAttachment2);
             builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
 
@@ -70,7 +71,7 @@ namespace Barkar.BSRP.Passes
             float projScale = (float)_attachmentSize.y / (Mathf.Tan(fovRad * 0.5f) * 2) * 0.5f;
             mpb.SetFloat("_AO_HalfProjScale", projScale);
             cmd.ClearRenderTarget(RTClearFlags.All, Color.clear);
-            cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 3, MeshTopology.Triangles, 3,1, mpb);
+            cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 0, MeshTopology.Triangles, 3,1, mpb);
         }
     }
 }
