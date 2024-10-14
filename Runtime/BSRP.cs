@@ -140,6 +140,7 @@ public class BSRP : RenderPipeline
             //Depth copy TODO: depthPrepass
             _copyDepthPass.ExecutePass(RenderGraph, _container);
             
+            //GTAO
             _gtaoPass.ExecutePass(RenderGraph, _container, _GTAOsettings, camera, _gtaoMaterial);
 
             //Skybox

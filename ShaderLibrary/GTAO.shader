@@ -19,7 +19,29 @@ Shader "Hidden/GTAO"
             ENDHLSL
         }
 
-            //Spatial X
-            //Spatial Y
+Pass
+        {
+            Name "GTAO_SpatialX"
+            HLSLPROGRAM
+            #pragma vertex DefaultPassVertex
+            #pragma fragment FragGTAOSpatialX
+
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/GTAOPasses.hlsl"
+            ENDHLSL
+        }
+          Pass
+        {
+            Name "GTAO_SpatialX"
+            HLSLPROGRAM
+            #pragma vertex DefaultPassVertex
+            #pragma fragment FragGTAOSpatialY
+
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/Common.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/CameraRendererPasses.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/GTAOPasses.hlsl"
+            ENDHLSL
+        }
     }
 }

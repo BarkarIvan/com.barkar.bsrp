@@ -25,6 +25,11 @@ namespace Barkar.BSRP.Passes
             _camera = camera;
             var destinationTextures = input.Get<RenderDestinationTextures>();
             
+            //TODO DELETE
+            var gtaotextures = input.Get<GTAOTexturesItem>();
+            builder.UseTexture(gtaotextures.GTAOTExture);
+            ///
+            
             data.SkyboxRendererList = renderGraph.CreateSkyboxRendererList(camera);
             builder.UseRendererList(data.SkyboxRendererList);
             builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 0);

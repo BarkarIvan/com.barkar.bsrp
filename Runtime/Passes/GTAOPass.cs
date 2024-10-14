@@ -8,9 +8,23 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace Barkar.BSRP.Passes
 {
+    public class GTAOTexturesItem : ContextItem
+    {
+        public TextureHandle GTAOTExture;
+
+        public override void Reset()
+        {
+            GTAOTExture = default;
+        }
+    }
+    
     public class GTAOPassData
     {
         public Material GTAOMaterial;
+        public TextureHandle GTAOTexture1;
+        public TextureHandle GTAOTexture2;
+        public TextureHandle GTAOTexture3;
+        public TextureHandle ResultTexture;
     }
     
     public class GTAOPass
@@ -38,9 +52,21 @@ namespace Barkar.BSRP.Passes
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
 
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
-            textureDescriptor.name = "GTAO";
-            builder.UseColorBuffer(builder.CreateTransientTexture(textureDescriptor), 0);
-            //builder.UseColorBuffer(builder.CreateTransientTexture(textureDescriptor), 1);
+            textureDescriptor.name = "GTAOTexture1";
+            data.GTAOTexture1 = builder.CreateTransientTexture(textureDescriptor);
+
+            textureDescriptor.name = "GTAOTexture2";
+            data.GTAOTexture2 = builder.CreateTransientTexture(textureDescriptor);
+            
+            textureDescriptor.name = "GTAOTexture3";
+            data.GTAOTexture3 = builder.CreateTransientTexture(textureDescriptor);
+            
+            textureDescriptor.name = "GTAOResult";
+            data.ResultTexture = renderGraph.CreateTexture(textureDescriptor);
+            builder.WriteTexture(data.ResultTexture);
+            
+            
+            
             builder.ReadTexture(destinationTextures.ColorAttachment2);
             builder.ReadTexture(destinationTextures.DepthAttachmentCopy);
 
@@ -48,13 +74,16 @@ namespace Barkar.BSRP.Passes
             
             _camera = camera;
            _GTAOParams = new Vector4(
-               settings.Intensity,
+               settings.Pow,
                settings.Radius,
                settings.SampleCount,
                settings.Thickness);
-            
+           
            builder.SetRenderFunc(_renderFunc);
-            
+
+           var GtaoItem = input.GetOrCreate<GTAOTexturesItem>();
+           GtaoItem.GTAOTExture = data.ResultTexture;
+
         }
 
         private void RenderFunction(GTAOPassData data, RenderGraphContext context)
@@ -70,8 +99,21 @@ namespace Barkar.BSRP.Passes
             mpb.SetVector("_AOUVToViewCoef", new Vector4(2 * invFocalLen.x, 2 * invFocalLen.y, -1 * invFocalLen.x, -1 * invFocalLen.y));
             float projScale = (float)_attachmentSize.y / (Mathf.Tan(fovRad * 0.5f) * 2) * 0.5f;
             mpb.SetFloat("_AO_HalfProjScale", projScale);
+            cmd.SetRenderTarget(data.GTAOTexture1, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+            
             cmd.ClearRenderTarget(RTClearFlags.All, Color.clear);
             cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 0, MeshTopology.Triangles, 3,1, mpb);
+           
+            cmd.SetRenderTarget(data.GTAOTexture2, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+            cmd.ClearRenderTarget(RTClearFlags.All, Color.clear);
+
+            mpb.SetTexture("_GTAOTexture", data.GTAOTexture1);
+           cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 1, MeshTopology.Triangles, 3,1, mpb);
+
+           cmd.SetRenderTarget(data.ResultTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+           cmd.ClearRenderTarget(RTClearFlags.All, Color.clear);
+           cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 2, MeshTopology.Triangles, 3,1, mpb);
+
         }
     }
 }

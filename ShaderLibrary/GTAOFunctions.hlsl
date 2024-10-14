@@ -1,6 +1,89 @@
 #ifndef GTAO_FUNCTIONS
 #define GTAO_FUNCTIONS
 
+TEXTURE2D (_GTAOTexture);
+TEXTURE2D (_GBuffer0);
+#define KERNEL_RADIUS 8
+
+
+inline float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
+{
+    float AngleDifference = abs(ArcLength0 - ArcLength1);
+
+    float Intersection = smoothstep(0, 1, 1 - saturate((AngleBetweenCones - AngleDifference) / (ArcLength0 + ArcLength1 - AngleDifference)));
+
+    return Intersection;
+}
+
+
+inline half ReflectionOcclusion(half3 BentNormal, half3 ReflectionVector, half Roughness, half OcclusionStrength)
+{
+    half BentNormalLength = length(BentNormal);
+    half ReflectionConeAngle = max(Roughness, 0.1) * PI;
+    half UnoccludedAngle = BentNormalLength * PI * OcclusionStrength;
+
+    half AngleBetween = acos(dot(BentNormal, ReflectionVector) / max(BentNormalLength, 0.001));
+    half ReflectionOcclusion = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
+    ReflectionOcclusion = lerp(0, ReflectionOcclusion, saturate((UnoccludedAngle - 0.1) / 0.2));
+    return ReflectionOcclusion;
+}
+
+
+inline void FetchAoAndDepth(float2 uv, inout float ao, inout float depth) {
+    float4 aod = SAMPLE_TEXTURE2D(_GTAOTexture, sampler_linear_clamp, uv);
+    ao = aod.b;
+    depth = aod.a;
+}
+
+inline float CrossBilateralWeight(float r, float d, float d0) {
+    const float BlurSigma = (float)KERNEL_RADIUS * 0.5;
+    const float BlurFalloff = 1 / (2 * BlurSigma * BlurSigma);
+
+    float dz = (d0 - d) * _ProjectionParams.z * 3;// 3 - _AO_Sharpeness
+    return exp2(-r * r * BlurFalloff - dz * dz);
+    //return exp2(-r * r * BlurFalloff);
+}
+
+inline void ProcessSample(float2 aoz, float r, float d0, inout float totalAO, inout float totalW) {
+    float w = CrossBilateralWeight(r, d0, aoz.y);
+    totalW += w;
+    totalAO += w * aoz.x;
+}
+
+inline void ProcessRadius(float2 uv0, float2 deltaUV, float d0, inout float totalAO, inout float totalW) {
+    float ao, z;
+    float2 uv;
+    float r = 1;
+
+    UNITY_UNROLL
+    for (; r <= KERNEL_RADIUS / 2; r += 1) {
+        uv = uv0 + r * deltaUV;
+        FetchAoAndDepth(uv, ao, z);
+        ProcessSample(float2(ao, z), r, d0, totalAO, totalW);
+    }
+
+    UNITY_UNROLL
+    for (; r <= KERNEL_RADIUS; r += 2) {
+        uv = uv0 + (r + 0.5) * deltaUV;
+        FetchAoAndDepth(uv, ao, z);
+        ProcessSample(float2(ao, z), r, d0, totalAO, totalW);
+    }	
+}
+
+inline float2 BilateralBlur(float2 uv0, float2 deltaUV)
+{
+    float totalAO, depth;
+    FetchAoAndDepth(uv0, totalAO, depth);
+    float totalW = 1;
+		
+    ProcessRadius(uv0, -deltaUV, depth, totalAO, totalW);
+    ProcessRadius(uv0, deltaUV, depth, totalAO, totalW);
+
+    totalAO /= totalW;
+    return float2(totalAO, depth);
+}
+
+
 
     half4 _GTAOParams; //intens, radius, sampleCount, thickness;
     half4 _AOUVToViewCoef;
@@ -9,10 +92,10 @@
     TEXTURE2D_HALF(_CameraDepth);
     TEXTURE2D_HALF(_GBuffer2);
 
-    #define INTENSITY _GTAOParams.x
-    #define RADIUS _GTAOParams.y
+    #define GTAO_POW _GTAOParams.x
+    #define GTAO_RADIUS _GTAOParams.y
     #define SAMPLE_COUNT _GTAOParams.z
-    #define THICKNESS _GTAOParams.w
+    #define GTAO_THICKNESS _GTAOParams.w
     #define SLICE_COUNT 3
 
 
@@ -64,7 +147,7 @@ half4 GTAO(half2 uv, inout half depth)
         normalVS.z = -normalVS.z;
 
 
-        half stepRadius = max(min((RADIUS * _AO_HalfProjScale) / viewPos.b, 512), (half)SLICE_COUNT);
+        half stepRadius = max(min((GTAO_RADIUS * _AO_HalfProjScale) / viewPos.b, 512), (half)SLICE_COUNT);
         stepRadius /= ((half)SLICE_COUNT + 1);
 
         //noise
@@ -97,10 +180,10 @@ half4 GTAO(half2 uv, inout half depth)
                 //enghts and falloff
                 h1h2 = half2(dot(h1, h1), dot(h2, h2)); //sqrt lenght?
                 h1h2Length = rsqrt(h1h2);
-                falloff = saturate(h1h2.xy / (RADIUS * RADIUS));
+                falloff = saturate(h1h2.xy / (GTAO_RADIUS * GTAO_RADIUS));
 
                 H = half2(dot(h1, viewDir), dot(h2, viewDir)) * h1h2Length;
-                h.xy = (H.xy > h.xy) ? lerp(H, h, falloff) : lerp(H.xy, h.xy, THICKNESS);
+                h.xy = (H.xy > h.xy) ? lerp(H, h, falloff) : lerp(H.xy, h.xy, GTAO_THICKNESS);
             }
 
             planeNormal = SafeNormalize(cross(sliceDir, viewDir));
@@ -123,7 +206,7 @@ half4 GTAO(half2 uv, inout half depth)
             bentNormal += viewDir * cos(angle) - planeTangent * sin(bentAngle);
         }
         bentNormal = SafeNormalize(SafeNormalize(bentNormal) - viewDir * 0.5);
-        ao = saturate(pow(ao / SAMPLE_COUNT, INTENSITY));
+        ao = saturate(pow(ao / SAMPLE_COUNT, GTAO_POW));
         depth = viewPos.b;
         return half4(bentNormal, ao);
     }
