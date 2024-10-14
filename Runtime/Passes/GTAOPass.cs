@@ -50,7 +50,7 @@ namespace Barkar.BSRP.Passes
                settings.Intensity,
                settings.Radius,
                settings.SampleCount,
-               0.0f);
+               settings.Thickness);
             
            builder.SetRenderFunc(_renderFunc);
             
