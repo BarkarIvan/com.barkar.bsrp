@@ -12,6 +12,7 @@ Shader "Hidden/DeferredLights"
     TEXTURE2D_HALF(_GBuffer2); //normal
     TEXTURE2D_HALF(_GBuffer3); //emission
     TEXTURE2D_HALF(_CameraDepth);
+    TEXTURE2D_HALF(_GTAOTexture);
 
     StructuredBuffer<int> _TileLightCountBuffer;
     StructuredBuffer<int> _TileLightIndicesBuffer;
@@ -23,7 +24,7 @@ Shader "Hidden/DeferredLights"
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
         half4 g1 = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv);
         float4 g2 = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv);
-
+        float4 bent_ao = SAMPLE_TEXTURE2D(_GTAOTexture, sampler_linear_clamp, IN.uv);
         half3 albedo = g0.rgb;
         half roughtness = g0.a;
         half metallic = g1.a;
@@ -47,10 +48,10 @@ Shader "Hidden/DeferredLights"
         surfaceData.roughness = roughtness;
         surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
         surfaceData.specular = lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
-        surfaceData.occlusion = 1.0;
+        surfaceData.occlusion = bent_ao.a;
         
         Light light = GetMainLight(shadowCoord, positionWS);
-        half3 brdf = StandardBRDF(litData, surfaceData, light.direction, light.color, light.shadowAttenuation);
+        half3 brdf = StandardBRDF(litData, surfaceData, light.direction, light.color*surfaceData.occlusion, light.shadowAttenuation);
         
         half4 result;
         result.rgb = brdf;

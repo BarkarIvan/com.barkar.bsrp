@@ -57,20 +57,20 @@ namespace Barkar.BSRP.Passes
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
 
           //  data._DepthAttachment = destinationTextures.DepthAttachment;
-            textureDescriptor.colorFormat =  SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
-           //GraphicsFormat.A2B10G10R10_UNormPack32;
+            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
+           
               //  textureDescriptor.name = "GTAOResolve";
            // data._GTAOResolveTexture = builder.CreateTransientTexture(textureDescriptor);
 
             textureDescriptor.name = "GTAOTexture1";
-            data.GTAOTexture1 = builder.CreateTransientTexture(textureDescriptor);
-
+            data.GTAOTexture1 = renderGraph.CreateTexture(textureDescriptor);
+            
             textureDescriptor.name = "GTAOTexture2";
             data.GTAOTexture2 = builder.CreateTransientTexture(textureDescriptor);
              
-            textureDescriptor.name = "GTAOResult";
-            data.ResultTexture = renderGraph.CreateTexture(textureDescriptor);
-            builder.WriteTexture(data.ResultTexture);
+           // textureDescriptor.name = "GTAOResult";
+            //data.ResultTexture = renderGraph.CreateTexture(textureDescriptor);
+            builder.WriteTexture(data.GTAOTexture1);
             
            //textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             //textureDescriptor.name = "BentNormalTexture";
@@ -95,7 +95,7 @@ namespace Barkar.BSRP.Passes
            builder.SetRenderFunc(_renderFunc);
 
            var GtaoItem = input.GetOrCreate<GTAOTexturesItem>();
-           GtaoItem.GTAOTExture = data.ResultTexture;
+           GtaoItem.GTAOTExture = data.GTAOTexture1;
 
         }
 

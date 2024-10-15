@@ -218,8 +218,8 @@ half4 GTAO(half2 uv)
         bentAngle = (h.x + h.y) * 0.5;
         bentNormal += viewDir * cos(angle) - planeTangent * sin(bentAngle);
     }
-    bentNormal = SafeNormalize(SafeNormalize(bentNormal) - viewDir * 0.5);
-    bentNormal = mul(UNITY_MATRIX_V, half3(bentNormal.xy, - bentNormal.z));
+    bentNormal = normalize(normalize(half3(bentNormal.xy, bentNormal.z) - viewDir * 0.5));
+    bentNormal =  mul(UNITY_MATRIX_V, half3(bentNormal));
     ao = saturate(pow(ao / SAMPLE_COUNT, GTAO_POW));
     return half4(bentNormal, ao);
 }

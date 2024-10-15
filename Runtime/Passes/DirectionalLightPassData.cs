@@ -4,4 +4,5 @@ using UnityEngine.Rendering.RenderGraphModule;
 public class DirectionalLightPassData
 {
     public Material deferredLightsMaterial;
+    public TextureHandle GTAOTexture;
 }
