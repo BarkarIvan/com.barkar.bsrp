@@ -11,5 +11,6 @@ namespace Barkar.BSRP.Settings.GTAO
         [Range(0f, 5f)] public float Radius;
         [Range(0, 4)] public int SampleCount;
         [Range(0f, 1f)] public float Thickness;
+        [Range(0f, 1f)] public float Sharpness;
     }
 }
