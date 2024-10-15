@@ -7,7 +7,7 @@ TEXTURE2D(_BentNormalTexture);
 TEXTURE2D(_GBuffer0);
 
 uniform half _GTAO_Sharpness;
-#define KERNEL_RADIUS 8
+#define KERNEL_RADIUS 5
 
 
 inline float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
@@ -88,55 +88,11 @@ inline void ProcessRadius(float2 uv0, float2 deltaUV, float d0, inout float4 tot
     }
 }
 
-inline half CrossBilateralWeight_1(half x, half Sharp)
-{
-    return 0.39894 * exp(-0.5 * x * x / (Sharp * Sharp)) / Sharp;
-}
-
-inline half CrossBilateralWeight_2(half3 v, half Sharp)
-{
-    return 0.39894 * exp(-0.5 * dot(v, v) / (Sharp * Sharp)) / Sharp;
-}
-
-
-inline half4 BilateralClearUp(TEXTURE2D_PARAM(Texture, smpl), half2 Resolution, half2 uv)
-{
-    half4 originColor = SAMPLE_TEXTURE2D(Texture, smpl, uv);
-
-    half kernel[KERNEL_RADIUS];
-    const int kernelSize = (KERNEL_RADIUS - 1) / 2;
-
-    //UNITY_UNROLL
-    for (int j = 0; j <= kernelSize; j++)
-    {
-        kernel[kernelSize + j] = kernel[kernelSize - j] = CrossBilateralWeight_1(half(j), KERNEL_RADIUS);
-    }
-
-    half weight, Num_Weight;
-    half4 blurColor, final_colour;
-
-    //UNITY_UNROLL
-    for (int i = -kernelSize; i <= kernelSize; i++)
-    {
-        //UNITY_UNROLL
-        for (int j = -kernelSize; j <= kernelSize; j++)
-        {
-            blurColor = SAMPLE_TEXTURE2D(Texture,smpl, half4( ( (uv * Resolution) + half2( half(i), half(j) ) ) / Resolution, 0, 0) );
-            weight = CrossBilateralWeight_2(blurColor - originColor, KERNEL_RADIUS) * kernel[kernelSize + j] * kernel[kernelSize + i];
-            Num_Weight += weight;
-            final_colour += weight * blurColor;
-        }
-    }
-    return  final_colour / Num_Weight;
-}
 
 
 inline float4 BilateralBlur(half4 ao, float depth, float2 uv0, float2 deltaUV)
 {
-    
-   // FetchAoAndDepth(uv0, totalAO, depth);
     float totalW = 1;
-
     ProcessRadius(uv0, -deltaUV, depth, ao, totalW);
     ProcessRadius(uv0, deltaUV, depth, ao, totalW);
 
@@ -265,7 +221,6 @@ half4 GTAO(half2 uv)
     bentNormal = SafeNormalize(SafeNormalize(bentNormal) - viewDir * 0.5);
     bentNormal = mul(UNITY_MATRIX_V, half3(bentNormal.xy, - bentNormal.z));
     ao = saturate(pow(ao / SAMPLE_COUNT, GTAO_POW));
-   // depth = Linear01Depth(rawDepth, _ZBufferParams); //viewPos.z;//
     return half4(bentNormal, ao);
 }
 
