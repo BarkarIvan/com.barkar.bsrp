@@ -7,7 +7,7 @@ TEXTURE2D(_BentNormalTexture);
 TEXTURE2D(_GBuffer0);
 
 uniform half _GTAO_Sharpness;
-#define KERNEL_RADIUS 5
+#define KERNEL_RADIUS 3
 
 
 inline float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
@@ -101,9 +101,10 @@ inline float4 BilateralBlur(half4 ao, float depth, float2 uv0, float2 deltaUV)
 }
 
 
-uniform half4 _GTAOParams; //intens, radius, sampleCount, thickness;
+uniform half4 _GTAOParams; //pow, radius, sampleCount, thickness;
 uniform half4 _AOUVToViewCoef;
 uniform half _AO_HalfProjScale;
+uniform half _GTAO_Intencity;
 
 TEXTURE2D_HALF(_GBuffer2);
 

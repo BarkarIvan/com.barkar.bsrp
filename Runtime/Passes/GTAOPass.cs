@@ -125,6 +125,7 @@ namespace Barkar.BSRP.Passes
            // cmd.CopyTexture(data.GTAOTexture1, data.GTAOTexture2);
            mpb.SetTexture("_GTAOTexture", data.GTAOTexture2);
             mpb.SetFloat("_GTAO_Sharpness", _settings.Sharpness);
+            mpb.SetFloat("_GTAO_Intencity", _settings.Intencity);
 //            mpb.SetTexture("_BentNormalTexture", data._BentNormalTexture);
             cmd.SetRenderTarget(data.GTAOTexture1, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 2, MeshTopology.Triangles, 3,1, mpb);

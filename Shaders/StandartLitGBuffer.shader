@@ -226,9 +226,9 @@ Shader "BSRP/StandartLitGBUFFER"
 
                 GBuffer gbo;
                 gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
-                gbo.GBUFFER1 = half4(0.0, 0.0, 0.0, surfaceData.metallic); //AO
+                gbo.GBUFFER1 = half4(half3(0,0,0), surfaceData.metallic); //AO
                 gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, litData.N))), 0.0, 0.0);
-                gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
+                gbo.GBUFFER3 = float4(envPbr+emissionColor, 1.0);
 
                 return gbo;
             }

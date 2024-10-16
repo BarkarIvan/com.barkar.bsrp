@@ -25,7 +25,7 @@ half4 FragGTAOSpatialY(Varyings IN) : SV_Target
     half depth = SAMPLE_TEXTURE2D(_CameraDepth, sampler_linear_clamp, uv).r;
     half linearDepth = Linear01Depth(depth, _ZBufferParams);
     half4 BentNormal_ao = SAMPLE_TEXTURE2D(_GTAOTexture, sampler_linear_clamp, uv);
-    return  BilateralBlur(BentNormal_ao, linearDepth,uv, half2(0, 1 / _RenderSizeParams.y));//w?
+    half4 AO =  BilateralBlur(BentNormal_ao, linearDepth,uv, half2(0, 1 / _RenderSizeParams.y));//w?
 /*
     //////Reflection Occlusion
     half3 bentNormal = (AO.rgb);
@@ -45,9 +45,11 @@ half4 FragGTAOSpatialY(Varyings IN) : SV_Target
     half3 viewDir= normalize(positionWS.xyz - _WorldSpaceCameraPos.rgb);
     half3 reflectionDir = reflect(viewDir, normalWS);
     half GTRO = ReflectionOcclusion(bentNormal, reflectionDir, roughness, 0.5);
-
-    return lerp(1, half2(AO.a, GTRO), 1);//_AO_INTENSITY
     */
+    return lerp(1, AO, _GTAO_Intencity);
+   
+
+    
 } 
 
 
