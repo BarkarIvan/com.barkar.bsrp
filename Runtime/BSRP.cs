@@ -15,6 +15,7 @@ public class BSRP : RenderPipeline
     private float _renderScale;
 
     private RenderGraph RenderGraph = new RenderGraph("BSRP Render Graph");
+    private TextureHandle _backbuffer;
 
     private readonly ShaderTagId[] _commonShaderTags =
         { new ShaderTagId("BSRPGBuffer"), new ShaderTagId("SRPDefaultUnlit") };
@@ -91,6 +92,7 @@ public class BSRP : RenderPipeline
 
         foreach (Camera camera in cameras)
         {
+            context.SetupCameraProperties(camera, false);
             Shader.SetKeyword(_useBloomKeyWord, _bloomSettings.BloomEnable);
             Shader.SetKeyword(_useLensDirtKeyword, _bloomSettings.UseLensDirt);
 

@@ -54,6 +54,8 @@ namespace Barkar.BSRP.Passes
         private CullingResults _cullingResults;
         private ShadowSettings _shadowSettings;
         private Vector4 _mainLightShadowMapSize = Vector4.zero;
+        private Matrix4x4 _originalMatrixV;
+        private Matrix4x4 _originalMatrixP;
 
         private int _PointLightCount;
         private Vector4[] _PointLightColor = new Vector4[1023];
@@ -83,7 +85,7 @@ namespace Barkar.BSRP.Passes
         }
 
         public void ExecutePass(RenderGraph renderGraph, CullingResults cullingResults,
-             ShadowSettings shadowSettings, ContextContainer container, Camera camera)
+            ShadowSettings shadowSettings, ContextContainer container, Camera camera)
         {
             _cullingResults = cullingResults;
             _shadowSettings = shadowSettings;
@@ -156,6 +158,9 @@ namespace Barkar.BSRP.Passes
                     ? renderGraph.CreateTexture(textureDescriptor)
                     : renderGraph.defaultResources.defaultShadowTexture);
 
+                _originalMatrixV = camera.worldToCameraMatrix;
+                _originalMatrixP = camera.projectionMatrix;
+
                 builder.SetRenderFunc(_renderFunc);
 
                 LightingResources resources = container.GetOrCreate<LightingResources>();
@@ -201,6 +206,7 @@ namespace Barkar.BSRP.Passes
 
                 cmd.DrawRendererList(directionalLightRendererListHandle);
             }
+
             cmd.EndSample("Main Light Directional Shadow");
 
             //Buffers data
@@ -227,16 +233,9 @@ namespace Barkar.BSRP.Passes
 
             //keyWords
             SetKeywords(directionalFilterKeywords, (int)_shadowSettings.Direcrional.SoftShadows - 1, cmd);
-
             
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
-
-            //reset
-            cmd.SetGlobalDepthBias(0f, 0f);
-            cmd.SetupCameraProperties(_camera);
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
+            //reset VP
+            cmd.SetViewProjectionMatrices(_originalMatrixV, _originalMatrixP);
         }
 
 
