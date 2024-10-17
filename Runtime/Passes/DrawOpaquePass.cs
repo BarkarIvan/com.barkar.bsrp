@@ -13,7 +13,6 @@ namespace Barkar.BSRP.Passes
 
         private RendererListDesc _rendererListDesc;
         private readonly BaseRenderFunc<DrawOpaqueGeometryPassData, RasterGraphContext> _renderFunction;
-        private Camera _camera;
 
         public DrawOpaquePass()
         {
@@ -28,7 +27,6 @@ namespace Barkar.BSRP.Passes
                 out var data,
                 _profilingSampler);
 
-            _camera = camera;
             
             //TODO refactor
             var stencil = StencilState.defaultValue;
@@ -58,7 +56,7 @@ namespace Barkar.BSRP.Passes
 
                     stateBlock = renderStateBlock
                 };
-
+        
             data.RendererList = renderGraph.CreateRendererList(_rendererListDesc);
             builder.UseRendererList(data.RendererList);
 

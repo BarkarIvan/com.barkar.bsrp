@@ -46,8 +46,8 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.colorFormat = GraphicsFormat.A2B10G10R10_UNormPack32;
             setupPassData.ColorAttachment2 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.name = "Light_Accumulate";
-            textureDescriptor.enableRandomWrite = true; // TODO: 
-            // textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
+            textureDescriptor.enableRandomWrite = true; 
+            
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
             setupPassData.ColorAttachment3 = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
             textureDescriptor.enableRandomWrite = false;
@@ -59,6 +59,7 @@ namespace Barkar.BSRP.Passes.Setup
             textureDescriptor.depthBufferBits = DepthBits.Depth32;
             textureDescriptor.name = "Depth_Stencil";
             setupPassData.DepthAttachment = builder.WriteTexture(renderGraph.CreateTexture(textureDescriptor));
+         
             textureDescriptor.name = "Depth_Copy";
             TextureHandle depthCopyTexture = renderGraph.CreateTexture(textureDescriptor);
             builder.SetRenderFunc(_renderFunc);
