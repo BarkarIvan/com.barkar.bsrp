@@ -51,8 +51,8 @@ Shader "BSRP/StandartLitGBUFFER"
             ZWrite [_ZWrite]
 
             HLSLPROGRAM
-            #pragma vertex BSRPStylizedVertex
-            #pragma fragment BSRPStylizedFragment
+            #pragma vertex GBufferVertex
+            #pragma fragment GBufferFragment
 
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local _ADDITIONALMAP
@@ -125,6 +125,51 @@ Shader "BSRP/StandartLitGBUFFER"
             };
 
             #include "Packages/com.barkar.bsrp/ShaderLibrary/ShadowCaterPass.hlsl"
+            ENDHLSL
+        }
+
+ Pass
+        {
+            Name "Depth Normals"
+            Tags
+            {
+                "LightMode"="DepthNormalsOnly"
+            }
+
+            ZWrite On
+            ZTest LEqual
+            Cull[_Cull]
+
+
+            HLSLPROGRAM
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _ADDITIONALMAP
+            #pragma prefer_hlslcc gles
+            #pragma exclude_renderers d3d11_9x
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+
+            struct Attributes
+            {
+                float3 positionOS : POSITION;
+                half3 normalOS : NORMAL;
+                half4 tangentOS : TANGENT;
+                float2 uv : TEXCOORD0;
+                half4 color : COLOR;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 addUv : TEXCOORD1;
+                float3 positionWS : TEXCOORD2;
+                half3 normalWS : NORMAL;
+                half3 tangentWS : TEXCOORD3;
+                half3 bitangentWS : TEXCOORD4;
+            };
+            
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/LitInput.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/DepthNormalsPass.hlsl"
             ENDHLSL
         }
     }

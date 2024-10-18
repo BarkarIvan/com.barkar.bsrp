@@ -19,6 +19,7 @@ public class BSRP : RenderPipeline
 
     private readonly ShaderTagId[] _commonShaderTags =
         { new ShaderTagId("BSRPGBuffer"), new ShaderTagId("SRPDefaultUnlit") };
+    private readonly ShaderTagId[] _depthNormalsShaderTag = {new ShaderTagId("DepthNormalsOnly")};
 
     private readonly ShaderTagId[] _ppllShaderTagId = { new ShaderTagId("BSRPPPLL") };
     private ContextContainer _container;
@@ -40,6 +41,7 @@ public class BSRP : RenderPipeline
 
     private LightingSetupPass _lightingSetupPass = new LightingSetupPass();
     private SetupPass _setupPass = new SetupPass();
+    private DepthNormalsOnlyPass _depthNormalsOnlyPass = new DepthNormalsOnlyPass();
     private DrawOpaquePass _drawOpaquePass = new DrawOpaquePass();
     private CreatePerPixelLinkedListPass _createPerPixelLinkedListPass = new CreatePerPixelLinkedListPass();
     private RenderPerPixelLinkedListPass _renderPerPixelLinkedListPass = new RenderPerPixelLinkedListPass();
@@ -135,16 +137,20 @@ public class BSRP : RenderPipeline
             _lightingSetupPass.ExecutePass(RenderGraph, cullingResults, _shadowSettings, _container, camera);
             _setupPass.ExecutePass(RenderGraph, _textureSize, camera, _container);
 
+            //depth normals
+            _depthNormalsOnlyPass.ExecutePass(RenderGraph, _depthNormalsShaderTag,camera, cullingResults, _container, camera.cullingMask);
+            
+            //GTAO
+            _gtaoPass.ExecutePass(RenderGraph, _container, _GTAOsettings, camera, _gtaoMaterial);
+
             //Opaque
             _drawOpaquePass.ExecutePass(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
            
             //Depth copy TODO: depthPrepass
-            _copyDepthPass.ExecutePass(RenderGraph, _container);
+           // _copyDepthPass.ExecutePass(RenderGraph, _container);
             
-            //GTAO
-            _gtaoPass.ExecutePass(RenderGraph, _container, _GTAOsettings, camera, _gtaoMaterial);
-
+           
             //Skybox
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.ExecutePass(RenderGraph, _container, camera);

@@ -5,11 +5,11 @@ struct GBuffer
 {
     half4 GBUFFER0 : SV_Target0;
     half4 GBUFFER1 : SV_Target1;
-    half4 GBUFFER2 : SV_Target2;
-    half4 GBUFFER3 : SV_Target3;
+   // half4 GBUFFER2 : SV_Target2;
+    half4 GBUFFER3 : SV_Target2;
 };
 
-Varyings BSRPStylizedVertex(Attributes IN)
+Varyings GBufferVertex(Attributes IN)
 {
     Varyings OUT;
     VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS);
@@ -38,7 +38,7 @@ Varyings BSRPStylizedVertex(Attributes IN)
     return OUT;
 }
 
-GBuffer BSRPStylizedFragment(Varyings IN): SV_Target
+GBuffer GBufferFragment(Varyings IN)
 {
     half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
     albedo *= _BaseColor;
@@ -85,7 +85,7 @@ GBuffer BSRPStylizedFragment(Varyings IN): SV_Target
 
    // indirectDiffuse = LinearToSRGB(indirectDiffuse);
     surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
-    surfaceData.specular = lerp(kDielectricSpec.rgb, albedo, surfaceData.metallic);
+    surfaceData.specular = lerp(kDielectricSpec.rgb, albedo.rgb, surfaceData.metallic);
     litData.N = normalWS;
 
     //alpha
@@ -114,7 +114,7 @@ GBuffer BSRPStylizedFragment(Varyings IN): SV_Target
     GBuffer gbo;
     gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
     gbo.GBUFFER1 = half4(half3(0, 0, 0), surfaceData.metallic); //AO
-   gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, litData.N))), 0.0, 0.0);
+  // gbo.GBUFFER2 = half4((SpheremapEncodeNormal(mul(unity_MatrixV, litData.N))), 0.0, 0.0);
     gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
 
     return gbo;

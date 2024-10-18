@@ -29,6 +29,7 @@ namespace Barkar.BSRP.Passes
             builder.ReadTexture(passData.GTAOTexture);
             builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
+            builder.ReadTexture(destinationTextures.ColorAttachment2);
             passData.deferredLightsMaterial = deferredLightsMaterial;
             builder.SetRenderFunc(_renderFunc);
             

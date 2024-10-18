@@ -64,15 +64,14 @@ namespace Barkar.BSRP.Passes
             var destinationTextures = input.Get<RenderDestinationTextures>();
 
             builder.SetRenderAttachment(destinationTextures.ColorAttachment0, 0);
+           // builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1);
             builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1);
-            builder.SetRenderAttachment(destinationTextures.ColorAttachment2, 2);
-            builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 3);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 2);
             builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment);
 
 
             builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment0, BSRPShaderIDs.GBuffer0ID);
             builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment1, BSRPShaderIDs.GBuffer1ID);
-            builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment2, BSRPShaderIDs.GBuffer2ID);
             builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment3, BSRPShaderIDs.GBuffer3ID);
             builder.AllowPassCulling(false);
 

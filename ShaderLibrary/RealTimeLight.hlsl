@@ -23,17 +23,17 @@ struct Light
 Light GetMainLight(float4 shadowCoord, float3 positionWS)
 {
     Light mainLight;
-    mainLight.color =  MainLightColor;
+    mainLight.color =  MainLightColor.rgb;
     mainLight.direction = (MainLightDirectionaAndMask.xyz);
     mainLight.layerMask = MainLightDirectionaAndMask.w;
     mainLight.shadowAttenuation = SampleFilteredShadowMap(positionWS, shadowCoord, MainLightShadowsData);
     return mainLight;
 }
 
-Light GetMainLight(float3 positionWS)
+Light GetMainLight()
 {
     Light mainLight;
-    mainLight.color =  MainLightColor;
+    mainLight.color =  MainLightColor.rgb;
     mainLight.direction = MainLightDirectionaAndMask.xyz;
     mainLight.layerMask = MainLightDirectionaAndMask.w;
     return mainLight;

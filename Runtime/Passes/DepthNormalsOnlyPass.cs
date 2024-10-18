@@ -43,16 +43,19 @@ namespace Barkar.BSRP.Passes
 
             var destinationTextures = input.Get<RenderDestinationTextures>();
 
-            builder.SetRenderAttachment(destinationTextures.DepthAttachmentCopy,0);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment2,0);
             builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachmentCopy);
+            builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment2, BSRPShaderIDs.GBuffer2ID);
+            builder.SetGlobalTextureAfterPass( destinationTextures.DepthAttachmentCopy, BSRPShaderIDs.CameraDepthID);
 
+            builder.SetRenderFunc(_renderFunc);
         }
 
         private void RenderFunction(DepthNormalsOnlyPassData data, RasterGraphContext contetx)
         {
+            contetx.cmd.ClearRenderTarget(true, true, Color.clear);
             contetx.cmd.DrawRendererList(data.RendererList);
         }
-
 
     }
 }

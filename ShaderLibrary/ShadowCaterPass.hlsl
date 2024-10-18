@@ -15,7 +15,7 @@ float4 GetShadowPositionHClip(Attributes input)
     half scale = invNdotL * MainLightShadowsData.y;
 
     positionWS = MainLightDirectionaAndMask.xyz * MainLightShadowsData.yyy + positionWS.xyz;
-  //  positionWS = +positionWS + normalWS * scale.xxx;
+    positionWS = +positionWS + normalWS * scale.xxx;
     //
     float4 positionCS = TransformWorldToHClip(positionWS);
 

@@ -93,9 +93,9 @@ namespace Barkar.BSRP.Passes.Setup
 
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
             
-            cmd.SetRenderTarget(setupPassData.ColorAttachment2, RenderBufferLoadAction.DontCare,
-                RenderBufferStoreAction.Store);
-            cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
+       //     cmd.SetRenderTarget(setupPassData.ColorAttachment2, RenderBufferLoadAction.DontCare,
+             //   RenderBufferStoreAction.Store);
+           // cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
 
             cmd.SetRenderTarget(setupPassData.ColorAttachment3, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
