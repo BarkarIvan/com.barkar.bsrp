@@ -24,24 +24,18 @@ namespace Barkar.BSRP.Passes
 
             builder.AllowPassCulling(false);
             RenderDestinationTextures destinationTextures = input.Get<RenderDestinationTextures>();
-            GTAOTexturesItem gtaoTextures = input.Get<GTAOTexturesItem>();
-            passData.GTAOTexture = gtaoTextures.GTAOTExture;
-            builder.ReadTexture(passData.GTAOTexture);
             builder.UseColorBuffer(destinationTextures.ColorAttachment3, 0);
             builder.UseDepthBuffer(destinationTextures.DepthAttachment, DepthAccess.Read);
             builder.ReadTexture(destinationTextures.ColorAttachment2);
             passData.deferredLightsMaterial = deferredLightsMaterial;
             builder.SetRenderFunc(_renderFunc);
-            
         }
 
         private void RenderFunction(DirectionalLightPassData data, RenderGraphContext context)
         {
             var cmd = context.cmd;
-            var mpb = context.renderGraphPool.GetTempMaterialPropertyBlock();
-            mpb.SetTexture("_GTAOTexture", data.GTAOTexture);
             cmd.DrawProcedural(Matrix4x4.identity, data.deferredLightsMaterial, 0, MeshTopology.Triangles,
-                3, 1, mpb);
+                3, 1);
         }
     }
 }

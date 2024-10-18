@@ -67,18 +67,18 @@ namespace Barkar.BSRP.Passes
             builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1); //metallic
             builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 2); // light accum
             builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment);
-
-
+            
             builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment0, BSRPShaderIDs.GBuffer0ID);
             builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment1, BSRPShaderIDs.GBuffer1ID);
             builder.SetGlobalTextureAfterPass(destinationTextures.ColorAttachment3, BSRPShaderIDs.GBuffer3ID);
             builder.AllowPassCulling(false);
-
+            
             builder.SetRenderFunc(_renderFunction);
         }
 
         private void RenderFunction(DrawOpaqueGeometryPassData data, RasterGraphContext context)
         {
+            
             context.cmd.DrawRendererList(data.RendererList);
         }
     }

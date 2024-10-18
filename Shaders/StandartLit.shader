@@ -1,4 +1,4 @@
-Shader "BSRP/StandartLitGBUFFER"
+Shader "BSRP/StandartLit"
 {
     Properties
     {
@@ -84,6 +84,7 @@ Shader "BSRP/StandartLitGBUFFER"
                 half3 bitangentWS : TEXCOORD4;
                 float4 shadowCoord : TEXCOORD5;
                 half3 SH : TEXCOORD6;
+                float4 screenPos : TEXCOORD7;
                 half4 color : COLOR;
             };
 

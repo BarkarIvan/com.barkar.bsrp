@@ -12,7 +12,7 @@ Shader "Hidden/DeferredLights"
     TEXTURE2D_HALF(_GBuffer2); //normal
     TEXTURE2D_HALF(_GBuffer3); //emission
     TEXTURE2D_HALF(_CameraDepth);
-    TEXTURE2D_HALF(_GTAOTexture);
+    TEXTURE2D_HALF(_GTAOBentNormalTexture);
 
     StructuredBuffer<int> _TileLightCountBuffer;
     StructuredBuffer<int> _TileLightIndicesBuffer;
@@ -24,7 +24,7 @@ Shader "Hidden/DeferredLights"
         half4 g0 = SAMPLE_TEXTURE2D(_GBuffer0, sampler_linear_clamp, IN.uv);
         half4 g1 = SAMPLE_TEXTURE2D(_GBuffer1, sampler_linear_clamp, IN.uv);
         float4 g2 = SAMPLE_TEXTURE2D(_GBuffer2, sampler_linear_clamp, IN.uv);
-        float4 bent_ao = SAMPLE_TEXTURE2D(_GTAOTexture, sampler_linear_clamp, IN.uv);
+        float4 bent_ao = SAMPLE_TEXTURE2D(_GTAOBentNormalTexture, sampler_linear_clamp, IN.uv);
         half3 albedo = g0.rgb;
         half roughtness = g0.a;
         half metallic = g1.a;

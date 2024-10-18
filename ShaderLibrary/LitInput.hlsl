@@ -11,6 +11,8 @@ TEXTURE2D(_AdditionalMap);
 SAMPLER(sampler_AdditionalMap);
 TEXTURE2D(_EmissionMap);
 SAMPLER(sampler_EmissionMap);
+TEXTURE2D(_GTAOBentNormalTexture);
+SAMPLER(sampler_GTAOBentNormalTexture);
 
 CBUFFER_START(UnityPerMaterial)
     half4 _BaseColor;

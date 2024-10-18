@@ -9,12 +9,10 @@ namespace Barkar.BSRP.Passes
     public class DepthNormalsOnlyPassData
     {
         public RendererListHandle RendererList;
-        public TextureHandle NormalsTexture;
-        public TextureHandle CameraDepthTexture;
     }
+    
     public class DepthNormalsOnlyPass
     {
-
         private readonly ProfilingSampler _profilingSampler = new ProfilingSampler(" Depth Normals Pass");
         private RendererListDesc _rendererListDecriptipn;
         private readonly BaseRenderFunc<DepthNormalsOnlyPassData, RasterGraphContext> _renderFunc;

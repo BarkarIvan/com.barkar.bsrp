@@ -17,6 +17,8 @@ namespace Barkar.BSRP
         
         public static readonly int MainLightShadowMapID = Shader.PropertyToID("_MainLightShadowMap");
 
+        public static readonly int GTAOBeentNormalTexture = Shader.PropertyToID("_GTAOBentNormalTexture");
+
        
         public static readonly int UnityMatrixIvpID = Shader.PropertyToID("unity_MatrixIVP");
         public static readonly int SourceTextureID = Shader.PropertyToID("_SourceTexture");
