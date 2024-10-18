@@ -147,19 +147,11 @@ public class BSRP : RenderPipeline
             _drawOpaquePass.ExecutePass(RenderGraph, _commonShaderTags, camera, cullingResults,
                 _container, camera.cullingMask);
            
-            //Depth copy TODO: depthPrepass
-           // _copyDepthPass.ExecutePass(RenderGraph, _container);
-            
-           
             //Skybox
             if (camera.clearFlags == CameraClearFlags.Skybox)
                 _drawSkyboxPass.ExecutePass(RenderGraph, _container, camera);
            
-            /*
-            //Shadow
-            _screenSpaceShadowPass.ExecutePass(RenderGraph, _container,
-                _shadowSettings, _screenSpaceShadowMaterial);
-              */
+       
             //Directional
             _directionalLightPass.ExecutePass(RenderGraph, _container, _defferedLightingMaterial);
  

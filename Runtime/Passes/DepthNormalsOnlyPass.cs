@@ -51,10 +51,10 @@ namespace Barkar.BSRP.Passes
             builder.SetRenderFunc(_renderFunc);
         }
 
-        private void RenderFunction(DepthNormalsOnlyPassData data, RasterGraphContext contetx)
+        private void RenderFunction(DepthNormalsOnlyPassData data, RasterGraphContext context)
         {
-            contetx.cmd.ClearRenderTarget(true, true, Color.clear);
-            contetx.cmd.DrawRendererList(data.RendererList);
+            context.cmd.ClearRenderTarget(true, true, Color.clear);
+            context.cmd.DrawRendererList(data.RendererList);
         }
 
     }

@@ -90,19 +90,13 @@ namespace Barkar.BSRP.Passes.Setup
 
             cmd.SetRenderTarget(setupPassData.ColorAttachment1, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
-
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-            
-       //     cmd.SetRenderTarget(setupPassData.ColorAttachment2, RenderBufferLoadAction.DontCare,
-             //   RenderBufferStoreAction.Store);
-           // cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
-
+      
             cmd.SetRenderTarget(setupPassData.ColorAttachment3, RenderBufferLoadAction.DontCare,
                 RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(isClearDepth, isClearColor, clearColor);
+          
             cmd.SetGlobalVector(BSRPShaderIDs.RenderSizeParamsID, _attachmentSize);
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
         }
     }
 }

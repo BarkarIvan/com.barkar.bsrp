@@ -63,10 +63,9 @@ namespace Barkar.BSRP.Passes
             //TODO to array
             var destinationTextures = input.Get<RenderDestinationTextures>();
 
-            builder.SetRenderAttachment(destinationTextures.ColorAttachment0, 0);
-           // builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1);
-            builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1);
-            builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 2);
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment0, 0); //albedo rough
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment1, 1); //metallic
+            builder.SetRenderAttachment(destinationTextures.ColorAttachment3, 2); // light accum
             builder.SetRenderAttachmentDepth(destinationTextures.DepthAttachment);
 
 
