@@ -236,6 +236,8 @@ namespace Barkar.BSRP.Passes
             
             //reset VP
             cmd.SetViewProjectionMatrices(_originalMatrixV, _originalMatrixP);
+            cmd.SetGlobalDepthBias(0, 0);
+
         }
 
 

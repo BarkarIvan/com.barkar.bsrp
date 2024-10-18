@@ -1,5 +1,4 @@
 using Barkar.BSRP.CameraRenderer;
-using Unity.Android.Gradle.Manifest;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RendererUtils;
