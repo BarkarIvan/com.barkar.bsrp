@@ -4,6 +4,7 @@ using Barkar.BSRP.CameraRenderer;
 using Barkar.BSRP.Passes;
 using Barkar.BSRP.Passes.Bloom;
 using Barkar.BSRP.Passes.Setup;
+using Barkar.BSRP.Settings;
 using Barkar.BSRP.Settings.GTAO;
 using Barkar.BSRP.Settings.Shadows;
 using UnityEngine;
@@ -55,20 +56,23 @@ public class BSRP : RenderPipeline
     private DrawSkyboxPass _drawSkyboxPass = new DrawSkyboxPass();
     private BloomPass _bloomPass = new BloomPass();
 
-    //WIP GTAO
+    //GTAO
     private GTAOPass _gtaoPass = new GTAOPass();
     private GTAOSettings _GTAOsettings;
-    //
+    
+    //TONEMAP
+    private TonemappingSettings _tonemapSettings;
 
     Matrix4x4 _matrixVP;
     Matrix4x4 _matrixVPI;
     Matrix4x4 _matrixVPprev;
     Matrix4x4 _matrixVPIprev;
 
-    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, GTAOSettings gtaoSettings)
+    public BSRP(float renderScale, ShadowSettings shadowSettings, BloomSettings bloomSettings, GTAOSettings gtaoSettings, TonemappingSettings tonemapsettings)
     {
         _renderScale = renderScale;
         _shadowSettings = shadowSettings;
+        _tonemapSettings = tonemapsettings;
 
         _deferredFinalPassMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredFinalPass");
         _defferedLightingMaterial = CoreUtils.CreateEngineMaterial("Hidden/DeferredLights");
@@ -176,7 +180,7 @@ public class BSRP : RenderPipeline
             }
 
             //Final compose
-            _deferredFinalPass.ExecutePass(RenderGraph, _deferredFinalPassMaterial);
+            _deferredFinalPass.ExecutePass(RenderGraph, _tonemapSettings, _deferredFinalPassMaterial);
 
             RenderGraph.EndRecordingAndExecute();
         }

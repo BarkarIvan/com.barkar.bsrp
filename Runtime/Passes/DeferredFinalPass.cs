@@ -15,6 +15,7 @@ namespace Barkar.BSRP.Passes
         {
             GlobalKeyword.Create("_ACESTONEMAP"),
             GlobalKeyword.Create("_GTTONEMAP"),
+            GlobalKeyword.Create("_PBRNEUTRALTONEMAP"),
         };
 
         public DeferredFinalPass()

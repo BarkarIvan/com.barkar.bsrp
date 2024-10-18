@@ -9,9 +9,9 @@ Shader "Hidden/DeferredFinalPass"
             HLSLPROGRAM
             #pragma multi_compile _ _USE_LENSDIRT
             #pragma multi_compile _ _USE_BLOOM
-            #pragma multi_compile _ACESTONEMAP _GTTONEMAP
-            
-            
+            #pragma multi_compile _ACESTONEMAP _GTTONEMAP _PBRNEUTRALTONEMAP
+
+
             #pragma vertex DefaultPassVertex
             #pragma fragment FinalPassFragment
 
@@ -86,6 +86,29 @@ Shader "Hidden/DeferredFinalPass"
                 return float(T * w0 + L * w1 + S * w2);
             }
 
+            // PBR Neutral
+            half3 PBRNeutralToneMapping(half3 color)
+            {
+                const half startCompression = 0.8 - 0.04;
+                const half desaturation = 0.15;
+
+                half x = min(color.r, min(color.g, color.b));
+                half offset = x < 0.08 ? x - 6.25 * x * x : 0.04;
+                color -= offset;
+
+                half peak = max(color.r, max(color.g, color.b));
+                if (peak < startCompression) return color;
+
+                const half d = 1. - startCompression;
+                half newPeak = 1. - d * d / (peak + d - startCompression);
+                color *= newPeak / peak;
+
+                half g = 1. - 1. / (desaturation * (peak - newPeak) + 1.);
+                return lerp(color, newPeak * half3(1, 1, 1), g);
+            }
+
+            ////
+
 
             half4 FinalPassFragment(Varyings IN): SV_Target
             {
@@ -118,7 +141,11 @@ Shader "Hidden/DeferredFinalPass"
                 #if defined (_ACESTONEMAP)
                 result.rgb = ACESFilmTonemapping(result.rgb);
                 #endif
-                
+
+                #if defined (_PBRNEUTRALTONEMAP)
+                result.rgb = PBRNeutralToneMapping(result.rgb);
+                #endif
+
                 return half4(result.rgb, 1);
             }
             ENDHLSL
