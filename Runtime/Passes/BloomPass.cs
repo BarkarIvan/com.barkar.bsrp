@@ -13,8 +13,7 @@ namespace Barkar.BSRP.Passes
         private readonly ProfilingSampler _profilingSampler = new("Bloom Pass");
         private BaseRenderFunc<BloomPassData, RenderGraphContext> _renderFunc;
         
-        private readonly int _dualFilterOffsetID = Shader.PropertyToID("_DualFilterOffset");
-        private readonly int _filterID = Shader.PropertyToID("_Filter");
+     
         
         
          public BloomPass()
@@ -113,7 +112,7 @@ namespace Barkar.BSRP.Passes
             var bloomMPB = context.renderGraphPool.GetTempMaterialPropertyBlock();
             
             //prefilter
-            bloomMPB.SetVector(_filterID, data.Prefilter);
+            bloomMPB.SetVector(BSRPShaderIDs.FilterID, data.Prefilter);
             bloomMPB.SetTexture(BSRPShaderIDs.SourceTextureID, data.ColorSource);
             
             cmd.SetRenderTarget( data.BloomPassTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
@@ -140,7 +139,7 @@ namespace Barkar.BSRP.Passes
                     var texelSize = Vector2.one / new Vector2(sizeX, sizeY);
                     var halfPixel = texelSize * 0.5f;
                    
-                    bloomMPB.SetVector(_dualFilterOffsetID,
+                    bloomMPB.SetVector(BSRPShaderIDs.DualFilterOffsetID,
                         new Vector4(halfPixel.x * offset, halfPixel.y * offset, 1, 1));
                     bloomMPB.SetTexture(BSRPShaderIDs.SourceTextureID, src);
                     cmd.SetRenderTarget( dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
@@ -163,7 +162,7 @@ namespace Barkar.BSRP.Passes
                     var texelSize = Vector2.one / new Vector2(sizeX, sizeY);
                     var halfPixel = texelSize * 0.5f;
 
-                    bloomMPB.SetVector(_dualFilterOffsetID,
+                    bloomMPB.SetVector(BSRPShaderIDs.DualFilterOffsetID,
                         new Vector4(halfPixel.x * offset, halfPixel.y * offset, 1, 1));
                     bloomMPB.SetTexture(BSRPShaderIDs.SourceTextureID, src);
                     
