@@ -46,6 +46,7 @@ half4 FragGTAOSpatialY(Varyings IN) : SV_Target
     half3 reflectionDir = reflect(viewDir, normalWS);
     half GTRO = ReflectionOcclusion(bentNormal, reflectionDir, roughness, 0.5);
     */
+
     AO.a = lerp(1, AO.a, _GTAO_Intencity);
     return AO;
    

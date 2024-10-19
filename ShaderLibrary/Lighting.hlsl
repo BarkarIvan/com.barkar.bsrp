@@ -36,9 +36,9 @@ half3 GlossyEnvironmentReflection(half3 reflectVector, float3 positionWS, half p
     //  #if !defined(_ENVIRONMENTREFLECTIONS_OFF)
     half3 irradiance;
 
-    //#if defined(_REFLECTION_PROBE_BLENDING)
-    //irradiance = CalculateIrradianceFromReflectionProbes(reflectVector, positionWS, perceptualRoughness, normalizedScreenSpaceUV);
-    // #else
+    #if defined(_REFLECTION_PROBE_BLENDING)
+    irradiance = CalculateIrradianceFromReflectionProbes(reflectVector, positionWS, perceptualRoughness, normalizedScreenSpaceUV);
+     #else
     //#ifdef _REFLECTION_PROBE_BOX_PROJECTION
     //reflectVector = BoxProjectedCubemapDirection(reflectVector, positionWS, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
     //#endif // _REFLECTION_PROBE_BOX_PROJECTION
@@ -47,7 +47,7 @@ half3 GlossyEnvironmentReflection(half3 reflectVector, float3 positionWS, half p
         half4(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectVector, mip));
 
     irradiance = DecodeHDREnvironment(encodedIrradiance, unity_SpecCube0_HDR);
-    //#endif // _REFLECTION_PROBE_BLENDING
+    #endif // _REFLECTION_PROBE_BLENDING
     return irradiance * occlusion;
     //#else
     //return _GlossyEnvironmentColor.rgb * occlusion;
@@ -165,6 +165,32 @@ half3 EnvBRDF(CustomLitData customLitData, CustomSurfaceData customSurfaceData, 
     half3 specularDFG = EnvBRDFApprox(customSurfaceData.specular, customSurfaceData.roughness, NoV);
     //AO
     float specularOcclusion = GetSpecularOcclusionFromAmbientOcclusion(NoV, customSurfaceData.occlusion,
+                                                                       customSurfaceData.roughness);
+    float3 specularAO = GTAOMultiBounce(specularOcclusion, customSurfaceData.specular);
+    float3 indirectSpecularTerm = specularLD * specularDFG * specularAO;
+    return indirectDiffuseTerm + indirectSpecularTerm;
+}
+
+//BENT NORMAL TEST
+half3 EnvBRDF(CustomLitData customLitData, CustomSurfaceData customSurfaceData, float envRotation, float3 positionWS,
+              half3 indirectDiffuse, half3 BentNormal)
+{
+    half NoV = saturate(abs(dot(customLitData.N, customLitData.V)) + 1e-5);
+    half3 R = reflect(-customLitData.V, customLitData.N);
+    R = RotateDirection(R, envRotation);
+
+    //SH
+    float3 diffuseAO = GTAOMultiBounce(customSurfaceData.occlusion, customSurfaceData.albedo);
+    float3 indirectDiffuseTerm = indirectDiffuse * customSurfaceData.albedo * diffuseAO;
+
+    //IBL
+    //The Split Sum: 1nd Stage
+    half3 specularLD = GlossyEnvironmentReflection(R, positionWS, customSurfaceData.roughness,
+                                                   customSurfaceData.occlusion);
+    //The Split Sum: 2nd Stage
+    half3 specularDFG = EnvBRDFApprox(customSurfaceData.specular, customSurfaceData.roughness, NoV);
+    //AO
+    float specularOcclusion = GetSpecularOcclusionFromBentAO(NoV, BentNormal, customLitData.N, customSurfaceData.occlusion,
                                                                        customSurfaceData.roughness);
     float3 specularAO = GTAOMultiBounce(specularOcclusion, customSurfaceData.specular);
     float3 indirectSpecularTerm = specularLD * specularDFG * specularAO;

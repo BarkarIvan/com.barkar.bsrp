@@ -57,7 +57,7 @@ namespace Barkar.BSRP.Passes
                 new TextureDesc(_attachmentSize.x, _attachmentSize.y);
 
           //  data._DepthAttachment = destinationTextures.DepthAttachment;
-            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
+            textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
            
               //  textureDescriptor.name = "GTAOResolve";
            // data._GTAOResolveTexture = builder.CreateTransientTexture(textureDescriptor);

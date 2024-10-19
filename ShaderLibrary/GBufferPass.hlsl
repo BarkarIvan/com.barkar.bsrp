@@ -1,6 +1,6 @@
 #ifndef CUSTOM_GBUFFER_PASS_INCLUDED
 #define CUSTOM_GBUFFER_PASS_INCLUDED
-
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
 struct GBuffer
 {
     half4 GBUFFER0 : SV_Target0;
@@ -42,7 +42,7 @@ GBuffer GBufferFragment(Varyings IN)
 {
     half4 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
     albedo *= _BaseColor;
-    albedo *= IN.color;
+    //albedo *= IN.color;
     albedo *= _Brightness;
 
     half3 indirectDiffuse = IN.SH;
@@ -74,13 +74,13 @@ GBuffer GBufferFragment(Varyings IN)
                            
                                            //normal map
     #if defined (_NORMALMAP)
-                                           half3 normalTS;
-                                           normalTS.xy = additionalMaps.rg * 2.0 - 1.0;
-                                           normalTS.xy *= _NormalMapScale;
-                                           normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
-                                           half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
-                                           normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
-                                           indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
+    half3 normalTS;
+    normalTS.xy = additionalMaps.rg * 2.0 - 1.0;
+    normalTS.xy *= _NormalMapScale;
+    normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
+    half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
+    normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
+    indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
     #endif
     #endif
     
@@ -89,14 +89,15 @@ GBuffer GBufferFragment(Varyings IN)
 
     surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
     surfaceData.specular = lerp(kDielectricSpec.rgb, albedo.rgb, surfaceData.metallic);
-    litData.N = normalWS;
+    litData.N =(normalWS);
 
-    //alpha
+    // TODO alpha
     //  #if defined (_USEALPHACLIP)
     // surface.alpha = step(_AlphaClip, surface.alpha);
     //  #endif
-
-    half3 envPbr = EnvBRDF(litData, surfaceData, 0, IN.positionWS, indirectDiffuse);
+    
+    half3 bn = mul(UNITY_MATRIX_I_V,GTAO_BN.rgb);
+    half3 envPbr = EnvBRDF(litData, surfaceData, 0, IN.positionWS, indirectDiffuse, bn);
 
 
     //experimental diffraction
@@ -116,7 +117,7 @@ GBuffer GBufferFragment(Varyings IN)
 
     GBuffer gbo;
     gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
-    gbo.GBUFFER1 = half4(half3(0, 0, 0), surfaceData.metallic); //AO
+    gbo.GBUFFER1 = half4(half3(1, 1, 1), surfaceData.metallic); //AO
     gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
 
     return gbo;

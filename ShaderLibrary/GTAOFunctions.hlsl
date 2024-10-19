@@ -7,7 +7,7 @@ TEXTURE2D(_BentNormalTexture);
 TEXTURE2D(_GBuffer0);
 
 uniform half _GTAO_Sharpness;
-#define KERNEL_RADIUS 3
+#define KERNEL_RADIUS 5
 
 
 inline float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
@@ -219,8 +219,8 @@ half4 GTAO(half2 uv)
         bentAngle = (h.x + h.y) * 0.5;
         bentNormal += viewDir * cos(angle) - planeTangent * sin(bentAngle);
     }
-    bentNormal = normalize(normalize(half3(bentNormal.xy, bentNormal.z) - viewDir * 0.5));
-    bentNormal =  mul(UNITY_MATRIX_V, half3(bentNormal));
+    bentNormal = normalize(normalize(bentNormal) - viewDir * 0.5);
+    bentNormal =  mul((half3x3)UNITY_MATRIX_V, half3(bentNormal.xy, -bentNormal.z));
     ao = saturate(pow(ao / SAMPLE_COUNT, GTAO_POW));
     return half4(bentNormal, ao);
 }
