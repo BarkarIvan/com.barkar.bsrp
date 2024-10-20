@@ -96,8 +96,8 @@ GBuffer GBufferFragment(Varyings IN)
     // surface.alpha = step(_AlphaClip, surface.alpha);
     //  #endif
     
-    half3 bn = mul(UNITY_MATRIX_I_V,GTAO_BN.rgb);
-    half3 envPbr = EnvBRDF(litData, surfaceData, 0, IN.positionWS, indirectDiffuse, bn);
+    half3 bn =mul(UNITY_MATRIX_I_V,GTAO_BN.rgb);
+    half3 envPbr = EnvBRDF(litData, surfaceData, 0, IN.positionWS, indirectDiffuse,bn);
 
 
     //experimental diffraction
@@ -117,7 +117,7 @@ GBuffer GBufferFragment(Varyings IN)
 
     GBuffer gbo;
     gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
-    gbo.GBUFFER1 = half4(half3(1, 1, 1), surfaceData.metallic); //AO
+    gbo.GBUFFER1 = half4(bn, surfaceData.metallic); //AO
     gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
 
     return gbo;

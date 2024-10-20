@@ -51,7 +51,7 @@ Shader "Hidden/DeferredLights"
         surfaceData.occlusion = bent_ao.a;
         
         Light light = GetMainLight(shadowCoord, positionWS);
-        half3 brdf = StandardBRDF(litData, surfaceData, light.direction, light.color * surfaceData.occlusion, light.shadowAttenuation);
+        half3 brdf = StandardBRDF(litData, surfaceData, light.direction, light.color , light.shadowAttenuation);
         
         half4 result;
         result.rgb = brdf;

@@ -90,6 +90,7 @@ public class BSRPStandartLitShaderEditor : ShaderGUI
             {
                 materialEditor.ShaderProperty(_Metallic, "Metallic");
                 materialEditor.ShaderProperty(_Roughness, "Roughness");
+                _UsingNormalMap.floatValue = 0;
             }
             EditorGUILayout.Space(30);
             
