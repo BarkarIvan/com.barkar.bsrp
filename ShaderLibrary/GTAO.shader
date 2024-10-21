@@ -33,7 +33,7 @@ Pass
         }
           Pass
         {
-            Name "GTAO_SpatialX"
+            Name "GTAO_SpatialY"
             HLSLPROGRAM
             #pragma vertex DefaultPassVertex
             #pragma fragment FragGTAOSpatialY

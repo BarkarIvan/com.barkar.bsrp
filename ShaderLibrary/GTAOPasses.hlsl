@@ -6,7 +6,8 @@
 half4 FragGTAO(Varyings IN): SV_Target
 {
     half2 uv = IN.uv;
-    return GTAO(uv);
+    half4 result = GTAO(uv);
+    return result;
 }
 
 half4 FragGTAOSpatialX(Varyings IN) : SV_Target
