@@ -45,9 +45,9 @@ namespace Barkar.BSRP.Passes
             /// bloom
             var rtinfo = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
             float aspect = (float)rtinfo.width / (float)rtinfo.height;
-            bloomPassData.OriginalSize = new Vector2Int((int)(480 * aspect), 480);
+            bloomPassData.OriginalSize = new Vector2Int((int)(720 * aspect), 720);
             //TODO check orientation
-            //TODO maybe optional between 480p and downsampling
+            //TODO maybe optional between 720p and downsampling
            // bloomPassData.OriginalSize = new Vector2Int(rtinfo.width, rtinfo.height);
             bloomPassData.BloomMaterial = bloomMaterial;
            

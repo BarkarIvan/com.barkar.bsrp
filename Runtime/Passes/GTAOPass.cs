@@ -32,10 +32,11 @@ namespace Barkar.BSRP.Passes
     {
         private readonly ProfilingSampler _profilingSampler = new("GTAO Pass");
         private readonly BaseRenderFunc<GTAOPassData, RenderGraphContext> _renderFunc;
-        private Vector2Int _attachmentSize;
+        
         private GTAOSettings _settings;
         private Camera _camera;
         private Vector4 _GTAOParams;
+        private Vector4 _GTAOTextureParams;
         public GTAOPass()
         {
             _renderFunc = RenderFunction;
@@ -48,13 +49,20 @@ namespace Barkar.BSRP.Passes
 
             _settings = settings;
             var destinationTextures = input.Get<RenderDestinationTextures>();
-            var info = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment0);
-            _attachmentSize = new Vector2Int(info.width, info.height);
+            
+            var rtinfo = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment3);
+            float aspect = (float)rtinfo.width / (float)rtinfo.height;
+            var textureSize =  new Vector2Int((int)(480 * aspect), 480);
+        
+           // var info = renderGraph.GetRenderTargetInfo(destinationTextures.ColorAttachment0);
+           
             TextureDesc textureDescriptor =
-                new TextureDesc(_attachmentSize.x, _attachmentSize.y);
+                new TextureDesc(textureSize.x, textureSize.y);
+            
+            _GTAOTextureParams = new Vector4(textureSize.x, textureSize.y, 1.0f/(float)textureSize.x, 1.0f/(float)textureSize.y);
 
             textureDescriptor.colorFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
-
+           
 
             textureDescriptor.name = "GTAOTransient1";
             data.GTAOPassTransientTexture = builder.CreateTransientTexture(textureDescriptor);
@@ -92,12 +100,12 @@ namespace Barkar.BSRP.Passes
             
             float fovRad = _camera.fieldOfView * Mathf.Deg2Rad;
             float invHalfTanFov = 1 / Mathf.Tan(fovRad * 0.5f);
-            Vector2 focalLen = new Vector2(invHalfTanFov * ((float)_attachmentSize.y / (float)_attachmentSize.x), invHalfTanFov);
+            Vector2 focalLen = new Vector2(invHalfTanFov * ((float)_GTAOTextureParams.y / (float)_GTAOTextureParams.x), invHalfTanFov);
             Vector2 invFocalLen = new Vector2(1 / focalLen.x, 1 / focalLen.y);
             mpb.SetVector("_AOUVToViewCoef", new Vector4(2 * invFocalLen.x, 2 * invFocalLen.y, -1 * invFocalLen.x, -1 * invFocalLen.y));
-            float projScale = (float)_attachmentSize.y / (Mathf.Tan(fovRad * 0.5f) * 2) * 0.5f;
+            float projScale = (float)_GTAOTextureParams.y / (Mathf.Tan(fovRad * 0.5f) * 2) * 0.5f;
             mpb.SetFloat("_AO_HalfProjScale", projScale);
-            
+            mpb.SetVector("_GTAOTextureParams", _GTAOTextureParams);
             cmd.SetRenderTarget(data.GTAOPassTransientTexture,  RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(RTClearFlags.Color, Color.clear);
             cmd.DrawProcedural(Matrix4x4.identity, data.GTAOMaterial, 0, MeshTopology.Triangles, 3,1, mpb);

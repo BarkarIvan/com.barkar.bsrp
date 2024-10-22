@@ -7,7 +7,7 @@ TEXTURE2D(_BentNormalTexture);
 TEXTURE2D(_GBuffer0);
 
 uniform half _GTAO_Sharpness;
-#define KERNEL_RADIUS 5
+#define KERNEL_RADIUS 4
 
 
 inline float ApproximateConeConeIntersection(float ArcLength0, float ArcLength1, float AngleBetweenCones)
@@ -103,6 +103,7 @@ inline float4 BilateralBlur(half4 ao, float depth, float2 uv0, float2 deltaUV)
 
 uniform half4 _GTAOParams; //pow, radius, sampleCount, thickness;
 uniform half4 _AOUVToViewCoef;
+uniform half4 _GTAOTextureParams;
 uniform half _AO_HalfProjScale;
 uniform half _GTAO_Intencity;
 
@@ -117,7 +118,7 @@ TEXTURE2D_HALF(_GBuffer2);
 
 float2 GetScreenSpacePosition(float2 uv)
 {
-    return float2(uv * _RenderSizeParams.xy);
+    return float2(uv * _GTAOTextureParams.xy);
 }
 
 inline half3 GetPosition2(half2 uv)
@@ -141,7 +142,7 @@ half IntegrateArc_CosWeight(half2 h, half n)
 
 inline half GTAO_Offsets(half2 uv)
 {
-    int2 position = (int2)(uv * _RenderSizeParams.xy);
+    int2 position = (int2)(uv * _GTAOTextureParams.xy);
     return 0.25 * (half)((position.y - position.x) & 3);
 }
 
@@ -167,7 +168,7 @@ half4 GTAO(half2 uv)
     stepRadius /= ((half)SLICE_COUNT + 1);
 
     //noise
-    half noiseDir = GTAO_Noise(uv * _RenderSizeParams.xy);
+    half noiseDir = GTAO_Noise(uv * _GTAOTextureParams.xy);
     half noiseOffset = GTAO_Offsets(uv);
     half initialRayStep = frac(noiseOffset + 0); //0 - _GTAOTemporalOffsets
 
@@ -183,7 +184,7 @@ half4 GTAO(half2 uv)
     {
         angle = (i + noiseDir + 0) * (PI / SAMPLE_COUNT); // 0 - _GTAOTemporalDirection
         sliceDir = half3(half2(cos(angle), sin(angle)), 0);
-        slideDir_TexelSize = (sliceDir.xy * _RenderSizeParams.zw);
+        slideDir_TexelSize = (sliceDir.xy * _GTAOTextureParams.zw);
         h = -1;
 
         for (int j = 0; j < SLICE_COUNT; j++)
