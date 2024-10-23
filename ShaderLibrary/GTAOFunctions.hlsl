@@ -113,7 +113,7 @@ TEXTURE2D_HALF(_GBuffer2);
 #define GTAO_RADIUS _GTAOParams.y
 #define SAMPLE_COUNT _GTAOParams.z
 #define GTAO_THICKNESS _GTAOParams.w
-#define SLICE_COUNT 3 //1-8
+#define SLICE_COUNT 4 //1-8
 
 
 float2 GetScreenSpacePosition(float2 uv)

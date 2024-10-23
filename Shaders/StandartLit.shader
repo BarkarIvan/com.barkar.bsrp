@@ -177,7 +177,7 @@ Pass
             #pragma fragment MetaPassFragment
             
             #include "Packages/com.barkar.bsrp/ShaderLibrary/LitInput.hlsl"
-           #include "Packages/com.barkar.bsrp/ShaderLibrary/MetaPass.hlsl"
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/MetaPass.hlsl"
             ENDHLSL
         }
     }

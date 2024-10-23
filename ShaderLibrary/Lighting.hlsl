@@ -10,10 +10,34 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
 
 //TODO GI
+
+
 #define LIGHTMAP_NAME unity_Lightmap
 #define LIGHTMAP_INDIRECTION_NAME unity_LightmapInd
 #define LIGHTMAP_SAMPLER_NAME samplerunity_Lightmap
 #define LIGHTMAP_SAMPLE_EXTRA_ARGS lightmapUV
+
+
+#if defined(LIGHTMAP_ON)
+    #define DECLARE_LIGHTMAP_OR_SH(lmName, shName, index) float2 lmName : TEXCOORD##index
+    #define OUTPUT_LIGHTMAP_UV(lightmapUV, lightmapScaleOffset, OUT) OUT.xy = lightmapUV.xy * lightmapScaleOffset.xy + lightmapScaleOffset.zw;
+    #define OUTPUT_SH4(absolutePositionWS, normalWS, viewDir, OUT, OUT_OCCLUSION)
+    #define OUTPUT_SH(normalWS, OUT)
+#else
+    #define DECLARE_LIGHTMAP_OR_SH(lmName, shName, index) half3 shName : TEXCOORD##index
+    #define OUTPUT_LIGHTMAP_UV(lightmapUV, lightmapScaleOffset, OUT)
+    #ifdef USE_APV_PROBE_OCCLUSION
+        #define OUTPUT_SH4(absolutePositionWS, normalWS, viewDir, OUT, OUT_OCCLUSION) OUT.xyz = SampleProbeSHVertex(absolutePositionWS, normalWS, viewDir, OUT_OCCLUSION)
+    #else
+        #define OUTPUT_SH4(absolutePositionWS, normalWS, viewDir, OUT, OUT_OCCLUSION) OUT.xyz = SampleProbeSHVertex(absolutePositionWS, normalWS, viewDir)
+    #endif
+    // Note: This is the legacy function, which does not support APV.
+    // Kept to avoid breaking shaders still calling it (UUM-37723)
+    #define OUTPUT_SH(normalWS, OUT) OUT.xyz = SampleSHVertex(normalWS)
+#endif
+
+
+
 half3 SampleLightmap(float2 lightmapUV, half3 normalWS)
 {
     // The shader library sample lightmap functions transform the lightmap uv coords to apply bias and scale.
@@ -21,19 +45,20 @@ half3 SampleLightmap(float2 lightmapUV, half3 normalWS)
     // the compiler will optimize the transform away.
     half4 transformCoords = half4(1, 1, 0, 0);
 
-    //#if defined(LIGHTMAP_ON) && defined(DIRLIGHTMAP_COMBINED)
-  //  return SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME),
-    //    TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_INDIRECTION_NAME, LIGHTMAP_SAMPLER_NAME),
-   //     LIGHTMAP_SAMPLE_EXTRA_ARGS, transformCoords, normalWS, true);
-  //  #elif defined(LIGHTMAP_ON)
+    #if defined(LIGHTMAP_ON) && defined(DIRLIGHTMAP_COMBINED)
+    return SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME),
+        TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_INDIRECTION_NAME, LIGHTMAP_SAMPLER_NAME),
+       LIGHTMAP_SAMPLE_EXTRA_ARGS, transformCoords, normalWS, true);
+    #elif defined(LIGHTMAP_ON)
     return SampleSingleLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME), LIGHTMAP_SAMPLE_EXTRA_ARGS, transformCoords, true);
-  //  #else
-   // return half3(0.0, 0.0, 0.0);
+    #else
+    return half3(0.0, 0.0, 0.0);
     #endif
 }
 
 half3 SampleSHPixel(half3 L2Term, half3 normalWS)
 {
+    
     half3 L0L1Term = SHEvalLinearL0L1(normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
     half3 res = L2Term + L0L1Term;
     return max(half3(0, 0, 0), res);
@@ -272,4 +297,4 @@ float3 cartesian2Polar(float3 cartPos)
 }
 
 
-//#endif
+#endif

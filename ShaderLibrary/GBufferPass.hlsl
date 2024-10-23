@@ -57,7 +57,9 @@ Varyings GBufferVertex(Attributes IN)
     OUT.color = IN.color;
     OUT.shadowCoord = GetShadowCoord(positionInputs);
     OUT.screenPos = positionInputs.positionNDC;
-    OUT.lightmapUV = IN.lightmapUV;
+    //OUT.lightmapUV = IN.lightmapUV;
+    OUTPUT_LIGHTMAP_UV(IN.lightmapUV, unity_LightmapST, OUT.lightmapUV);
+
 
     return OUT;
 }
