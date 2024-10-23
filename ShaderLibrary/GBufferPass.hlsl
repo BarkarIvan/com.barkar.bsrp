@@ -18,22 +18,22 @@ Varyings GBufferVertex(Attributes IN)
     OUT.positionCS = positionInputs.positionCS;
     OUT.normalWS = normalInputs.normalWS;
 
-    OUT.SH = SampleSH(OUT.normalWS);
+    //OUT.SH = SampleSH(OUT.normalWS);
     half sign = IN.tangentOS.w;
     half3 tangentWS = TransformObjectToWorldDir(IN.tangentOS.xyz);
     half3 bitangentWS = cross(normalInputs.normalWS.xyz, normalInputs.tangentWS.xyz) * sign;
     OUT.tangentWS = half3(tangentWS);
     OUT.bitangentWS = half3(bitangentWS);
 
-    #if defined(_NORMALMAP)
+ //  #if defined(_NORMALMAP)
     OUT.SH = SHEvalLinearL2(OUT.normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
-    #endif
+  // #endif
 
     OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
-    OUT.addUv = TRANSFORM_TEX(IN.uv, _AdditionalMap);
     OUT.color = IN.color;
     OUT.shadowCoord = GetShadowCoord(positionInputs);
     OUT.screenPos = positionInputs.positionNDC;
+    OUT.lightmapUV = IN.lightmapUV;
 
     return OUT;
 }
@@ -45,7 +45,6 @@ GBuffer GBufferFragment(Varyings IN)
     //albedo *= IN.color;
     albedo *= _Brightness;
 
-    half3 indirectDiffuse = IN.SH;
 
     CustomSurfaceData surfaceData;
     surfaceData.metallic = _Metallic;
@@ -66,7 +65,7 @@ GBuffer GBufferFragment(Varyings IN)
     
     //additional map
     #if defined (_ADDITIONALMAP)
-                                           half4 additionalMaps = SAMPLE_TEXTURE2D(_AdditionalMap, sampler_AdditionalMap, IN.addUv);
+                                           half4 additionalMaps = SAMPLE_TEXTURE2D(_AdditionalMap, sampler_AdditionalMap, IN.uv);
                                            half smoothnessMask = additionalMaps.b;
                                            half metallicMask = additionalMaps.a;
                                            surfaceData.metallic = metallicMask;
@@ -80,7 +79,7 @@ GBuffer GBufferFragment(Varyings IN)
     normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
     half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
     normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
-    indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
+   // indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
     #endif
     #endif
     
@@ -90,6 +89,9 @@ GBuffer GBufferFragment(Varyings IN)
     surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
     surfaceData.specular = lerp(kDielectricSpec.rgb, albedo.rgb, surfaceData.metallic);
     litData.N =(normalWS);
+    
+    half3 indirectDiffuse = SAMPLE_GI(IN.lightmapUV, IN.SH, litData.N);
+
 
     // TODO alpha
     //  #if defined (_USEALPHACLIP)
@@ -117,7 +119,7 @@ GBuffer GBufferFragment(Varyings IN)
 
     GBuffer gbo;
     gbo.GBUFFER0 = half4(albedo.rgb * diffractionShift, surfaceData.roughness);
-    gbo.GBUFFER1 = half4(bn, surfaceData.metallic); //AO
+    gbo.GBUFFER1 = half4(indirectDiffuse, surfaceData.metallic); //AO
     gbo.GBUFFER3 = float4(envPbr + emissionColor, 1.0);
 
     return gbo;

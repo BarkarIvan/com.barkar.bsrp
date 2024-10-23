@@ -2,23 +2,54 @@
 #define CUSTOM_LIGHTING
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
+
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomLitData.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/RealTimeLight.hlsl"
-#include "Packages/com.barkar.bsrp/ShaderLibrary/OpenSimplex.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
+
+//TODO GI
+#define LIGHTMAP_NAME unity_Lightmap
+#define LIGHTMAP_INDIRECTION_NAME unity_LightmapInd
+#define LIGHTMAP_SAMPLER_NAME samplerunity_Lightmap
+#define LIGHTMAP_SAMPLE_EXTRA_ARGS lightmapUV
+half3 SampleLightmap(float2 lightmapUV, half3 normalWS)
+{
+    // The shader library sample lightmap functions transform the lightmap uv coords to apply bias and scale.
+    // However, builtin pipeline already transformed those coords in vertex. We pass half4(1, 1, 0, 0) and
+    // the compiler will optimize the transform away.
+    half4 transformCoords = half4(1, 1, 0, 0);
+
+    //#if defined(LIGHTMAP_ON) && defined(DIRLIGHTMAP_COMBINED)
+  //  return SampleDirectionalLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME),
+    //    TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_INDIRECTION_NAME, LIGHTMAP_SAMPLER_NAME),
+   //     LIGHTMAP_SAMPLE_EXTRA_ARGS, transformCoords, normalWS, true);
+  //  #elif defined(LIGHTMAP_ON)
+    return SampleSingleLightmap(TEXTURE2D_LIGHTMAP_ARGS(LIGHTMAP_NAME, LIGHTMAP_SAMPLER_NAME), LIGHTMAP_SAMPLE_EXTRA_ARGS, transformCoords, true);
+  //  #else
+   // return half3(0.0, 0.0, 0.0);
+    #endif
+}
+
+half3 SampleSHPixel(half3 L2Term, half3 normalWS)
+{
+    half3 L0L1Term = SHEvalLinearL0L1(normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
+    half3 res = L2Term + L0L1Term;
+    return max(half3(0, 0, 0), res);
+}
+//
+
 
 #define MIN_REFLECTIVITY 0.04
 #define kDielectricSpec half4(0.04, 0.04, 0.04, 1.0 - 0.04)
 
-real3 DecodeHDREnvironment(real4 encodedIrradiance, real4 decodeInstructions)
-{
-    // Take into account texture alpha if decodeInstructions.w is true(the alpha value affects the RGB channels)
-    real alpha = max(decodeInstructions.w * (encodedIrradiance.a - 1.0) + 1.0, 0.0);
 
-    // If Linear mode is not supported we can skip exponent part
-    return (decodeInstructions.x * PositivePow(alpha, decodeInstructions.y)) * encodedIrradiance.rgb;
-}
+#if defined(LIGHTMAP_ON)
+#define SAMPLE_GI(lmName, shName, normalWSName) SampleLightmap(lmName, normalWSName)
+#else
+#define SAMPLE_GI(lmName, shName, normalWSName) SampleSHPixel(shName, normalWSName)
+#endif
 
 
 half3 GlossyEnvironmentReflection(half3 reflectVector, half perceptualRoughness, half occlusion)
@@ -241,4 +272,4 @@ float3 cartesian2Polar(float3 cartPos)
 }
 
 
-#endif
+//#endif

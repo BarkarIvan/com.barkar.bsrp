@@ -9,6 +9,12 @@ SAMPLER(samplerunity_SpecCube0);
 TEXTURECUBE(unity_SpecCube1);
 SAMPLER(samplerunity_SpecCube1);
 
+// Main lightmap
+TEXTURE2D(unity_Lightmap);
+SAMPLER(samplerunity_Lightmap);
+TEXTURE2D_ARRAY(unity_Lightmaps);
+SAMPLER(samplerunity_Lightmaps);
+
 #define PER_TILE_LIGHT_COUNT 32
 #define MAX_LIGHT_COUNT 1024
 

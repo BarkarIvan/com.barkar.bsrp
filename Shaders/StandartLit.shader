@@ -58,6 +58,7 @@ Shader "BSRP/StandartLit"
             #pragma shader_feature_local _ADDITIONALMAP
             #pragma shader_feature_local _EMISSION
             #pragma shader_feature_local _USEALPHACLIP
+            #pragma multi_compile _ LIGHTMAP_ON
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 
             #pragma prefer_hlslcc gles
@@ -70,6 +71,7 @@ Shader "BSRP/StandartLit"
                 half3 normalOS : NORMAL;
                 half4 tangentOS : TANGENT;
                 float2 uv : TEXCOORD0;
+                float2 lightmapUV : TEXCOORD1;
                 half4 color : COLOR;
             };
 
@@ -77,14 +79,14 @@ Shader "BSRP/StandartLit"
             {
                 float4 positionCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float2 addUv : TEXCOORD1;
-                float3 positionWS : TEXCOORD2;
+                float2 lightmapUV : TEXCOORD7;
+                float3 positionWS : TEXCOORD1;
                 half3 normalWS : NORMAL;
-                half3 tangentWS : TEXCOORD3;
-                half3 bitangentWS : TEXCOORD4;
-                float4 shadowCoord : TEXCOORD5;
-                half3 SH : TEXCOORD6;
-                float4 screenPos : TEXCOORD7;
+                half3 tangentWS : TEXCOORD2;
+                half3 bitangentWS : TEXCOORD3;
+                float4 shadowCoord : TEXCOORD4;
+                half3 SH : TEXCOORD5;
+                float4 screenPos : TEXCOORD6;
                 half4 color : COLOR;
             };
 
@@ -171,6 +173,34 @@ Shader "BSRP/StandartLit"
             
             #include "Packages/com.barkar.bsrp/ShaderLibrary/LitInput.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/DepthNormalsPass.hlsl"
+            ENDHLSL
+        }
+
+Pass
+        {
+            Name "Meta"
+            Tags
+            {
+                "LightMode"="Meta"
+            }
+
+           // ZWrite On
+            //ZTest LEqual
+            Cull Off
+
+
+            HLSLPROGRAM
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _ADDITIONALMAP
+            #pragma shader_feature_local _EMISSION
+            #pragma shader_feature_local _USEALPHACLIP
+            #pragma prefer_hlslcc gles
+            #pragma exclude_renderers d3d11_9x
+            #pragma vertex MetaPassVertex
+            #pragma fragment MetaPassFragment
+            
+            #include "Packages/com.barkar.bsrp/ShaderLibrary/LitInput.hlsl"
+           #include "Packages/com.barkar.bsrp/ShaderLibrary/MetaPass.hlsl"
             ENDHLSL
         }
     }
