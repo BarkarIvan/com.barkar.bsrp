@@ -1,6 +1,31 @@
 #ifndef CUSTOM_GBUFFER_PASS_INCLUDED
 #define CUSTOM_GBUFFER_PASS_INCLUDED
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
+
+struct Attributes
+{
+    float3 positionOS : POSITION;
+    half3 normalOS : NORMAL;
+    half4 tangentOS : TANGENT;
+    float2 uv : TEXCOORD0;
+    float2 lightmapUV : TEXCOORD1;
+    half4 color : COLOR;
+};
+
+struct Varyings
+{
+    float4 positionCS : SV_POSITION;
+    float2 uv : TEXCOORD0;
+    float2 lightmapUV : TEXCOORD7;
+    float3 positionWS : TEXCOORD1;
+    half3 normalWS : NORMAL;
+    half3 tangentWS : TEXCOORD2;
+    half3 bitangentWS : TEXCOORD3;
+    float4 shadowCoord : TEXCOORD4;
+    half3 SH : TEXCOORD5;
+    float4 screenPos : TEXCOORD6;
+    half4 color : COLOR;
+};
 struct GBuffer
 {
     half4 GBUFFER0 : SV_Target0;
@@ -13,7 +38,6 @@ Varyings GBufferVertex(Attributes IN)
     Varyings OUT;
     VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS);
     VertexNormalInputs normalInputs = GetVertexNormalInputs(IN.normalOS);
-
     OUT.positionWS.xyz = positionInputs.positionWS;
     OUT.positionCS = positionInputs.positionCS;
     OUT.normalWS = normalInputs.normalWS;

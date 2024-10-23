@@ -65,30 +65,7 @@ Shader "BSRP/StandartLit"
             #pragma exclude_renderers d3d11_9x
 
 
-            struct Attributes
-            {
-                float3 positionOS : POSITION;
-                half3 normalOS : NORMAL;
-                half4 tangentOS : TANGENT;
-                float2 uv : TEXCOORD0;
-                float2 lightmapUV : TEXCOORD1;
-                half4 color : COLOR;
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float2 lightmapUV : TEXCOORD7;
-                float3 positionWS : TEXCOORD1;
-                half3 normalWS : NORMAL;
-                half3 tangentWS : TEXCOORD2;
-                half3 bitangentWS : TEXCOORD3;
-                float4 shadowCoord : TEXCOORD4;
-                half3 SH : TEXCOORD5;
-                float4 screenPos : TEXCOORD6;
-                half4 color : COLOR;
-            };
+          
 
             #include "Packages/com.barkar.bsrp/ShaderLibrary/LitInput.hlsl"
             #include "Packages/com.barkar.bsrp/ShaderLibrary/GBufferPass.hlsl"
