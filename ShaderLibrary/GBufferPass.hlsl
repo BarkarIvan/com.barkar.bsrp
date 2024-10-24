@@ -16,13 +16,13 @@ struct Varyings
 {
     float4 positionCS : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float2 lightmapUV : TEXCOORD7;
+  //  float2 lightmapUV : TEXCOORD7;
     float3 positionWS : TEXCOORD1;
     half3 normalWS : NORMAL;
     half3 tangentWS : TEXCOORD2;
     half3 bitangentWS : TEXCOORD3;
     float4 shadowCoord : TEXCOORD4;
-    half3 SH : TEXCOORD5;
+    DECLARE_LIGHTMAP_OR_SH(lightmapUV,SH, 5);
     float4 screenPos : TEXCOORD6;
     half4 color : COLOR;
 };
@@ -50,7 +50,7 @@ Varyings GBufferVertex(Attributes IN)
     OUT.bitangentWS = half3(bitangentWS);
 
  //  #if defined(_NORMALMAP)
-    OUT.SH = SHEvalLinearL2(OUT.normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
+ //   OUT.SH = SHEvalLinearL2(OUT.normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
   // #endif
 
     OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
@@ -59,6 +59,8 @@ Varyings GBufferVertex(Attributes IN)
     OUT.screenPos = positionInputs.positionNDC;
     //OUT.lightmapUV = IN.lightmapUV;
     OUTPUT_LIGHTMAP_UV(IN.lightmapUV, unity_LightmapST, OUT.lightmapUV);
+    OUTPUT_SH(OUT.normalWS, OUT.SH ); //vertex SH
+   
 
 
     return OUT;

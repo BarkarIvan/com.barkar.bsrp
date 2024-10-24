@@ -231,7 +231,32 @@ VertexNormalInputs GetVertexNormalInputs(float3 normalOS, float4 tangentOS)
 	tbn.bitangentWS = real3(cross(tbn.normalWS, float3(tbn.tangentWS))) * sign;
 	return tbn;
 }
+bool IsPerspectiveProjection()
+{
+	return (unity_OrthoParams.w == 0);
+}
 
+// Returns the forward (central) direction of the current view in the world space.
+float3 GetViewForwardDir()
+{
+	float4x4 viewMat = GetWorldToViewMatrix();
+	return -viewMat[2].xyz;
+}
+
+float3 GetWorldSpaceNormalizeViewDir(float3 positionWS)
+{
+	if (IsPerspectiveProjection())
+	{
+		// Perspective
+		float3 V = _WorldSpaceCameraPos - positionWS;
+		return normalize(V);
+	}
+	else
+	{
+		// Orthographic
+		return -GetViewForwardDir();
+	}
+}
 
 real ComputeFogFactorZ0ToFar(float z)
 {

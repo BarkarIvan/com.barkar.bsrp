@@ -26,13 +26,6 @@
 #else
     #define DECLARE_LIGHTMAP_OR_SH(lmName, shName, index) half3 shName : TEXCOORD##index
     #define OUTPUT_LIGHTMAP_UV(lightmapUV, lightmapScaleOffset, OUT)
-    #ifdef USE_APV_PROBE_OCCLUSION
-        #define OUTPUT_SH4(absolutePositionWS, normalWS, viewDir, OUT, OUT_OCCLUSION) OUT.xyz = SampleProbeSHVertex(absolutePositionWS, normalWS, viewDir, OUT_OCCLUSION)
-    #else
-        #define OUTPUT_SH4(absolutePositionWS, normalWS, viewDir, OUT, OUT_OCCLUSION) OUT.xyz = SampleProbeSHVertex(absolutePositionWS, normalWS, viewDir)
-    #endif
-    // Note: This is the legacy function, which does not support APV.
-    // Kept to avoid breaking shaders still calling it (UUM-37723)
     #define OUTPUT_SH(normalWS, OUT) OUT.xyz = SampleSHVertex(normalWS)
 #endif
 
@@ -54,6 +47,19 @@ half3 SampleLightmap(float2 lightmapUV, half3 normalWS)
     #else
     return half3(0.0, 0.0, 0.0);
     #endif
+}
+
+half3 SampleSHVertex(half3 normalWS)
+{
+    #if defined(EVALUATE_SH_VERTEX)
+    return SampleSH(normalWS);
+    #elif defined(EVALUATE_SH_MIXED)
+    // no max since this is only L2 contribution
+    return SHEvalLinearL2(normalWS, unity_SHBr, unity_SHBg, unity_SHBb, unity_SHC);
+    #endif
+
+    // Fully per-pixel. Nothing to compute.
+    return half3(0.0, 0.0, 0.0);
 }
 
 half3 SampleSHPixel(half3 L2Term, half3 normalWS)
