@@ -1,6 +1,5 @@
 #ifndef CUSTOM_GBUFFER_PASS_INCLUDED
 #define CUSTOM_GBUFFER_PASS_INCLUDED
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
 
 struct Attributes
 {
@@ -107,7 +106,6 @@ GBuffer GBufferFragment(Varyings IN)
     normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
     half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
     normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
-   // indirectDiffuse += SHEvalLinearL0L1(IN.normalWS, unity_SHAr, unity_SHAg, unity_SHAb);
     #endif
     #endif
     

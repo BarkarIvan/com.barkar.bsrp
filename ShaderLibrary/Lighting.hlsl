@@ -2,7 +2,6 @@
 #define CUSTOM_LIGHTING
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
-
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
 #include "Packages/com.barkar.bsrp/ShaderLibrary/CustomLitData.hlsl"
