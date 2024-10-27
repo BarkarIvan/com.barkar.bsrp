@@ -14,6 +14,15 @@ TEXTURE2D(unity_Lightmap);
 SAMPLER(samplerunity_Lightmap);
 TEXTURE2D_ARRAY(unity_Lightmaps);
 SAMPLER(samplerunity_Lightmaps);
+// Dual or directional lightmap (always used with unity_Lightmap, so can share sampler)
+TEXTURE2D(unity_LightmapInd);
+TEXTURE2D_ARRAY(unity_LightmapsInd);
+
+
+TEXTURE2D(unity_ShadowMask);
+SAMPLER(samplerunity_ShadowMask);
+TEXTURE2D_ARRAY(unity_ShadowMasks);
+SAMPLER(samplerunity_ShadowMasks);
 
 #define PER_TILE_LIGHT_COUNT 32
 #define MAX_LIGHT_COUNT 1024

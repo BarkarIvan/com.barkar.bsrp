@@ -58,7 +58,12 @@ Shader "BSRP/StandartLit"
             #pragma shader_feature_local _ADDITIONALMAP
             #pragma shader_feature_local _EMISSION
             #pragma shader_feature_local _USEALPHACLIP
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
+
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
             #pragma multi_compile _ LIGHTMAP_ON
+            
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
 
             #pragma prefer_hlslcc gles
