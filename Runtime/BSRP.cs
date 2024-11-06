@@ -187,8 +187,6 @@ public class BSRP : RenderPipeline
 
         context.ExecuteCommandBuffer(_renderGraphParameters.commandBuffer);
         context.Submit();
-        CommandBufferPool.Release(_renderGraphParameters.commandBuffer);
-
         RenderGraph.EndFrame();
     }
 
