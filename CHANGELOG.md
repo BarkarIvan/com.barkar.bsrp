@@ -5,8 +5,8 @@
 
 ### Added
 - Deferred
-- Tile culling ponint lights
-- Per pixel linced lisd OIT
+- Tile culling point lights
+- Per pixel linked list OIT
 
 
 ## [1.0.1] - 2024-06-25
