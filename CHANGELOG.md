@@ -15,3 +15,10 @@
 - Some passes changed to RasterGraph
 
 
+## [1.1.0] - 2024-11-06
+
+### Added
+- GTAO
+- Meta pass
+- GT and Neutral tonemapping
+- Standart Lit and new BRDF instead stylized lit

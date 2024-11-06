@@ -1,6 +1,6 @@
 {
   "name": "com.barkar.bsrp",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "displayName": "BarkarSRP",
   "description": "Simple deferred scriptable render pipeline",
   "unity": "2023.3",
