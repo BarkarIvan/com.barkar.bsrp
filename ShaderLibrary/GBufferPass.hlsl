@@ -81,14 +81,14 @@ GBuffer GBufferFragment(Varyings IN)
    // surfaceData.occlusion = 1.0;
     surfaceData.normalTS = SafeNormalize(IN.normalWS);
 
-    half3 normalWS = IN.normalWS;
+    
     CustomLitData litData;
 
     litData.T = IN.tangentWS;
     litData.V = SafeNormalize(_WorldSpaceCameraPos - IN.positionWS);
     litData.positionWS = IN.positionWS;
     litData.B = IN.bitangentWS;
-
+    litData.N = SafeNormalize(IN.normalWS.xyz);
     
     //additional map
     #if defined (_ADDITIONALMAP)
@@ -105,7 +105,7 @@ GBuffer GBufferFragment(Varyings IN)
     normalTS.xy *= _NormalMapScale;
     normalTS.z = sqrt(1 - (normalTS.x * normalTS.x) - (normalTS.y * normalTS.y));
     half3x3 tangentToWorld = half3x3(IN.tangentWS.xyz, IN.bitangentWS.xyz, IN.normalWS.xyz);
-    normalWS = SafeNormalize(mul(normalTS, tangentToWorld));
+    litData.N = SafeNormalize(mul(normalTS, tangentToWorld));
     #endif
     #endif
     
@@ -114,7 +114,7 @@ GBuffer GBufferFragment(Varyings IN)
 
     surfaceData.albedo = lerp(surfaceData.albedo, float3(0.0, 0.0, 0.0), surfaceData.metallic);
     surfaceData.specular = lerp(kDielectricSpec.rgb, albedo.rgb, surfaceData.metallic);
-    litData.N =(normalWS);
+   
     
     half3 indirectDiffuse = SAMPLE_GI(IN.lightmapUV, IN.SH, litData.N);
 

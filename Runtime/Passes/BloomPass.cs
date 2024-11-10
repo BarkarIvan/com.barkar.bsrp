@@ -118,8 +118,8 @@ namespace Barkar.BSRP.Passes
             cmd.SetRenderTarget( data.BloomPassTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
             cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
             cmd.DrawProcedural( Matrix4x4.identity, data.BloomMaterial, 0, MeshTopology.Triangles,3, 1, bloomMPB);
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
+           // context.renderContext.ExecuteCommandBuffer(cmd);
+           // cmd.Clear();
            
             //blur
             if (data.BlurPassesCount > 0)
@@ -145,8 +145,8 @@ namespace Barkar.BSRP.Passes
                     cmd.SetRenderTarget( dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
                     cmd.ClearRenderTarget(RTClearFlags.ColorDepth, Color.clear);
                     cmd.DrawProcedural( Matrix4x4.identity, data.BloomMaterial, 1, MeshTopology.Triangles,3, 1, bloomMPB);
-                    context.renderContext.ExecuteCommandBuffer(cmd);
-                    cmd.Clear();
+                   // context.renderContext.ExecuteCommandBuffer(cmd);
+                   // cmd.Clear();
                 }
 
                 for (int i = data.BlurPassesCount; i >= 1; i--)
@@ -168,8 +168,8 @@ namespace Barkar.BSRP.Passes
                     
                     cmd.SetRenderTarget( dst, RenderBufferLoadAction.Load, RenderBufferStoreAction.Store);
                     cmd.DrawProcedural(Matrix4x4.identity, data.BloomMaterial, 2, MeshTopology.Triangles, 3, 1, bloomMPB);
-                    context.renderContext.ExecuteCommandBuffer(cmd);
-                    cmd.Clear();
+                   // context.renderContext.ExecuteCommandBuffer(cmd);
+                    //cmd.Clear();
                 }
             }
             //to resources?
@@ -177,8 +177,8 @@ namespace Barkar.BSRP.Passes
             cmd.SetGlobalTexture(BSRPShaderIDs._customBloomLensDirtTextureID, data.LensDirtTexture);
             cmd.SetGlobalVector(BSRPShaderIDs._customBloomParamsID, data.BloomParams);
             
-            context.renderContext.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
+           // context.renderContext.ExecuteCommandBuffer(cmd);
+           // cmd.Clear();
         }
     }
 }
